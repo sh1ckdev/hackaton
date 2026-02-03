@@ -21,6 +21,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         }
       }
-    }
+    },
+    preview: {
+      port: 4173,
+      host: '0.0.0.0',
+      strictPort: true,
+    },
+    base: '/', // Базовый путь для приложения (измените если развёрнуто в поддиректории)
   }
 })
