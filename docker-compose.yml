@@ -1,9 +1,7 @@
-version: "3.9"
-
 services:
   frontend:
     build:
-      context: ../client
+      context: .
     container_name: hackathon-frontend
     environment:
       VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
