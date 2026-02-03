@@ -2,3 +2,7 @@ node_modules
 uploads
 *.log
 .env
+.env.local
+.env.development
+.env.staging
+.env.production
