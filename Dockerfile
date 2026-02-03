@@ -1,43 +1,61 @@
-FROM node:20-alpine AS build
+# Многоэтапная сборка для production
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Build args для переменных окружения Vite
-ARG VITE_TELEGRAM_BOT_USERNAME=
-ARG VITE_TURNSTILE_SITE_KEY=
-ARG VITE_FRONTEND_URL=
-ARG VITE_API_URL=http://localhost:5000/api
-
-# Vite требует, чтобы переменные окружения были доступны во время сборки
-ENV VITE_TELEGRAM_BOT_USERNAME=${VITE_TELEGRAM_BOT_USERNAME}
-ENV VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}
-ENV VITE_FRONTEND_URL=${VITE_FRONTEND_URL}
-ENV VITE_API_URL=${VITE_API_URL}
-
+# Копируем файлы зависимостей
 COPY package*.json ./
-RUN npm install
 
+# Устанавливаем зависимости
+RUN npm ci
+
+# Копируем исходный код
 COPY . .
 
-# Выводим значения для отладки
-RUN echo "=== Building with environment variables ===" && \
-    echo "VITE_TELEGRAM_BOT_USERNAME=$VITE_TELEGRAM_BOT_USERNAME" && \
-    echo "VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY:-(empty)}" && \
-    echo "VITE_FRONTEND_URL=$VITE_FRONTEND_URL" && \
-    echo "VITE_API_URL=$VITE_API_URL" && \
-    echo "============================================"
+# Передаем переменные окружения для сборки
+ARG VITE_TURNSTILE_SITE_KEY
+ARG VITE_TELEGRAM_BOT_USERNAME
+ARG VITE_FRONTEND_URL
+ARG VITE_API_URL
+ARG ALLOWED_HOSTS
 
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
+ENV VITE_TELEGRAM_BOT_USERNAME=$VITE_TELEGRAM_BOT_USERNAME
+ENV VITE_FRONTEND_URL=$VITE_FRONTEND_URL
+ENV VITE_API_URL=$VITE_API_URL
+ENV ALLOWED_HOSTS=$ALLOWED_HOSTS
+
+# Собираем приложение
 RUN npm run build
 
-FROM node:20-alpine AS runtime
+# Production образ
+FROM nginx:alpine
 
-WORKDIR /app
+# Устанавливаем wget для healthcheck
+RUN apk add --no-cache wget
 
-# Copy application source, build output and dependencies
-COPY --from=build /app /app
+# Копируем собранные файлы
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-ENV NODE_ENV=production
+# Копируем конфигурацию nginx (если есть)
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 4173
+# Настраиваем nginx для SPA
+RUN echo 'server { \
+    listen 80; \
+    server_name _; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    location /health { \
+        access_log off; \
+        return 200 "healthy\n"; \
+        add_header Content-Type text/plain; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173"]
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
