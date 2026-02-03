@@ -24,15 +24,10 @@ services:
       SLOWDOWN_AFTER: 100
     depends_on:
       - db
+    ports:
+      - "3001:3001"
     networks:
-      - traefik
       - internal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hackathon-api.rule=Host(`chermanx.ru`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.hackathon-api.entrypoints=websecure"
-      - "traefik.http.routers.hackathon-api.tls=true"
-      - "traefik.http.services.hackathon-api.loadbalancer.server.port=3001"
 
   db:
     image: postgres:16-alpine
@@ -50,7 +45,5 @@ volumes:
   hackathon_db:
 
 networks:
-  traefik:
-    external: true
   internal:
     driver: bridge
