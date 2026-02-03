@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ../server
+    container_name: hackathon-backend
+    environment:
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: hackathon_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      CLIENT_URL: https://chermanx.ru
+      NODE_ENV: production
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+      TRUST_PROXY: 1
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 300
+      AUTH_RATE_LIMIT_WINDOW_MS: 600000
+      AUTH_RATE_LIMIT_MAX: 60
+      SLOWDOWN_WINDOW_MS: 600000
+      SLOWDOWN_AFTER: 100
+    depends_on:
+      - db
+    networks:
+      - traefik
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hackathon-api.rule=Host(`chermanx.ru`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.hackathon-api.entrypoints=websecure"
+      - "traefik.http.routers.hackathon-api.tls=true"
+      - "traefik.http.services.hackathon-api.loadbalancer.server.port=3001"
+
+  db:
+    image: postgres:16-alpine
+    container_name: hackathon-db
+    environment:
+      POSTGRES_DB: hackathon_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - hackathon_db:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  hackathon_db:
+
+networks:
+  traefik:
+    external: true
+  internal:
+    driver: bridge
