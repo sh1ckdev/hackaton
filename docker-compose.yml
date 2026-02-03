@@ -9,7 +9,7 @@ services:
         - VITE_API_URL=${VITE_API_URL:-}
     container_name: hackathon-frontend
     env_file:
-      - .env.${ENV:-production}
+      - ".env"
     environment:
       VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
       VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
