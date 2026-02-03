@@ -1,5 +1,20 @@
+/* eslint-env node */
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const parseAllowedHosts = () => {
+  const raw = process.env.ALLOWED_HOSTS ?? '';
+  const hosts = raw
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
+
+  if (hosts.length === 0) {
+    hosts.push('chermanx.ru');
+  }
+
+  return hosts;
+};
 
 export default defineConfig(({ mode }) => {
   // Загружаем переменные окружения
@@ -23,8 +38,9 @@ export default defineConfig(({ mode }) => {
       }
     },
     preview: {
-      port: 4173,
       host: '0.0.0.0',
+      port: Number(process.env.FRONTEND_PORT ?? process.env.PORT) || 4173,
+      allowedHosts: parseAllowedHosts(),
       strictPort: true,
     },
     base: '/', // Базовый путь для приложения (измените если развёрнуто в поддиректории)
