@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  --color-terminal-green: #22c55e;
+  --color-terminal-cyan: #38bdf8;
+  --color-terminal-blue: #60a5fa;
+  --color-terminal-purple: #a78bfa;
+  --color-terminal-red: #f87171;
+  --color-terminal-bg: #0b1220;
+  --color-terminal-dark: #0f172a;
+  --color-terminal-gray: #1f2937;
+  --color-terminal-light: #334155;
+  --color-glass-bg: rgba(15, 23, 42, 0.55);
+  --color-glass-border: rgba(148, 163, 184, 0.25);
+  --color-glass-highlight: rgba(255, 255, 255, 0.08);
+  --font-family-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+  --shadow-glass: 0 8px 30px rgba(15, 23, 42, 0.35);
+  
+  --animate-glitch: glitch 0.3s infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  --animate-typing: typing 3.5s steps(40, end);
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
+  50% { opacity: 0.8; box-shadow: 0 0 20px rgba(0, 255, 65, 0.8); }
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 * {
