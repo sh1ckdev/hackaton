@@ -1,8 +1,11 @@
 import axios from 'axios';
 import authStore from '../stores/authStore';
 
+// Используем переменную окружения или fallback на /api (для proxy в dev режиме)
+const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
