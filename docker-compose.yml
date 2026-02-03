@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ../client
+    container_name: hackathon-frontend
+    environment:
+      VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
+      VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hackathon-web.rule=Host(`chermanx.ru`)"
+      - "traefik.http.routers.hackathon-web.entrypoints=websecure"
+      - "traefik.http.routers.hackathon-web.tls=true"
+      - "traefik.http.services.hackathon-web.loadbalancer.server.port=4173"
+
+networks:
+  traefik:
+    external: true
