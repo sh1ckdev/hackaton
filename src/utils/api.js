@@ -2,7 +2,24 @@ import axios from 'axios';
 import authStore from '../stores/authStore';
 
 // Используем переменную окружения или fallback на /api (для proxy в dev режиме)
+// В production обязательно должен быть указан VITE_API_URL
 const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
+
+// Логируем используемый API URL для отладки
+console.log('[API] Configuration:', {
+  mode: import.meta.env.MODE,
+  apiURL: apiBaseURL,
+  frontendURL: import.meta.env.VITE_FRONTEND_URL,
+  hasApiURL: !!import.meta.env.VITE_API_URL,
+  envApiURL: import.meta.env.VITE_API_URL
+});
+
+if (import.meta.env.MODE === 'production') {
+  if (!import.meta.env.VITE_API_URL) {
+    console.error('[API] ERROR: VITE_API_URL не установлен! Используется относительный путь /api');
+    console.error('[API] Это может привести к ошибкам CORS в production!');
+  }
+}
 
 const api = axios.create({
   baseURL: apiBaseURL,
