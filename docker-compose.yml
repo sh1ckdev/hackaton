@@ -3,10 +3,10 @@ services:
     build:
       context: .
       args:
-        - VITE_TELEGRAM_BOT_USERNAME=${VITE_TELEGRAM_BOT_USERNAME}
-        - VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}
-        - VITE_FRONTEND_URL=${VITE_FRONTEND_URL}
-        - VITE_API_URL=${VITE_API_URL}
+        - VITE_TELEGRAM_BOT_USERNAME=${VITE_TELEGRAM_BOT_USERNAME:-}
+        - VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY:-}
+        - VITE_FRONTEND_URL=${VITE_FRONTEND_URL:-}
+        - VITE_API_URL=${VITE_API_URL:-}
     container_name: hackathon-frontend
     env_file:
       - .env.${ENV:-production}
