@@ -485,7 +485,7 @@ const AdminPanel = () => {
                   className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
                 />
                 <p className="text-xs text-white/60 mt-2">
-                  Сообщение будет отправлено всем пользователям, которые участвуют в соревнованиях (имеют отправленные решения)
+                  Сообщение будет отправлено всем пользователям, которые не снялись с соревнований
                 </p>
               </div>
               <button
