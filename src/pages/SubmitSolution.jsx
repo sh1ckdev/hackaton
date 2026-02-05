@@ -227,6 +227,7 @@ const SubmitSolution = () => {
         </form>
       </div>
     </div>
+    </div>
   );
 };
 
