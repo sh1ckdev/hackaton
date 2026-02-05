@@ -25,98 +25,6 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Проверка Telegram Web App и автоматическая авторизация
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tokenFromUrl = params.get('token');
-    
-    const checkTelegramWebApp = async () => {
-      // Проверяем, открыт ли сайт через Telegram Web App
-      if (window.Telegram?.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        setIsWebApp(true);
-
-        // Получаем initData из Web App
-        const initData = tg.initData;
-
-        // Если есть initData и пользователь еще не авторизован и нет токена в URL
-        if (initData && !authStore.isAuthenticated && !loginPending && !tokenFromUrl) {
-          setLoginPending(true);
-          setError(null);
-
-          try {
-            // Для Web App сначала пытаемся без капчи (если капча не обязательна)
-            // Если нужна капча, ждем её прохождения
-            if (!turnstileSiteKey) {
-              // Если капча не настроена, авторизуем сразу
-              const ok = await authStore.login(initData, '');
-              setLoginPending(false);
-              
-              if (ok) {
-                navigate('/profile');
-              } else {
-                // Если нужна капча, показываем сообщение
-                if (authStore.error?.includes('капч') || authStore.error?.includes('Капч')) {
-                  setError('Пройдите проверку безопасности для завершения входа');
-                } else {
-                  setError(authStore.error || 'Ошибка входа');
-                }
-              }
-            } else {
-              // Если капча настроена, ждем её прохождения
-              setError(null);
-            }
-          } catch (err) {
-            setLoginPending(false);
-            setError('Ошибка автоматической авторизации');
-          }
-        }
-      }
-    };
-
-    // Небольшая задержка для инициализации Web App
-    const timer = setTimeout(checkTelegramWebApp, 100);
-    return () => clearTimeout(timer);
-  }, [authStore.isAuthenticated, loginPending, location.search, navigate, turnstileSiteKey]);
-
-  // Повторная попытка авторизации через Web App после получения капчи
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tokenFromUrl = params.get('token');
-    
-    const retryWebAppAuth = async () => {
-      if (window.Telegram?.WebApp && captchaToken && !authStore.isAuthenticated && !loginPending && !tokenFromUrl && isWebApp) {
-        const tg = window.Telegram.WebApp;
-        const initData = tg.initData;
-        
-        if (initData) {
-          setLoginPending(true);
-          setError(null);
-          
-          try {
-            const ok = await authStore.login(initData, captchaToken);
-            setLoginPending(false);
-            
-            if (ok) {
-              navigate('/profile');
-            } else {
-              setError(authStore.error || 'Ошибка входа');
-            }
-          } catch (err) {
-            setLoginPending(false);
-            setError('Ошибка авторизации');
-          }
-        }
-      }
-    };
-
-    if (captchaToken && captchaReady && isWebApp && !tokenFromUrl) {
-      retryWebAppAuth();
-    }
-  }, [captchaToken, captchaReady, authStore.isAuthenticated, loginPending, location.search, isWebApp, navigate]);
-
   useEffect(() => {
     if (!turnstileSiteKey) return;
     if (window.turnstile) {
@@ -166,15 +74,100 @@ const Login = () => {
     }
   }, [location.search, captchaToken, navigate]);
 
+  // Проверка Telegram Web App и автоматическая авторизация
+  useEffect(() => {
+    const checkTelegramWebApp = async () => {
+      // Проверяем, открыт ли сайт через Telegram Web App
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        setIsWebApp(true);
+
+        // Получаем initData из Web App
+        const initData = tg.initData;
+
+        // Если открыто через Web App, используем initData (приоритет над токеном)
+        // Если есть initData и пользователь еще не авторизован
+        if (initData && !authStore.isAuthenticated && !loginPending) {
+          // Если капча не настроена, авторизуем сразу
+          if (!turnstileSiteKey) {
+            setLoginPending(true);
+            setError(null);
+            try {
+              const ok = await authStore.login(initData, '');
+              setLoginPending(false);
+              
+              if (ok) {
+                navigate('/profile');
+              } else {
+                setError(authStore.error || 'Ошибка входа');
+              }
+            } catch (err) {
+              setLoginPending(false);
+              setError('Ошибка автоматической авторизации');
+            }
+          } else {
+            // Если капча настроена, ждем её прохождения
+            setError(null);
+          }
+        }
+      }
+    };
+
+    // Небольшая задержка для инициализации Web App
+    const timer = setTimeout(checkTelegramWebApp, 100);
+    return () => clearTimeout(timer);
+  }, [authStore.isAuthenticated, loginPending, navigate, turnstileSiteKey]);
+
   // Автоматический вход после прохождения капчи, если есть токен в URL
+  // Используется только если НЕ открыто через Web App (Web App имеет приоритет)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     
+    // Если открыто через Web App, не используем токен из URL
+    if (isWebApp) {
+      return;
+    }
+    
     if (token && captchaToken && !loginPending) {
       handleTokenLogin(token, captchaToken);
     }
-  }, [captchaToken, location.search, loginPending, handleTokenLogin]);
+  }, [captchaToken, location.search, loginPending, handleTokenLogin, isWebApp]);
+
+  // Повторная попытка авторизации через Web App после получения капчи
+  useEffect(() => {
+    const retryWebAppAuth = async () => {
+      if (window.Telegram?.WebApp && captchaToken && !authStore.isAuthenticated && !loginPending && isWebApp) {
+        const tg = window.Telegram.WebApp;
+        const initData = tg.initData;
+        
+        if (initData) {
+          setLoginPending(true);
+          setError(null);
+          
+          try {
+            const ok = await authStore.login(initData, captchaToken);
+            setLoginPending(false);
+            
+            if (ok) {
+              navigate('/profile');
+            } else {
+              setError(authStore.error || 'Ошибка входа');
+            }
+          } catch (err) {
+            setLoginPending(false);
+            setError('Ошибка авторизации');
+          }
+        }
+      }
+    };
+
+    if (captchaToken && captchaReady && isWebApp) {
+      retryWebAppAuth();
+    }
+  }, [captchaToken, captchaReady, authStore.isAuthenticated, loginPending, isWebApp, navigate]);
 
   const handleTelegramRedirect = () => {
     if (!botUsername) {
