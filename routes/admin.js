@@ -57,14 +57,41 @@ router.get('/users', requireAdmin, async (req, res) => {
 // Изменение роли пользователя (только админ)
 router.put('/users/:id/role', requireAdmin, async (req, res) => {
   try {
-    const userId = parseInt(req.params.id);
+    const paramId = req.params.id;
     const { role } = req.body;
     const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
 
-    console.log('[Admin] Изменение роли:', { userId, role, body: req.body });
+    console.log('[Admin] Изменение роли - входные данные:', { 
+      paramId, 
+      paramIdType: typeof paramId,
+      role, 
+      body: req.body,
+      url: req.url,
+      path: req.path
+    });
 
-    if (isNaN(userId)) {
-      console.error('[Admin] Некорректный ID пользователя:', req.params.id);
+    // Пробуем сначала как id из БД (число)
+    let userId = parseInt(paramId);
+    let userCheck;
+    
+    if (!isNaN(userId) && userId > 0) {
+      // Ищем по id из БД
+      userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE id = $1', [userId]);
+    } else {
+      // Если не число или 0, возможно это telegram_id
+      // Пробуем найти по telegram_id
+      const telegramId = paramId;
+      console.log('[Admin] Пробуем найти пользователя по telegram_id:', telegramId);
+      userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
+      
+      if (userCheck.rows.length > 0) {
+        userId = userCheck.rows[0].id; // Используем id из БД для дальнейших операций
+        console.log('[Admin] Пользователь найден по telegram_id, используем id из БД:', userId);
+      }
+    }
+
+    if (isNaN(userId) || userId <= 0) {
+      console.error('[Admin] Некорректный ID пользователя:', paramId);
       return res.status(400).json({ error: 'Некорректный ID пользователя' });
     }
 
@@ -73,10 +100,8 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Некорректная роль. Допустимые значения: user, moderator, admin' });
     }
 
-    // Проверяем, существует ли пользователь
-    const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
-      console.error('[Admin] Пользователь не найден:', userId);
+      console.error('[Admin] Пользователь не найден по id или telegram_id:', paramId);
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
