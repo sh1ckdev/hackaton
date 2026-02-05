@@ -73,25 +73,6 @@ const CaseDetail = () => {
             </div>
           </div>
 
-          {/* Таймер открытия */}
-          {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-            <div className="border border-terminal-cyan/30 rounded-xl p-5 bg-terminal-cyan/5 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <TimeIcon size={18} className="text-terminal-cyan" />
-                <p className="text-sm font-medium text-terminal-cyan">Кейс откроется через:</p>
-              </div>
-              <CountdownTimer targetDate={caseItem.opens_at} />
-              <p className="text-xs text-gray-500 mt-3">
-                {new Date(caseItem.opens_at).toLocaleString('ru-RU', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </p>
-            </div>
-          )}
 
           {/* Описание */}
           <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
