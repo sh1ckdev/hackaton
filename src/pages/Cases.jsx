@@ -5,7 +5,7 @@ import casesStore from '../stores/casesStore';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
-import { CaseIcon, TimeIcon, ArrowRightIcon, SearchIcon, FilterIcon, UsersIcon } from '../components/Icons';
+import { CaseIcon, TimeIcon, PaperPlaneIcon, SearchIcon, FilterIcon, UsersIcon } from '../components/Icons';
 
 const Cases = () => {
   useDocumentTitle('Кейсы');
@@ -336,7 +336,7 @@ const Cases = () => {
                       <span className="text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                         Открыть
                       </span>
-                      <ArrowRightIcon size={16} className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      <PaperPlaneIcon size={16} className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 group-hover:rotate-12 transition-all" />
                     </div>
                   </div>
                 </div>
