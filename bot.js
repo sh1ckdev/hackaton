@@ -108,10 +108,16 @@ export function startBot() {
   };
 
   // Обычный вход
-  bot.onText(/\/start$/, async (msg) => {
+  bot.onText(/^\/start$/, async (msg) => {
     try {
       const chatId = msg.chat.id;
       const from = msg.from;
+      
+      if (!from) {
+        console.error('Нет данных пользователя в сообщении');
+        return;
+      }
+      
       const photoUrl = await getPhotoUrl(from.id);
       const user = await upsertUser(from, photoUrl);
       
@@ -159,6 +165,11 @@ export function startBot() {
       }
     } catch (error) {
       console.error('Ошибка /start:', error);
+      try {
+        await bot.sendMessage(msg.chat.id, 'Произошла ошибка при обработке команды. Попробуйте позже.');
+      } catch (e) {
+        console.error('Не удалось отправить сообщение об ошибке:', e);
+      }
     }
   });
 
@@ -238,5 +249,20 @@ export function startBot() {
     }
   });
 
+  // Обработка ошибок бота
+  bot.on('polling_error', (error) => {
+    console.error('Ошибка polling:', error);
+  });
+
+  bot.on('error', (error) => {
+    console.error('Ошибка бота:', error);
+  });
+
   console.log('Telegram бот запущен.');
+  
+  if (!token) {
+    console.error('⚠️ TELEGRAM_BOT_TOKEN не установлен!');
+  } else {
+    console.log('✅ Бот готов к работе. Ожидаю команды...');
+  }
 }
