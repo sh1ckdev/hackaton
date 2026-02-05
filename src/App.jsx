@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { observer } from 'mobx-react-lite';
 import authStore from './stores/authStore';
 import Login from './pages/Login';
-import Home from './pages/Home';
 import Cases from './pages/Cases';
 import CaseDetail from './pages/CaseDetail';
 import MySolutions from './pages/MySolutions';
@@ -11,6 +10,8 @@ import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
 import Info from './pages/Info';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
+import Leaderboard from './pages/Leaderboard';
 
 const ProtectedRoute = observer(({ children }) => {
   console.log('[App] ProtectedRoute рендер:', {
@@ -54,22 +55,29 @@ function App() {
       }}
     >
       <Routes>
+        {/* Публичная главная */}
+        <Route path="/" element={<Landing />} />
+
+        {/* Логин */}
         <Route path="/login" element={<Login />} />
+
+        {/* Рабочее приложение */}
         <Route
-          path="/"
+          path="/app"
           element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Home />} />
+          <Route index element={<Cases />} />
           <Route path="cases" element={<Cases />} />
           <Route path="cases/:id" element={<CaseDetail />} />
           <Route path="solutions" element={<MySolutions />} />
           <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
           <Route path="profile" element={<Profile />} />
           <Route path="info" element={<Info />} />
+          <Route path="leaderboard" element={<Leaderboard />} />
           <Route
             path="admin"
             element={
@@ -79,6 +87,9 @@ function App() {
             }
           />
         </Route>
+
+        {/* Фоллбек */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

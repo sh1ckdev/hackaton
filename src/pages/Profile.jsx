@@ -12,6 +12,7 @@ const Profile = () => {
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [teamError, setTeamError] = useState(null);
   const [teamName, setTeamName] = useState('');
+  const [teamNameTouched, setTeamNameTouched] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -47,9 +48,14 @@ const Profile = () => {
   };
 
   const handleCreate = async () => {
+    const trimmed = teamName.trim();
+    setTeamNameTouched(true);
+    if (!trimmed) {
+      return;
+    }
     try {
       const response = await api.post('/teams/create', {
-        name: teamName.trim() || `Команда ${user?.username || user?.id}`
+        name: trimmed
       });
       setTeam(response.data.team);
       setTeamName('');
@@ -156,10 +162,22 @@ const Profile = () => {
                   <div className="flex-1 min-w-[220px]">
                     <input
                       value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="Название команды (необязательно)"
-                      className="w-full px-4 py-2 rounded border border-terminal-gray bg-terminal-dark/50 text-white focus:border-terminal-green focus:outline-none"
+                    onChange={(e) => {
+                      setTeamName(e.target.value);
+                      if (!teamNameTouched) setTeamNameTouched(true);
+                    }}
+                    placeholder="Придумайте название команды"
+                    className={`w-full px-4 py-2 rounded bg-terminal-dark/50 text-white focus:outline-none ${
+                      teamNameTouched && !teamName.trim()
+                        ? 'border border-terminal-red focus:border-terminal-red'
+                        : 'border border-terminal-gray focus:border-terminal-green'
+                    }`}
                     />
+                  {teamNameTouched && !teamName.trim() && (
+                    <p className="mt-1 text-xs text-terminal-red">
+                      Нужно ввести название — это увидят другие участники.
+                    </p>
+                  )}
                   </div>
                   <button
                     onClick={handleCreate}
