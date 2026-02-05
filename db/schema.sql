@@ -8,11 +8,33 @@ CREATE TABLE IF NOT EXISTS users (
     photo_url TEXT,
     phone VARCHAR(32),
     role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
+    opted_out BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS opted_out BOOLEAN DEFAULT FALSE;
+
+-- Обновление constraint для роли, если он устарел (для существующих БД)
+DO $$
+BEGIN
+  -- Проверяем и обновляем constraint для роли
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'users_role_check' 
+    AND table_name = 'users'
+  ) THEN
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+  END IF;
+  
+  ALTER TABLE users ADD CONSTRAINT users_role_check 
+    CHECK (role IN ('user', 'moderator', 'admin'));
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Игнорируем ошибки, если constraint уже существует или таблицы нет
+    NULL;
+END $$;
 
 -- Создание таблицы кейсов
 CREATE TABLE IF NOT EXISTS cases (

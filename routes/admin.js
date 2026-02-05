@@ -57,33 +57,53 @@ router.get('/users', requireAdmin, async (req, res) => {
 // Изменение роли пользователя (только админ)
 router.put('/users/:id/role', requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = parseInt(req.params.id, 10);
     const { role } = req.body;
 
-    if (!['user', 'moderator', 'admin'].includes(role)) {
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+
+    if (!role || !['user', 'moderator', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 
     // Проверяем, существует ли пользователь
-    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
+    const userCheck = await pool.query('SELECT id, role FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
+    const currentUserRole = userCheck.rows[0].role;
+
+    // Предотвращаем изменение роли самому себе (если админ пытается снять себя)
+    if (userId === req.user.id && role !== 'admin' && req.user.role === 'admin') {
+      return res.status(400).json({ error: 'Вы не можете снять права администратора у самого себя' });
+    }
+
     // Обновляем роль
     const result = await pool.query(
-      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [role, id]
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, telegram_id, username, first_name, last_name, photo_url, phone, role, created_at, updated_at, opted_out',
+      [role, userId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Пользователь не найден' });
+      return res.status(404).json({ error: 'Пользователь не найден после обновления' });
     }
 
     res.json({ user: result.rows[0] });
   } catch (error) {
     console.error('Ошибка изменения роли:', error);
-    res.status(500).json({ error: 'Ошибка сервера: ' + error.message });
+    console.error('Детали ошибки:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
+    res.status(500).json({ 
+      error: 'Ошибка сервера',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
