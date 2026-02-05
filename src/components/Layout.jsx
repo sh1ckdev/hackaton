@@ -1,7 +1,6 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
-import { CaseIcon, SolutionIcon, TeamIcon, ProfileIcon, AdminIcon } from './Icons';
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -13,46 +12,41 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-terminal-bg">
-      <nav className="glass-strong border-b border-terminal-gray/40 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
+      <nav className="border-b border-terminal-gray/20 sticky top-0 z-50 bg-terminal-bg/80">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-8">
               <Link 
                 to="/" 
-                className="flex items-center gap-2 px-4 py-2 text-lg font-bold text-white hover:text-terminal-green transition-colors"
+                className="text-lg font-medium text-white hover:text-terminal-green transition-colors"
               >
-                <span className="text-terminal-green text-xl">&gt;</span>
-                <span>hackathon</span>
+                &gt; hackathon
               </Link>
-              <div className="hidden md:flex items-center gap-1">
+              <div className="hidden md:flex items-center gap-6">
                 <Link
                   to="/cases"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-terminal-green transition-colors rounded-lg hover:bg-glass-light"
+                  className="text-sm text-white/60 hover:text-white transition-colors"
                 >
-                  <CaseIcon size={18} />
-                  <span>cases</span>
+                  cases
                 </Link>
                 <Link
                   to="/solutions"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-terminal-cyan transition-colors rounded-lg hover:bg-glass-light"
+                  className="text-sm text-white/60 hover:text-white transition-colors"
                 >
-                  <SolutionIcon size={18} />
-                  <span>solutions</span>
+                  solutions
                 </Link>
                 <Link
                   to="/team"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-terminal-blue transition-colors rounded-lg hover:bg-glass-light"
+                  className="text-sm text-white/60 hover:text-white transition-colors"
                 >
-                  <TeamIcon size={18} />
-                  <span>team</span>
+                  team
                 </Link>
                 {authStore.isAdmin && (
                   <Link
                     to="/admin"
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-terminal-red transition-colors rounded-lg hover:bg-glass-light"
+                    className="text-sm text-white/60 hover:text-white transition-colors"
                   >
-                    <AdminIcon size={18} />
-                    <span>admin</span>
+                    admin
                   </Link>
                 )}
               </div>
@@ -60,15 +54,13 @@ const Layout = () => {
             <div className="flex items-center gap-4">
               <Link
                 to="/profile"
-                className="glass-light px-4 py-2 rounded-lg hover:bg-glass transition-colors cursor-pointer"
+                className="text-sm text-white/60 hover:text-white transition-colors cursor-pointer"
               >
-                <span className="text-sm text-white/80 font-medium">
-                  @{authStore.user?.username || 'guest'}
-                </span>
+                @{authStore.user?.username || 'guest'}
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm text-white/70 hover:text-terminal-red transition-colors rounded-lg hover:bg-glass-light border border-terminal-gray/40 hover:border-terminal-red/50"
+                className="text-sm text-white/40 hover:text-white/60 transition-colors"
               >
                 exit
               </button>
@@ -77,7 +69,7 @@ const Layout = () => {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-6xl mx-auto px-6 py-8">
         <Outlet />
       </main>
     </div>

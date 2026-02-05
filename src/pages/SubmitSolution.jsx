@@ -4,7 +4,6 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { UploadIcon, GitHubIcon, ArrowLeftIcon, SolutionIcon } from '../components/Icons';
 
 const SubmitSolution = () => {
   const { caseId } = useParams();
@@ -103,10 +102,8 @@ const SubmitSolution = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="title" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
-              <SolutionIcon size={18} className="text-terminal-cyan" />
-              Название решения{' '}
-              <span className="text-terminal-red">*</span>
+            <label htmlFor="title" className="block text-xs text-white/40 mb-2">
+              Название *
             </label>
             <input
               type="text"
@@ -115,13 +112,13 @@ const SubmitSolution = () => {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors"
+              className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray/20 text-white focus:border-white/40 focus:outline-none transition-colors"
               placeholder="Введите название решения"
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-bold text-white mb-3">
+            <label htmlFor="description" className="block text-xs text-white/40 mb-2">
               Описание
             </label>
             <textarea
@@ -130,16 +127,14 @@ const SubmitSolution = () => {
               value={formData.description}
               onChange={handleChange}
               rows={6}
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors resize-none"
+              className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray/20 text-white focus:border-white/40 focus:outline-none transition-colors resize-none"
               placeholder="Опишите ваше решение, используемые технологии, подход и т.д."
             />
           </div>
 
           <div>
-            <label htmlFor="github_url" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
-              <GitHubIcon size={18} className="text-terminal-green" />
-              Ссылка на GitHub репозиторий{' '}
-              <span className="text-terminal-red">*</span>
+            <label htmlFor="github_url" className="block text-xs text-white/40 mb-2">
+              GitHub репозиторий *
             </label>
             <input
               type="url"
@@ -148,16 +143,13 @@ const SubmitSolution = () => {
               value={formData.github_url}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors"
+              className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray/20 text-white focus:border-white/40 focus:outline-none transition-colors"
               placeholder="https://github.com/username/repo"
             />
-            <p className="mt-2 text-sm text-gray-400">
-              Обязательно укажите ссылку на ваш GitHub репозиторий
-            </p>
           </div>
 
           <div>
-            <label htmlFor="demo_url" className="block text-sm font-bold text-white mb-3">
+            <label htmlFor="demo_url" className="block text-xs text-white/40 mb-2">
               Ссылка на демо
             </label>
             <input
@@ -166,58 +158,51 @@ const SubmitSolution = () => {
               name="demo_url"
               value={formData.demo_url}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-cyan focus:outline-none rounded-lg transition-colors"
+              className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray/20 text-white focus:border-white/40 focus:outline-none transition-colors"
               placeholder="https://your-demo.com"
             />
           </div>
 
           <div>
-            <label htmlFor="presentation" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
-              <UploadIcon size={18} className="text-terminal-purple" />
+            <label htmlFor="presentation" className="block text-xs text-white/40 mb-2">
               Презентация (PDF, PPT, PPTX, ODP)
             </label>
-            <div className="bg-terminal-dark/60 border border-terminal-gray/40 rounded-lg p-4 hover:border-terminal-purple/50 transition-colors">
-              <input
-                type="file"
-                id="presentation"
-                name="presentation"
-                onChange={(e) => setPresentationFile(e.target.files[0])}
-                accept=".pdf,.ppt,.pptx,.odp"
-                className="w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-terminal-purple/20 file:text-terminal-purple hover:file:bg-terminal-purple/30 file:cursor-pointer cursor-pointer"
-              />
-            </div>
-            <p className="mt-2 text-sm text-gray-400">
-              Максимальный размер: 100MB. Презентация опциональна.
-            </p>
+            <input
+              type="file"
+              id="presentation"
+              name="presentation"
+              onChange={(e) => setPresentationFile(e.target.files[0])}
+              accept=".pdf,.ppt,.pptx,.odp"
+              className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray/20 text-white file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:bg-terminal-gray/40 file:text-white file:cursor-pointer cursor-pointer"
+            />
           </div>
 
           {error && (
-            <div className="p-4 bg-terminal-dark/60 rounded-lg border border-terminal-red/50">
-              <p className="text-terminal-red text-sm font-medium">{error}</p>
+            <div className="text-terminal-red text-sm">
+              {error}
             </div>
           )}
 
           {solutionsStore.error && (
-            <div className="p-4 bg-terminal-dark/60 rounded-lg border border-terminal-red/50">
-              <p className="text-terminal-red text-sm font-medium">{solutionsStore.error}</p>
+            <div className="text-terminal-red text-sm">
+              {solutionsStore.error}
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-terminal-gray/40 pt-6">
+          <div className="flex items-center justify-between pt-6 border-t border-terminal-gray/20">
             <button
               type="button"
               onClick={() => navigate(`/cases/${caseId}`)}
-              className="px-6 py-3 glass border border-terminal-gray/40 text-gray-300 hover:border-terminal-cyan hover:text-terminal-cyan transition-colors font-semibold rounded-lg"
+              className="px-4 py-2 text-white/60 hover:text-white transition-colors"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={solutionsStore.loading}
-              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-terminal-green to-terminal-cyan text-terminal-bg hover:shadow-2xl hover:shadow-terminal-green/50 transition-all font-bold rounded-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="px-6 py-3 bg-terminal-green text-terminal-bg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              <UploadIcon size={20} />
-              <span>{solutionsStore.loading ? 'Отправка...' : 'Отправить'}</span>
+              {solutionsStore.loading ? 'Отправка...' : 'Отправить'}
             </button>
           </div>
         </form>

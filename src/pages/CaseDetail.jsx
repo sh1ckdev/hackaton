@@ -6,7 +6,6 @@ import solutionsStore from '../stores/solutionsStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
-import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon } from '../components/Icons';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -43,139 +42,106 @@ const CaseDetail = () => {
   }
 
   return (
-    <div className="px-4 py-6 max-w-4xl mx-auto relative z-10">
+    <div className="max-w-3xl">
       <Link
         to="/cases"
-        className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 glass px-4 py-2 rounded-lg hover:border-terminal-green transition-colors"
+        className="inline-block text-white/60 hover:text-white mb-8 transition-colors"
       >
-        <ArrowLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
-        <span>Назад к кейсам</span>
+        ← назад
       </Link>
 
-      <div className="glass rounded-lg p-8 mb-6">
-        <div className="flex items-start justify-between mb-6 border-b border-terminal-gray/40 pb-4">
-          <div className="flex items-center gap-4 flex-1">
-            <CaseIcon size={32} className="text-terminal-green" />
-            <h1 className="text-3xl font-bold text-white">
-              {caseItem.title}
-            </h1>
-          </div>
-          <span className={`px-4 py-2 text-xs font-bold rounded-xl border-2 ${
-            caseItem.difficulty === 'easy' ? 'border-terminal-green text-terminal-green bg-terminal-green/10' :
-            caseItem.difficulty === 'medium' ? 'border-terminal-cyan text-terminal-cyan bg-terminal-cyan/10' :
-            'border-terminal-red text-terminal-red bg-terminal-red/10'
-          }`}>
-            {caseItem.difficulty === 'easy' ? 'Легко' :
-             caseItem.difficulty === 'medium' ? 'Средне' : 'Сложно'}
-          </span>
+      <div className="mb-8">
+        <h1 className="text-3xl font-medium text-white mb-4">
+          {caseItem.title}
+        </h1>
+        <div className="text-sm text-white/40 mb-6">
+          {caseItem.difficulty === 'easy' ? 'легко' :
+           caseItem.difficulty === 'medium' ? 'средне' : 'сложно'} • {caseItem.current_participants || 0} участников
         </div>
-
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-100 mb-2">Описание</h2>
-          <p className="text-gray-400 whitespace-pre-wrap">{caseItem.description}</p>
-        </div>
-
-        {caseItem.requirements && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-100 mb-2">Требования</h2>
-            <p className="text-gray-400 whitespace-pre-wrap">{caseItem.requirements}</p>
-          </div>
-        )}
 
         {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-          <div className="mb-6 p-6 bg-terminal-dark/60 rounded-lg border border-terminal-gray/40">
-            <div className="flex items-center gap-2 mb-4">
-              <TimeIcon size={20} className="text-terminal-cyan" />
-              <p className="text-sm text-terminal-cyan font-medium">
-                Кейс откроется через:
-              </p>
-            </div>
-            <div className="mb-4">
-              <CountdownTimer targetDate={caseItem.opens_at} />
-            </div>
-            <p className="text-xs text-gray-400 text-center mb-1">
+          <div className="mb-6 pb-6 border-b border-terminal-gray/20">
+            <div className="text-xs text-white/40 mb-3">Откроется через:</div>
+            <CountdownTimer targetDate={caseItem.opens_at} />
+            <div className="text-xs text-white/40 mt-3">
               {new Date(caseItem.opens_at).toLocaleString('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+                minute: '2-digit'
               })}
-            </p>
-            <p className="text-[10px] text-gray-500 text-center">
-              Вы получите уведомление в Telegram, когда кейс будет открыт
-            </p>
+            </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-6 border-t border-terminal-gray">
-          <div className="text-sm text-gray-400">
-            Участников: {caseItem.current_participants}
-            {caseItem.max_participants > 0 && (
-              <span className="text-gray-500"> / {caseItem.max_participants} максимум</span>
-            )}
+        <div className="mb-6">
+          <div className="text-sm text-white/40 mb-2">Описание</div>
+          <p className="text-white/80 whitespace-pre-wrap leading-relaxed">{caseItem.description}</p>
+        </div>
+
+        {caseItem.requirements && (
+          <div className="mb-6">
+            <div className="text-sm text-white/40 mb-2">Требования</div>
+            <p className="text-white/80 whitespace-pre-wrap leading-relaxed">{caseItem.requirements}</p>
           </div>
+        )}
       </div>
 
       {mySolution ? (
-        <div className="glass rounded-lg p-6 mb-6 animate-fade-in-up">
-          <h2 className="text-xl font-semibold text-gray-100 mb-4 border-b border-terminal-gray pb-2">
-            Мое решение
-          </h2>
-          <div className="space-y-3 mb-4">
-            <p className="text-gray-300">
-              <span className="text-gray-500">Название:</span> {mySolution.title}
-            </p>
+        <div className="mb-8 pb-8 border-b border-terminal-gray/20">
+          <div className="text-sm text-white/40 mb-4">Мое решение</div>
+          <div className="space-y-3 mb-6">
+            <div>
+              <div className="text-xs text-white/40 mb-1">Название</div>
+              <div className="text-white/80">{mySolution.title}</div>
+            </div>
             {mySolution.description && (
-              <p className="text-gray-300">
-                <span className="text-gray-500">Описание:</span> {mySolution.description}
-              </p>
+              <div>
+                <div className="text-xs text-white/40 mb-1">Описание</div>
+                <div className="text-white/80">{mySolution.description}</div>
+              </div>
             )}
             {mySolution.github_url && (
-              <p className="text-gray-300">
-                <span className="text-gray-500">GitHub:</span>{' '}
+              <div>
+                <div className="text-xs text-white/40 mb-1">GitHub</div>
                 <a
                   href={mySolution.github_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-terminal-cyan hover:text-terminal-green transition-colors"
+                  className="text-terminal-green hover:text-terminal-cyan transition-colors"
                 >
                   {mySolution.github_url}
                 </a>
-              </p>
+              </div>
             )}
-            <p className="text-gray-300">
-              <span className="text-gray-500">Статус:</span>{' '}
-              <span className={`px-2 py-1 text-xs rounded border ${
-                mySolution.status === 'approved' ? 'border-terminal-green text-terminal-green' :
-                mySolution.status === 'rejected' ? 'border-terminal-red text-terminal-red' :
-                mySolution.status === 'reviewing' ? 'border-terminal-cyan text-terminal-cyan' :
-                'border-terminal-gray text-gray-400'
-              }`}>
+            <div>
+              <div className="text-xs text-white/40 mb-1">Статус</div>
+              <div className="text-white/80">
                 {mySolution.status === 'approved' ? 'Одобрено' :
                  mySolution.status === 'rejected' ? 'Отклонено' :
                  mySolution.status === 'reviewing' ? 'На проверке' : 'Ожидает'}
-              </span>
-            </p>
+              </div>
+            </div>
             {mySolution.score > 0 && (
-              <p className="text-gray-300">
-                <span className="text-gray-500">Оценка:</span> {mySolution.score}
-              </p>
+              <div>
+                <div className="text-xs text-white/40 mb-1">Оценка</div>
+                <div className="text-white/80">{mySolution.score}</div>
+              </div>
             )}
             {mySolution.admin_comment && (
-              <div className="border-l-2 border-terminal-gray pl-3 mt-3">
-                <span className="text-gray-500 text-sm">Комментарий администратора:</span>
-                <p className="text-gray-300 mt-1">{mySolution.admin_comment}</p>
+              <div>
+                <div className="text-xs text-white/40 mb-1">Комментарий</div>
+                <div className="text-white/80">{mySolution.admin_comment}</div>
               </div>
             )}
           </div>
           <div className="flex gap-3">
             <Link
               to={`/solutions/submit/${caseItem.id}`}
-              className="inline-block px-4 py-2 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
+              className="px-4 py-2 border border-terminal-gray/40 text-white/80 hover:text-white hover:border-white/40 transition-colors"
             >
-              Редактировать решение →
+              Редактировать
             </Link>
             <button
               onClick={async () => {
@@ -195,41 +161,28 @@ const CaseDetail = () => {
                 }
               }}
               disabled={deleting}
-              className="px-4 py-2 bg-terminal-dark border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-red/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="px-4 py-2 border border-terminal-gray/40 text-white/40 hover:text-white/60 hover:border-white/20 transition-colors disabled:opacity-50"
             >
-              {deleting ? 'Удаление...' : 'Сняться с соревнования'}
+              {deleting ? 'Удаление...' : 'Удалить'}
             </button>
           </div>
         </div>
       ) : (
-        <div className="glass rounded-lg p-6 text-center">
+        <div className="mb-8">
           {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() ? (
-            <>
-              <h2 className="text-xl font-semibold text-gray-100 mb-4">
-                Кейс еще не открыт
-              </h2>
-              <p className="text-gray-400 mb-4">
-                Кейс будет открыт {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
-              </p>
-            </>
+            <div className="text-white/60">
+              Кейс откроется {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+            </div>
           ) : (
-            <>
-              <h2 className="text-xl font-semibold text-gray-100 mb-4">
-                Вы еще не отправили решение
-              </h2>
-          <Link
-            to={`/solutions/submit/${caseItem.id}`}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-terminal-green to-terminal-green/80 text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity"
-          >
-            <UploadIcon size={20} />
-            <span>Отправить решение</span>
-            <ArrowRightIcon size={18} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
-            </>
+            <Link
+              to={`/solutions/submit/${caseItem.id}`}
+              className="inline-block px-6 py-3 bg-terminal-green text-terminal-bg font-medium hover:opacity-90 transition-opacity"
+            >
+              Отправить решение
+            </Link>
           )}
         </div>
       )}
-    </div>
     </div>
   );
 };

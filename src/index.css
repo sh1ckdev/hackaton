@@ -190,23 +190,8 @@ code {
   background: #4b5563;
 }
 
-/* Простые карточки без глассморфизма */
+/* Минималистичные стили */
 .glass {
-  background: rgba(26, 32, 44, 0.95);
-  border: 1px solid rgba(55, 65, 81, 0.5);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.glass-strong {
-  background: rgba(26, 32, 44, 0.98);
-  border: 1px solid rgba(55, 65, 81, 0.6);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.glass-light {
-  background: rgba(31, 41, 55, 0.8);
-  border: 1px solid rgba(55, 65, 81, 0.4);
-  border-radius: 8px;
+  background: transparent;
+  border: none;
 }
