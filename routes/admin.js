@@ -60,7 +60,7 @@ router.put('/users/:id/role', async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!['user', 'admin'].includes(role)) {
+    if (!['user', 'moderator', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 

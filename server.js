@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 import { initDB } from './db/index.js';
+import pool from './db/index.js';
 import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
 import solutionsRoutes from './routes/solutions.js';
@@ -108,10 +109,52 @@ if (fs.existsSync(clientIndexHtml)) {
   );
 }
 
+// Автоматическое создание главного админа
+async function ensureMainAdmin() {
+  const mainAdminTelegramId = process.env.MAIN_ADMIN_TELEGRAM_ID;
+  
+  if (!mainAdminTelegramId) {
+    console.warn('MAIN_ADMIN_TELEGRAM_ID не задан. Главный админ не будет создан автоматически.');
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, role FROM users WHERE telegram_id = $1',
+      [mainAdminTelegramId]
+    );
+
+    if (result.rows.length === 0) {
+      // Создаем пользователя-админа если его нет
+      await pool.query(
+        `INSERT INTO users (telegram_id, username, first_name, role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (telegram_id) DO UPDATE SET role = $4`,
+        [mainAdminTelegramId, 'admin', 'Главный администратор', 'admin']
+      );
+      console.log(`Главный админ создан/обновлен: Telegram ID ${mainAdminTelegramId}`);
+    } else {
+      // Обновляем роль если пользователь существует
+      if (result.rows[0].role !== 'admin') {
+        await pool.query(
+          'UPDATE users SET role = $1 WHERE telegram_id = $2',
+          ['admin', mainAdminTelegramId]
+        );
+        console.log(`Роль пользователя обновлена на админа: Telegram ID ${mainAdminTelegramId}`);
+      } else {
+        console.log(`Главный админ уже существует: Telegram ID ${mainAdminTelegramId}`);
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка при создании главного админа:', error);
+  }
+}
+
 // Инициализация БД и запуск сервера
 async function startServer() {
   try {
     await initDB();
+    await ensureMainAdmin();
     startBot();
     app.listen(PORT, () => {
       console.log(`Сервер запущен на порту ${PORT}`);

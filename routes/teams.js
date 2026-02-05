@@ -69,7 +69,11 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/create', authenticateToken, async (req, res) => {
   try {
     const { name } = req.body;
-    const teamName = (name || '').trim() || `Команда ${req.user.id}`;
+    const teamName = (name || '').trim();
+
+    if (!teamName) {
+      return res.status(400).json({ error: 'Название команды обязательно' });
+    }
 
     const existing = await pool.query(
       'SELECT 1 FROM team_members WHERE user_id = $1',

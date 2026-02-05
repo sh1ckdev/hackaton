@@ -116,13 +116,22 @@ export function startBot() {
         );
       }
 
-      await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
-        reply_markup: {
-          keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
-          one_time_keyboard: true,
-          resize_keyboard: true
-        }
-      });
+      // Проверяем, есть ли уже телефон у пользователя
+      const userWithPhone = await pool.query(
+        'SELECT phone FROM users WHERE telegram_id = $1',
+        [from.id]
+      );
+      
+      // Предлагаем телефон только если его нет
+      if (!userWithPhone.rows[0]?.phone) {
+        await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
+          reply_markup: {
+            keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
+            one_time_keyboard: true,
+            resize_keyboard: true
+          }
+        });
+      }
     } catch (error) {
       console.error('Ошибка /start:', error);
     }

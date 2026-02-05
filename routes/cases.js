@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -46,8 +46,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Создание кейса (только админ)
-router.post('/', authenticateToken, requireAdmin, async (req, res) => {
+// Создание кейса (админ или модератор)
+router.post('/', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { title, description, requirements, difficulty, max_participants } = req.body;
 
@@ -69,8 +69,8 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Обновление кейса (только админ)
-router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+// Обновление кейса (админ или модератор)
+router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, requirements, difficulty, max_participants, status } = req.body;

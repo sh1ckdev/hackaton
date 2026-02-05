@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -192,8 +192,8 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
   }
 });
 
-// Модерация решения (только админ)
-router.put('/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
+// Модерация решения (админ или модератор)
+router.put('/:id/moderate', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_comment, score } = req.body;
