@@ -439,11 +439,11 @@ export const UsersIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка самолетика (Paper Plane) из Badass Icons
+// Иконка самолетика (Paper Plane)
 export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
-      d="M21 3L3 10.53V11.5L9.84 14.16L12.5 21H13.46L21 3Z"
+      d="M22 2L11 13"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -451,65 +451,7 @@ export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
       fill="none"
     />
     <path
-      d="M21 3L13.46 13.46L9.84 14.16L3 11.5"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-  </Icon>
-);
-
-// Иконка ракеты (Rocket) из Badass Icons
-export const RocketIcon = ({ size = 24, className = '' }) => (
-  <Icon size={size} className={className}>
-    <path
-      d="M4.5 16.5C4.5 16.5 6 18 6 21C6 21 7.5 20.5 9 19C10.5 17.5 12 15.5 12 15.5"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M19.5 4.5C19.5 4.5 18 6 15 6C15 6 15.5 7.5 17 9C18.5 10.5 20.5 12 20.5 12"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M12 15.5L8.5 19C8.5 19 4.5 16.5 4.5 16.5L8 12.5L12 15.5Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M19.5 4.5L16 8L12 15.5L15.5 19C15.5 19 19.5 16.5 19.5 16.5L16 12.5L19.5 4.5Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <circle
-      cx="12"
-      cy="12"
-      r="1"
-      fill="currentColor"
-    />
-  </Icon>
-);
-
-// Иконка щита (Shield) из Badass Icons
-export const ShieldIcon = ({ size = 24, className = '' }) => (
-  <Icon size={size} className={className}>
-    <path
-      d="M12 2L4 5V11C4 16.55 7.16 21.74 12 23C16.84 21.74 20 16.55 20 11V5L12 2Z"
+      d="M22 2L15 22L11 13L2 9L22 2Z"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -519,63 +461,11 @@ export const ShieldIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка ключа (Key) из Badass Icons
-export const KeyIcon = ({ size = 24, className = '' }) => (
+// Иконка Telegram
+export const TelegramIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
-      d="M21 2L19 4M7 11C7 11 9 13 9 15C9 17 7 19 5 19C3 19 1 17 1 15C1 13 3 11 5 11C5 11 5 11 7 11Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M7 11L15 19L19 15L11 7L7 11Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-  </Icon>
-);
-
-// Иконка молнии (Lightning/Bolt) из Badass Icons
-export const LightningIcon = ({ size = 24, className = '' }) => (
-  <Icon size={size} className={className}>
-    <path
-      d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-  </Icon>
-);
-
-// Иконка трофея (Trophy) из Badass Icons
-export const TrophyIcon = ({ size = 24, className = '' }) => (
-  <Icon size={size} className={className}>
-    <path
-      d="M6 9H4C3.44772 9 3 9.44772 3 10V12C3 15.866 6.13401 19 10 19H14C17.866 19 21 15.866 21 12V10C21 9.44772 20.5523 9 20 9H18"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M6 9V5C6 3.89543 6.89543 3 8 3H16C17.1046 3 18 3.89543 18 5V9"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path
-      d="M12 19V22M8 22H16"
+      d="M22 2L2 10L8 13L18 6L10 14L14 18L22 2Z"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"

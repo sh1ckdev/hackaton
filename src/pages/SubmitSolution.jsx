@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { UploadIcon, GitHubIcon, ArrowLeftIcon, SolutionIcon, PaperPlaneIcon, RocketIcon } from '../components/Icons';
+import { UploadIcon, GitHubIcon, ArrowLeftIcon, SolutionIcon, PaperPlaneIcon } from '../components/Icons';
 
 const SubmitSolution = () => {
   const { caseId } = useParams();
@@ -218,16 +218,16 @@ const SubmitSolution = () => {
           <button
             type="submit"
             disabled={solutionsStore.loading}
-            className="px-6 py-2.5 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 text-sm flex items-center gap-2 group"
+            className="px-6 py-2.5 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 text-sm flex items-center gap-2"
           >
             {solutionsStore.loading ? (
               <>
-                <RocketIcon size={16} className="animate-pulse" />
+                <span className="animate-spin">⏳</span>
                 <span>Отправка...</span>
               </>
             ) : (
               <>
-                <PaperPlaneIcon size={16} className="group-hover:translate-x-1 group-hover:rotate-12 transition-transform" />
+                <PaperPlaneIcon size={16} />
                 <span>Отправить</span>
               </>
             )}

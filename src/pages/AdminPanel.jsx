@@ -4,6 +4,7 @@ import solutionsStore from '../stores/solutionsStore';
 import casesStore from '../stores/casesStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { PaperPlaneIcon } from '../components/Icons';
 
 const AdminPanel = () => {
   useDocumentTitle('Панель администратора');
@@ -616,9 +617,19 @@ const AdminPanel = () => {
               <button
                 onClick={handleBroadcast}
                 disabled={broadcasting || !broadcastMessage.trim()}
-                className="px-6 py-3 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group flex items-center justify-center gap-2 px-6 py-3 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {broadcasting ? 'Отправка...' : 'Отправить всем участникам'}
+                {broadcasting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Отправка...</span>
+                  </>
+                ) : (
+                  <>
+                    <PaperPlaneIcon size={18} />
+                    <span>Отправить всем участникам</span>
+                  </>
+                )}
               </button>
               {broadcastResult && (
                 <div className="glass rounded-lg p-4 border border-terminal-green">

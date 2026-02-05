@@ -286,9 +286,9 @@ const CaseDetail = () => {
                   <p className="text-gray-400 mb-4">У вас еще нет решения для этого кейса</p>
                   <Link
                     to={`/solutions/submit/${caseItem.id}`}
-                    className="group inline-flex items-center gap-2 px-6 py-3 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                    className="group inline-flex items-center gap-2 px-6 py-3 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-all hover:scale-105"
                   >
-                    <PaperPlaneIcon size={18} className="group-hover:translate-x-1 group-hover:rotate-12 transition-transform" />
+                    <PaperPlaneIcon size={18} />
                     <span>Отправить решение</span>
                   </Link>
                 </div>
@@ -333,9 +333,9 @@ const CaseDetail = () => {
                 <h3 className="text-sm font-semibold text-terminal-green mb-3">Готовы начать?</h3>
                 <Link
                   to={`/solutions/submit/${caseItem.id}`}
-                  className="group flex items-center justify-center gap-2 w-full px-4 py-3 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm"
+                  className="group flex items-center justify-center gap-2 w-full px-4 py-3 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-all hover:scale-105 text-sm"
                 >
-                  <PaperPlaneIcon size={16} className="group-hover:translate-x-1 group-hover:rotate-12 transition-transform" />
+                  <PaperPlaneIcon size={16} />
                   <span>Отправить решение</span>
                 </Link>
               </div>
