@@ -14,6 +14,37 @@ CREATE TABLE IF NOT EXISTS users (
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
 
+-- Обновление CHECK constraint для роли (если таблица уже существует)
+-- Удаляем старый constraint, если он существует, и создаем новый
+DO $$
+BEGIN
+    -- Удаляем существующие constraints на role, если они есть
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname LIKE 'users_role_check%' 
+        AND conrelid = 'users'::regclass
+    ) THEN
+        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+        -- Также пытаемся удалить constraint с другим именем, если он был создан автоматически
+        FOR r IN 
+            SELECT conname FROM pg_constraint 
+            WHERE conrelid = 'users'::regclass 
+            AND contype = 'c'
+            AND pg_get_constraintdef(oid) LIKE '%role%IN%'
+        LOOP
+            EXECUTE 'ALTER TABLE users DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname);
+        END LOOP;
+    END IF;
+    
+    -- Создаем новый constraint с правильными значениями
+    ALTER TABLE users ADD CONSTRAINT users_role_check 
+        CHECK (role IN ('user', 'moderator', 'admin'));
+EXCEPTION
+    WHEN duplicate_object THEN
+        -- Constraint уже существует, ничего не делаем
+        NULL;
+END $$;
+
 -- Создание таблицы кейсов
 CREATE TABLE IF NOT EXISTS cases (
     id SERIAL PRIMARY KEY,

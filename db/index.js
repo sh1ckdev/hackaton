@@ -64,10 +64,10 @@ export async function initDB() {
 
   // Теперь применяем схему к нужной БД
   try {
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    await pool.query(schema);
-    console.log('База данных инициализирована успешно');
+    // Используем систему миграций для автоматического применения изменений
+    const { runMigrations } = await import('./migrations.js');
+    await runMigrations();
+    console.log('База данных инициализирована и миграции применены успешно');
   } catch (error) {
     console.error('Ошибка инициализации БД:', error);
     throw error;

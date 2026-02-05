@@ -96,10 +96,20 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
 
-    if (!role || !['user', 'moderator', 'admin'].includes(role)) {
-      console.error('[Admin] Некорректная роль:', role);
+    // Нормализуем роль (приводим к нижнему регистру и убираем пробелы)
+    const normalizedRole = role ? String(role).toLowerCase().trim() : null;
+    
+    if (!normalizedRole || !['user', 'moderator', 'admin'].includes(normalizedRole)) {
+      console.error('[Admin] Некорректная роль:', { 
+        original: role, 
+        normalized: normalizedRole,
+        type: typeof role 
+      });
       return res.status(400).json({ error: 'Некорректная роль. Допустимые значения: user, moderator, admin' });
     }
+    
+    // Используем нормализованную роль дальше
+    const roleToSet = normalizedRole;
 
     // Проверяем, существует ли пользователь по telegram_id
     const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
@@ -121,19 +131,31 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
       // Преобразуем telegram_id в строку для надежного сравнения
       const telegramIdStr = String(userTelegramId);
       const mainAdminIdStr = String(MAIN_ADMIN_ID);
-      if (telegramIdStr === mainAdminIdStr && role !== 'admin') {
+      if (telegramIdStr === mainAdminIdStr && roleToSet !== 'admin') {
         console.warn('[Admin] Попытка снять роль у главного админа:', telegramId);
         return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
       }
     }
 
     // Обновляем роль по telegram_id
-    console.log('[Admin] Обновление роли:', { telegramId, newRole: role });
+    console.log('[Admin] Обновление роли:', { 
+      telegramId, 
+      telegramIdType: typeof telegramId,
+      newRole: roleToSet,
+      roleType: typeof roleToSet,
+      currentUserRole: currentUser.role
+    });
 
     try {
+      console.log('[Admin] Выполнение SQL запроса:', {
+        role: roleToSet,
+        telegramId: telegramId,
+        telegramIdType: typeof telegramId
+      });
+
       const result = await pool.query(
         'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = $2 RETURNING *',
-        [role, telegramId]
+        [roleToSet, telegramId]
       );
 
       if (result.rows.length === 0) {
@@ -141,15 +163,33 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
         return res.status(404).json({ error: 'Пользователь не найден после обновления' });
       }
 
-      console.log('[Admin] Роль успешно обновлена:', result.rows[0]);
+      console.log('[Admin] Роль успешно обновлена:', {
+        id: result.rows[0].id,
+        telegram_id: result.rows[0].telegram_id,
+        role: result.rows[0].role,
+        roleType: typeof result.rows[0].role
+      });
       res.json({ user: result.rows[0] });
     } catch (dbError) {
       console.error('[Admin] Ошибка SQL запроса:', {
         message: dbError.message,
         code: dbError.code,
         detail: dbError.detail,
-        constraint: dbError.constraint
+        constraint: dbError.constraint,
+        hint: dbError.hint,
+        role: role,
+        telegramId: telegramId
       });
+      
+      // Если ошибка связана с constraint, даем более понятное сообщение
+      if (dbError.code === '23514' || dbError.constraint) {
+        console.error('[Admin] Ошибка constraint в БД. Возможно, нужно обновить схему БД.');
+        return res.status(400).json({ 
+          error: 'Некорректная роль. Проверьте, что роль соответствует допустимым значениям: user, moderator, admin',
+          details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+        });
+      }
+      
       throw dbError; // Пробрасываем ошибку в общий catch блок
     }
   } catch (error) {
@@ -157,7 +197,8 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
       message: error.message,
       stack: error.stack,
       telegramId: req.params.telegramId,
-      role: req.body?.role
+      role: req.body?.role,
+      errorCode: error.code
     });
     res.status(500).json({ 
       error: 'Ошибка сервера при изменении роли',
