@@ -59,15 +59,22 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
+    const MAIN_ADMIN_ID = '1046635419'; // ID главного администратора
 
     if (!['user', 'moderator', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 
     // Проверяем, существует ли пользователь
-    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
+    const userCheck = await pool.query('SELECT id, telegram_id FROM users WHERE id = $1', [id]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Защита главного админа от снятия роли
+    const userTelegramId = userCheck.rows[0].telegram_id?.toString();
+    if (userTelegramId === MAIN_ADMIN_ID && role !== 'admin') {
+      return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
     }
 
     // Обновляем роль
