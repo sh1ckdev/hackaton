@@ -56,11 +56,15 @@ CREATE TABLE IF NOT EXISTS cases (
     current_participants INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'closed', 'archived')),
     opens_at TIMESTAMP, -- Дата и время открытия кейса (null = открыт сразу)
+    links JSONB DEFAULT '[]'::jsonb, -- Массив ссылок [{label: string, url: string}]
+    attachments JSONB DEFAULT '[]'::jsonb, -- Массив файлов [{name: string, url: string}]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS opens_at TIMESTAMP;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
 
 -- Создание таблицы решений
 CREATE TABLE IF NOT EXISTS solutions (
