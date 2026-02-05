@@ -116,16 +116,13 @@ export function startBot() {
         );
       }
 
-      // Предлагаем телефон только если его еще нет
-      if (!user.phone) {
-        await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
-          reply_markup: {
-            keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
-            one_time_keyboard: true,
-            resize_keyboard: true
-          }
-        });
-      }
+      await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
+        reply_markup: {
+          keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
+          one_time_keyboard: true,
+          resize_keyboard: true
+        }
+      });
     } catch (error) {
       console.error('Ошибка /start:', error);
     }

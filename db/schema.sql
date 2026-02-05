@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255),
     photo_url TEXT,
     phone VARCHAR(32),
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -99,39 +99,3 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_team_code ON teams(team_code);
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_token ON auth_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON auth_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-
--- Автоматическое создание главного администратора (если не существует)
--- Telegram ID главного админа берется из переменной окружения ADMIN_TELEGRAM_ID
--- Если переменная не задана, админ не создается
-DO $$
-DECLARE
-    admin_telegram_id BIGINT;
-    admin_exists BOOLEAN;
-BEGIN
-    -- Получаем Telegram ID из переменной окружения (через функцию current_setting)
-    -- Если переменная не задана, используем NULL
-    BEGIN
-        admin_telegram_id := NULLIF(current_setting('app.admin_telegram_id', true), '')::BIGINT;
-    EXCEPTION WHEN OTHERS THEN
-        admin_telegram_id := NULL;
-    END;
-
-    -- Если Telegram ID задан, создаем админа
-    IF admin_telegram_id IS NOT NULL THEN
-        -- Проверяем, существует ли уже пользователь с таким Telegram ID
-        SELECT EXISTS(SELECT 1 FROM users WHERE telegram_id = admin_telegram_id) INTO admin_exists;
-        
-        IF NOT admin_exists THEN
-            -- Создаем главного администратора
-            INSERT INTO users (telegram_id, username, first_name, last_name, role)
-            VALUES (admin_telegram_id, 'admin', 'Главный', 'Администратор', 'admin')
-            ON CONFLICT (telegram_id) DO UPDATE SET role = 'admin';
-            
-            RAISE NOTICE 'Главный администратор создан с Telegram ID: %', admin_telegram_id;
-        ELSE
-            -- Обновляем роль существующего пользователя на admin
-            UPDATE users SET role = 'admin' WHERE telegram_id = admin_telegram_id AND role != 'admin';
-            RAISE NOTICE 'Роль администратора назначена пользователю с Telegram ID: %', admin_telegram_id;
-        END IF;
-    END IF;
-END $$;

@@ -66,37 +66,7 @@ export async function initDB() {
   try {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    // Устанавливаем переменную окружения для PostgreSQL
-    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
-    if (adminTelegramId) {
-      await pool.query(`SET app.admin_telegram_id = '${adminTelegramId}'`);
-    }
-    
     await pool.query(schema);
-    
-    // Если админ не был создан через схему, создаем его вручную
-    if (adminTelegramId) {
-      try {
-        const adminId = parseInt(adminTelegramId);
-        const existing = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [adminId]);
-        if (existing.rows.length === 0) {
-          await pool.query(
-            `INSERT INTO users (telegram_id, username, first_name, last_name, role)
-             VALUES ($1, 'admin', 'Главный', 'Администратор', 'admin')
-             ON CONFLICT (telegram_id) DO UPDATE SET role = 'admin'`,
-            [adminId]
-          );
-          console.log(`Главный администратор создан с Telegram ID: ${adminId}`);
-        } else if (existing.rows[0].role !== 'admin') {
-          await pool.query('UPDATE users SET role = $1 WHERE telegram_id = $2', ['admin', adminId]);
-          console.log(`Роль администратора назначена пользователю с Telegram ID: ${adminId}`);
-        }
-      } catch (error) {
-        console.warn('Не удалось создать главного администратора:', error.message);
-      }
-    }
-    
     console.log('База данных инициализирована успешно');
   } catch (error) {
     console.error('Ошибка инициализации БД:', error);

@@ -60,18 +60,8 @@ router.put('/users/:id/role', async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!['user', 'moderator', 'admin'].includes(role)) {
+    if (!['user', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
-    }
-
-    // Только админ может назначать других админов
-    if (role === 'admin' && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Только администратор может назначать других администраторов' });
-    }
-
-    // Нельзя изменить роль самого себя
-    if (parseInt(id) === req.user.id && role !== req.user.role) {
-      return res.status(400).json({ error: 'Нельзя изменить свою собственную роль' });
     }
 
     const result = await pool.query(
