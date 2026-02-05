@@ -94,13 +94,26 @@ export function startBot() {
       const loginUrl = `${clientUrl}/login?token=${loginToken}`;
 
       if (isHttpsUrl(loginUrl)) {
+        // Отправляем сообщение с кнопкой Web App для автоматической авторизации
         await bot.sendMessage(
           chatId,
-          'Для входа на сайт нажмите кнопку ниже.',
+          'Для входа на сайт нажмите кнопку ниже.\n\n' +
+          '💡 Если вы откроете через Web App, авторизация произойдет автоматически!',
           {
             reply_markup: {
               inline_keyboard: [
-                [{ text: 'Войти на сайт', url: loginUrl }]
+                [
+                  { 
+                    text: '🚀 Открыть Web App (автовход)', 
+                    web_app: { url: `${clientUrl}/login` }
+                  }
+                ],
+                [
+                  { 
+                    text: '🔗 Открыть по ссылке', 
+                    url: loginUrl 
+                  }
+                ]
               ]
             }
           }
