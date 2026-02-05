@@ -94,25 +94,22 @@ export function startBot() {
       const loginUrl = `${clientUrl}/login?token=${loginToken}`;
 
       if (isHttpsUrl(loginUrl)) {
-        // Отправляем сообщение с кнопками Web App и обычной ссылки
+        // Отправляем сообщение с кнопкой Web App (автоматическая авторизация через initData)
+        // и кнопкой для входа по ссылке (через токен)
         await bot.sendMessage(
           chatId,
-          '🎯 Добро пожаловать в Hackathon!\n\nВыберите способ входа:',
+          'Добро пожаловать! Нажмите кнопку ниже, чтобы открыть сайт и автоматически войти.',
           {
             reply_markup: {
               inline_keyboard: [
-                [
-                  { 
-                    text: '🚀 Открыть в Telegram', 
-                    web_app: { url: loginUrl }
-                  }
-                ],
-                [
-                  { 
-                    text: '🔗 Открыть в браузере', 
-                    url: loginUrl 
-                  }
-                ]
+                [{ 
+                  text: '🚀 Открыть сайт', 
+                  web_app: { url: `${clientUrl}/login` }
+                }],
+                [{ 
+                  text: '🔗 Войти по ссылке', 
+                  url: loginUrl 
+                }]
               ]
             }
           }
