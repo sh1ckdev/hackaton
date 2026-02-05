@@ -142,4 +142,32 @@ router.post('/join', authenticateToken, async (req, res) => {
   }
 });
 
+// Рейтинг команд (leaderboard)
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        t.id,
+        t.name,
+        t.team_code,
+        COUNT(DISTINCT tm.user_id) as members_count,
+        COUNT(DISTINCT s.id) as solutions_count,
+        COUNT(DISTINCT CASE WHEN s.status = 'approved' THEN s.id END) as approved_solutions,
+        COALESCE(SUM(CASE WHEN s.status = 'approved' THEN s.score ELSE 0 END), 0) as total_score
+      FROM teams t
+      LEFT JOIN team_members tm ON t.id = tm.team_id
+      LEFT JOIN users u ON tm.user_id = u.id
+      LEFT JOIN solutions s ON u.id = s.user_id
+      GROUP BY t.id, t.name, t.team_code
+      HAVING COUNT(DISTINCT tm.user_id) > 0
+      ORDER BY total_score DESC, approved_solutions DESC, solutions_count DESC
+      LIMIT 50`
+    );
+    res.json({ leaderboard: result.rows });
+  } catch (error) {
+    console.error('Ошибка получения рейтинга:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 export default router;

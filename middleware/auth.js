@@ -24,9 +24,9 @@ export const requireAdmin = (req, res, next) => {
   next();
 };
 
-export const requireAdminOrModerator = (req, res, next) => {
-  if (!req.user || !['admin', 'moderator'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Требуются права администратора или модератора' });
+export const requireModerator = (req, res, next) => {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'moderator')) {
+    return res.status(403).json({ error: 'Требуются права модератора или администратора' });
   }
   next();
 };

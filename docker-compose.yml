@@ -1,8 +1,14 @@
 services:
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: server/Dockerfile
+      args:
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
+        VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
+        VITE_FRONTEND_URL: ${VITE_FRONTEND_URL}
+        VITE_API_URL: ${VITE_API_URL}
+        ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     container_name: hackathon-backend
     env_file:
       - ".env"

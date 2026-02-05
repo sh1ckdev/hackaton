@@ -1,14 +1,15 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken, requireAdmin, requireAdminOrModerator } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Все маршруты требуют аутентификации
+// Все маршруты требуют аутентификации и прав администратора
 router.use(authenticateToken);
+router.use(requireAdmin);
 
-// Получение статистики (админ или модератор)
-router.get('/stats', requireAdminOrModerator, async (req, res) => {
+// Получение статистики
+router.get('/stats', async (req, res) => {
   try {
     const [usersCount, casesCount, solutionsCount, solutionsByStatus] = await Promise.all([
       pool.query('SELECT COUNT(*) as count FROM users'),
@@ -36,8 +37,8 @@ router.get('/stats', requireAdminOrModerator, async (req, res) => {
   }
 });
 
-// Получение всех пользователей (только админ)
-router.get('/users', requireAdmin, async (req, res) => {
+// Получение всех пользователей
+router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.*, COUNT(s.id) as solutions_count
@@ -53,14 +54,24 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-// Изменение роли пользователя (только админ)
-router.put('/users/:id/role', requireAdmin, async (req, res) => {
+// Изменение роли пользователя
+router.put('/users/:id/role', async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!['user', 'admin', 'moderator'].includes(role)) {
+    if (!['user', 'moderator', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
+    }
+
+    // Только админ может назначать других админов
+    if (role === 'admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Только администратор может назначать других администраторов' });
+    }
+
+    // Нельзя изменить роль самого себя
+    if (parseInt(id) === req.user.id && role !== req.user.role) {
+      return res.status(400).json({ error: 'Нельзя изменить свою собственную роль' });
     }
 
     const result = await pool.query(

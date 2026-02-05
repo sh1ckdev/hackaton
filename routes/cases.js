@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken, requireAdminOrModerator } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -46,8 +46,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Создание кейса (админ или модератор)
-router.post('/', authenticateToken, requireAdminOrModerator, async (req, res) => {
+// Создание кейса (модератор или админ)
+router.post('/', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { title, description, requirements, difficulty, max_participants } = req.body;
 
@@ -69,8 +69,8 @@ router.post('/', authenticateToken, requireAdminOrModerator, async (req, res) =>
   }
 });
 
-// Обновление кейса (админ или модератор)
-router.put('/:id', authenticateToken, requireAdminOrModerator, async (req, res) => {
+// Обновление кейса (модератор или админ)
+router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, requirements, difficulty, max_participants, status } = req.body;
@@ -100,8 +100,8 @@ router.put('/:id', authenticateToken, requireAdminOrModerator, async (req, res) 
   }
 });
 
-// Удаление кейса (админ или модератор)
-router.delete('/:id', authenticateToken, requireAdminOrModerator, async (req, res) => {
+// Удаление кейса (только админ)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM cases WHERE id = $1', [id]);

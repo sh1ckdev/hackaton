@@ -11,7 +11,6 @@ import casesRoutes from './routes/cases.js';
 import solutionsRoutes from './routes/solutions.js';
 import adminRoutes from './routes/admin.js';
 import teamsRoutes from './routes/teams.js';
-import leaderboardRoutes from './routes/leaderboard.js';
 import { startBot } from './bot.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -78,7 +77,6 @@ app.use('/api/cases', casesRoutes);
 app.use('/api/solutions', solutionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teams', teamsRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
