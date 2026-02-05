@@ -64,6 +64,13 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 
+    // Проверяем, существует ли пользователь
+    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Обновляем роль
     const result = await pool.query(
       'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
       [role, id]
@@ -76,7 +83,7 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
     res.json({ user: result.rows[0] });
   } catch (error) {
     console.error('Ошибка изменения роли:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(500).json({ error: 'Ошибка сервера: ' + error.message });
   }
 });
 

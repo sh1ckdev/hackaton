@@ -146,6 +146,48 @@ router.post('/join', authenticateToken, async (req, res) => {
   }
 });
 
+// Покинуть команду
+router.post('/leave', authenticateToken, async (req, res) => {
+  try {
+    // Проверяем, состоит ли пользователь в команде
+    const memberResult = await pool.query(
+      'SELECT tm.*, t.id as team_id FROM team_members tm JOIN teams t ON tm.team_id = t.id WHERE tm.user_id = $1',
+      [req.user.id]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Вы не состоите в команде' });
+    }
+
+    const member = memberResult.rows[0];
+
+    // Если пользователь капитан, проверяем, есть ли другие участники
+    if (member.role === 'captain') {
+      const otherMembers = await pool.query(
+        'SELECT COUNT(*) as count FROM team_members WHERE team_id = $1 AND user_id != $2',
+        [member.team_id, req.user.id]
+      );
+
+      if (parseInt(otherMembers.rows[0].count) > 0) {
+        return res.status(400).json({ 
+          error: 'Капитан не может покинуть команду, пока в ней есть другие участники. Сначала передайте права капитана другому участнику или удалите других участников.' 
+        });
+      }
+
+      // Если капитан один, удаляем команду полностью
+      await pool.query('DELETE FROM teams WHERE id = $1', [member.team_id]);
+    } else {
+      // Если обычный участник, просто удаляем его из команды
+      await pool.query('DELETE FROM team_members WHERE user_id = $1 AND team_id = $2', [req.user.id, member.team_id]);
+    }
+
+    res.json({ message: 'Вы покинули команду' });
+  } catch (error) {
+    console.error('Ошибка выхода из команды:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Получение всех команд (для админа и модератора)
 router.get('/all', authenticateToken, requireModerator, async (req, res) => {
   try {

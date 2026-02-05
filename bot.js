@@ -174,7 +174,8 @@ export async function broadcastMessage(message) {
   const bot = botInstance || new TelegramBot(token);
   
   try {
-    // Получаем всех пользователей, у которых есть telegram_id и которые участвуют в соревнованиях
+    // Получаем всех пользователей, у которых есть telegram_id и которые участвуют в соревнованиях (не снялись)
+    // Решения не удалены, значит пользователь не снялся с соревнования
     const result = await pool.query(
       `SELECT DISTINCT u.telegram_id 
        FROM users u
