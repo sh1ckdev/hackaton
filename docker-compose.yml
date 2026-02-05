@@ -17,8 +17,26 @@ services:
       - "${FRONTEND_PORT:-4173}:4173"
     networks:
       - frontend-network
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`chermanx.ru`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=4173"
+      # HTTPS
+      - "traefik.http.routers.frontend-secure.rule=Host(`chermanx.ru`)"
+      - "traefik.http.routers.frontend-secure.entrypoints=websecure"
+      - "traefik.http.routers.frontend-secure.tls=true"
+      - "traefik.http.routers.frontend-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-secure.service=frontend"
+      # HTTP to HTTPS redirect
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.frontend.middlewares=redirect-to-https"
+      - "traefik.docker.network=traefik-public"
 
 networks:
   frontend-network:
     name: hackathon-frontend
     driver: bridge
+  traefik-public:
+    external: true
