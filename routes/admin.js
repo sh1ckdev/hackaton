@@ -57,30 +57,34 @@ router.get('/users', requireAdmin, async (req, res) => {
 // Изменение роли пользователя (только админ)
 router.put('/users/:id/role', requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = parseInt(req.params.id);
     const { role } = req.body;
-    const MAIN_ADMIN_ID = '1046635419'; // ID главного администратора
+    const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
 
     if (!['user', 'moderator', 'admin'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 
     // Проверяем, существует ли пользователь
-    const userCheck = await pool.query('SELECT id, telegram_id FROM users WHERE id = $1', [id]);
+    const userCheck = await pool.query('SELECT id, telegram_id FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
     // Защита главного админа от снятия роли
-    const userTelegramId = userCheck.rows[0].telegram_id?.toString();
-    if (userTelegramId === MAIN_ADMIN_ID && role !== 'admin') {
+    const userTelegramId = userCheck.rows[0].telegram_id;
+    if (userTelegramId && Number(userTelegramId) === MAIN_ADMIN_ID && role !== 'admin') {
       return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
     }
 
     // Обновляем роль
     const result = await pool.query(
       'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [role, id]
+      [role, userId]
     );
 
     if (result.rows.length === 0) {
