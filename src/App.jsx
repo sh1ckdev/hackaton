@@ -15,16 +15,7 @@ import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const ProtectedRoute = observer(({ children }) => {
-  console.log('[App] ProtectedRoute рендер:', {
-    initializing: authStore.initializing,
-    isAuthenticated: authStore.isAuthenticated,
-    hasToken: !!authStore.token,
-    hasUser: !!authStore.user,
-    loading: authStore.loading
-  });
-  
   if (authStore.initializing) {
-    console.log('[App] ProtectedRoute: показываю загрузку (initializing=true)');
     return (
       <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
         <div className="glass rounded-xl p-6 text-white/70">Загрузка...</div>
@@ -32,10 +23,8 @@ const ProtectedRoute = observer(({ children }) => {
     );
   }
   if (!authStore.isAuthenticated) {
-    console.log('[App] ProtectedRoute: редирект на /login (не авторизован)');
     return <Navigate to="/login" replace />;
   }
-  console.log('[App] ProtectedRoute: рендер children');
   return children;
 });
 
@@ -47,7 +36,6 @@ const AdminRoute = observer(({ children }) => {
 });
 
 function App() {
-  console.log('[App] App компонент рендерится');
   return (
     <ErrorBoundary>
       <Router

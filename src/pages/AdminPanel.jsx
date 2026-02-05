@@ -53,7 +53,6 @@ const AdminPanel = () => {
       const response = await api.get('/admin/stats');
       setStats(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки статистики:', error);
     }
   };
 
@@ -62,7 +61,6 @@ const AdminPanel = () => {
       const response = await api.get('/admin/users');
       setUsers(response.data.users);
     } catch (error) {
-      console.error('Ошибка загрузки пользователей:', error);
     }
   };
 
@@ -71,7 +69,6 @@ const AdminPanel = () => {
       const response = await api.get('/teams/all');
       setTeams(response.data.teams);
     } catch (error) {
-      console.error('Ошибка загрузки команд:', error);
     }
   };
 
@@ -113,7 +110,6 @@ const AdminPanel = () => {
       setModerationData({ status: 'approved', admin_comment: '', score: 0 });
       solutionsStore.fetchAllSolutions(filters);
     } catch (error) {
-      console.error('Ошибка модерации:', error);
     }
   };
 
@@ -378,7 +374,6 @@ const AdminPanel = () => {
                                 throw new Error('Неожиданный ответ от сервера');
                               }
                             } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
                               const errorMessage = error.response?.data?.error || error.message || 'Ошибка изменения роли';
                               alert(errorMessage);
                             }
@@ -403,7 +398,6 @@ const AdminPanel = () => {
                                 await api.put(`/admin/users/${user.telegram_id}/role`, { role: 'user' });
                                 fetchUsers();
                               } catch (error) {
-                                console.error('Ошибка изменения роли:', error);
                                 alert(error.response?.data?.error || 'Ошибка изменения роли');
                               }
                             }}
@@ -427,7 +421,6 @@ const AdminPanel = () => {
                               await api.put(`/admin/users/${user.telegram_id}/role`, { role: 'admin' });
                               fetchUsers();
                             } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
                               alert(error.response?.data?.error || 'Ошибка изменения роли');
                             }
                           }}

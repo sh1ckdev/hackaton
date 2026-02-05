@@ -11,7 +11,10 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Ошибки логируются только в development режиме через React DevTools
+    if (process.env.NODE_ENV === 'development') {
+      // В development можно оставить для отладки, но в production убираем
+    }
   }
 
   render() {

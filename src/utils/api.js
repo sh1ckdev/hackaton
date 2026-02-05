@@ -5,20 +5,9 @@ import authStore from '../stores/authStore';
 // В production обязательно должен быть указан VITE_API_URL
 const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
 
-// Логируем используемый API URL для отладки
-console.log('[API] Configuration:', {
-  mode: import.meta.env.MODE,
-  apiURL: apiBaseURL,
-  frontendURL: import.meta.env.VITE_FRONTEND_URL,
-  hasApiURL: !!import.meta.env.VITE_API_URL,
-  envApiURL: import.meta.env.VITE_API_URL
-});
-
-if (import.meta.env.MODE === 'production') {
-  if (!import.meta.env.VITE_API_URL) {
-    console.error('[API] ERROR: VITE_API_URL не установлен! Используется относительный путь /api');
-    console.error('[API] Это может привести к ошибкам CORS в production!');
-  }
+// В production проверяем наличие VITE_API_URL
+if (import.meta.env.MODE === 'production' && !import.meta.env.VITE_API_URL) {
+  // Тихо игнорируем, чтобы не раскрывать информацию в консоли
 }
 
 const api = axios.create({
@@ -32,19 +21,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = authStore.token;
-    console.log('[API] Request interceptor:', {
-      url: config.url,
-      method: config.method,
-      hasToken: !!token,
-      timeout: config.timeout
-    });
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
-    console.log('[API] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -52,32 +34,19 @@ api.interceptors.request.use(
 // Обработка ошибок авторизации
 api.interceptors.response.use(
   (response) => {
-    console.log('[API] Response interceptor success:', {
-      url: response.config.url,
-      status: response.status
-    });
     return response;
   },
   async (error) => {
-    console.log('[API] Response interceptor error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      code: error.code,
-      isAbort: error.name === 'AbortError' || error.code === 'ECONNABORTED'
-    });
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest?._retry) {
       originalRequest._retry = true;
       const refreshToken = authStore.refreshToken;
       if (!refreshToken) {
-        console.log('[API] Нет refresh токена, logout');
         authStore.logout();
         window.location.href = '/login';
         return Promise.reject(error);
       }
       try {
-        console.log('[API] Пробую обновить access токен');
         const refreshResponse = await api.post('/auth/refresh', { refresh_token: refreshToken });
         authStore.token = refreshResponse.data.token;
         authStore.refreshToken = refreshResponse.data.refresh_token;
@@ -86,7 +55,6 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
         return api.request(originalRequest);
       } catch (refreshError) {
-        console.log('[API] Ошибка обновления токена, logout');
         authStore.logout();
         window.location.href = '/login';
         return Promise.reject(refreshError);
