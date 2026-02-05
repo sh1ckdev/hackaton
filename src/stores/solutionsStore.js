@@ -52,7 +52,7 @@ class SolutionsStore {
     }
   }
 
-  async submitSolution(data, file) {
+  async submitSolution(data, presentationFile) {
     this.loading = true;
     this.error = null;
     try {
@@ -60,8 +60,8 @@ class SolutionsStore {
       Object.keys(data).forEach(key => {
         formData.append(key, data[key]);
       });
-      if (file) {
-        formData.append('file', file);
+      if (presentationFile) {
+        formData.append('presentation', presentationFile);
       }
 
       const response = await api.post('/solutions', formData, {

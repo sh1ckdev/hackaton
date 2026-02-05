@@ -83,16 +83,29 @@ const MySolutions = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm text-gray-400">
-                {solution.repository_url && (
+                {solution.github_url && (
                   <div>
-                    Репозиторий:{' '}
+                    GitHub:{' '}
                     <a
-                      href={solution.repository_url}
+                      href={solution.github_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-terminal-cyan hover:text-white transition-colors"
                     >
-                      {solution.repository_url}
+                      {solution.github_url}
+                    </a>
+                  </div>
+                )}
+                {solution.presentation_file_path && (
+                  <div>
+                    Презентация:{' '}
+                    <a
+                      href={`/uploads/${solution.presentation_file_path.split('/').pop()}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-terminal-cyan hover:text-white transition-colors"
+                    >
+                      Скачать
                     </a>
                   </div>
                 )}

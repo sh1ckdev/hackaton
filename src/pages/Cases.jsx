@@ -79,6 +79,14 @@ const Cases = () => {
                 </div>
               )}
 
+              {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
+                <div className="mb-4 p-3 glass rounded border border-terminal-cyan/50">
+                  <p className="text-xs text-terminal-cyan">
+                    ⏰ Откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-4 border-t border-terminal-gray pt-3">
                 <span className="text-sm text-gray-400">
                   {caseItem.current_participants} участников

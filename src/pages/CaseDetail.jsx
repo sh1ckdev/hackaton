@@ -76,6 +76,17 @@ const CaseDetail = () => {
           </div>
         )}
 
+        {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
+          <div className="mb-6 p-4 glass rounded border border-terminal-cyan">
+            <p className="text-terminal-cyan font-medium">
+              ⏰ Кейс откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              Вы получите уведомление в Telegram, когда кейс будет открыт
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between pt-6 border-t border-terminal-gray">
           <div className="text-sm text-gray-400">
             Участников: {caseItem.current_participants}
@@ -98,6 +109,19 @@ const CaseDetail = () => {
             {mySolution.description && (
               <p className="text-gray-300">
                 <span className="text-gray-500">Описание:</span> {mySolution.description}
+              </p>
+            )}
+            {mySolution.github_url && (
+              <p className="text-gray-300">
+                <span className="text-gray-500">GitHub:</span>{' '}
+                <a
+                  href={mySolution.github_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-terminal-cyan hover:text-terminal-green transition-colors"
+                >
+                  {mySolution.github_url}
+                </a>
               </p>
             )}
             <p className="text-gray-300">
@@ -158,15 +182,28 @@ const CaseDetail = () => {
         </div>
       ) : (
         <div className="glass rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-gray-100 mb-4">
-            Вы еще не отправили решение
-          </h2>
-          <Link
-            to={`/solutions/submit/${caseItem.id}`}
-            className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
-          >
-            Отправить решение →
-          </Link>
+          {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-100 mb-4">
+                Кейс еще не открыт
+              </h2>
+              <p className="text-gray-400 mb-4">
+                Кейс будет открыт {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold text-gray-100 mb-4">
+                Вы еще не отправили решение
+              </h2>
+              <Link
+                to={`/solutions/submit/${caseItem.id}`}
+                className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
+              >
+                Отправить решение →
+              </Link>
+            </>
+          )}
         </div>
       )}
     </div>

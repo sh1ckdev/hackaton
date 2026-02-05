@@ -31,6 +31,7 @@ const AdminPanel = () => {
     difficulty: 'medium',
     max_participants: 0,
     status: 'active',
+    opens_at: '',
   });
 
   useEffect(() => {
@@ -203,6 +204,16 @@ const AdminPanel = () => {
               Команды
             </button>
             <button
+              onClick={() => setActiveTab('cases')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'cases'
+                  ? 'border-b-2 border-terminal-green text-white'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Кейсы
+            </button>
+            <button
               onClick={() => setActiveTab('broadcast')}
               className={`px-6 py-3 text-sm font-medium ${
                 activeTab === 'broadcast'
@@ -267,14 +278,24 @@ const AdminPanel = () => {
                     <p className="text-sm text-white/70 mb-2">{solution.description}</p>
                   )}
                   <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
-                    {solution.repository_url && (
+                    {solution.github_url && (
                       <a
-                        href={solution.repository_url}
+                        href={solution.github_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-terminal-cyan hover:text-white transition-colors"
                       >
-                        Репозиторий
+                        GitHub
+                      </a>
+                    )}
+                    {solution.presentation_file_path && (
+                      <a
+                        href={`/uploads/${solution.presentation_file_path.split('/').pop()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-terminal-cyan hover:text-white transition-colors"
+                      >
+                        Презентация
                       </a>
                     )}
                     {solution.demo_url && (
@@ -499,6 +520,80 @@ const AdminPanel = () => {
           </div>
         )}
 
+        {activeTab === 'cases' && (
+          <div className="p-6">
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">Управление кейсами</h2>
+              <button
+                onClick={() => {
+                  setEditingCase(null);
+                  setCaseFormData({
+                    title: '',
+                    description: '',
+                    requirements: '',
+                    difficulty: 'medium',
+                    max_participants: 0,
+                    status: 'active',
+                    opens_at: '',
+                  });
+                  setShowCaseForm(true);
+                }}
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+              >
+                + Создать кейс
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {casesStore.cases.map((caseItem) => (
+                <div
+                  key={caseItem.id}
+                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 bg-terminal-dark"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-1">{caseItem.title}</h3>
+                      <p className="text-sm text-white/70 line-clamp-2">{caseItem.description}</p>
+                      <div className="mt-2 flex gap-4 text-xs text-white/60">
+                        <span>Сложность: {caseItem.difficulty}</span>
+                        <span>Участников: {caseItem.current_participants}</span>
+                        {caseItem.opens_at && (
+                          <span>
+                            Откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+                          </span>
+                        )}
+                        {!caseItem.opens_at && <span>Открыт</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingCase(caseItem);
+                          setCaseFormData({
+                            title: caseItem.title,
+                            description: caseItem.description,
+                            requirements: caseItem.requirements || '',
+                            difficulty: caseItem.difficulty,
+                            max_participants: caseItem.max_participants,
+                            status: caseItem.status,
+                            opens_at: caseItem.opens_at
+                              ? new Date(caseItem.opens_at).toISOString().slice(0, 16)
+                              : '',
+                          });
+                          setShowCaseForm(true);
+                        }}
+                        className="px-3 py-1 text-sm bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all rounded"
+                      >
+                        Редактировать
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'broadcast' && (
           <div className="p-6">
             <div className="space-y-4">
@@ -536,6 +631,149 @@ const AdminPanel = () => {
           </div>
         )}
       </div>
+
+      {showCaseForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="glass rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4 text-white border-b border-terminal-gray/60 pb-2">
+              {editingCase ? 'Редактировать кейс' : 'Создать кейс'}
+            </h2>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const data = {
+                    ...caseFormData,
+                    opens_at: caseFormData.opens_at || null,
+                    max_participants: parseInt(caseFormData.max_participants) || 0,
+                  };
+                  if (editingCase) {
+                    await casesStore.updateCase(editingCase.id, data);
+                  } else {
+                    await casesStore.createCase(data);
+                  }
+                  setShowCaseForm(false);
+                  setEditingCase(null);
+                  casesStore.fetchCases();
+                } catch (error) {
+                  alert(error.response?.data?.error || 'Ошибка сохранения кейса');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Название <span className="text-terminal-red">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={caseFormData.title}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, title: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Описание <span className="text-terminal-red">*</span>
+                </label>
+                <textarea
+                  value={caseFormData.description}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, description: e.target.value })}
+                  required
+                  rows={4}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Требования
+                </label>
+                <textarea
+                  value={caseFormData.requirements}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, requirements: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Сложность
+                  </label>
+                  <select
+                    value={caseFormData.difficulty}
+                    onChange={(e) => setCaseFormData({ ...caseFormData, difficulty: e.target.value })}
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  >
+                    <option value="easy">Легко</option>
+                    <option value="medium">Средне</option>
+                    <option value="hard">Сложно</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Макс. участников
+                  </label>
+                  <input
+                    type="number"
+                    value={caseFormData.max_participants}
+                    onChange={(e) => setCaseFormData({ ...caseFormData, max_participants: e.target.value })}
+                    min="0"
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Дата и время открытия (оставьте пустым для немедленного открытия)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={caseFormData.opens_at}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, opens_at: e.target.value })}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                />
+                <p className="text-xs text-white/60 mt-1">
+                  Если указана дата, кейс будет открыт автоматически в указанное время. Все пользователи получат уведомление в Telegram.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Статус
+                </label>
+                <select
+                  value={caseFormData.status}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, status: e.target.value })}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                >
+                  <option value="active">Активен</option>
+                  <option value="closed">Закрыт</option>
+                  <option value="archived">Архивирован</option>
+                </select>
+              </div>
+              <div className="flex gap-4 border-t border-terminal-gray pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                >
+                  {editingCase ? 'Сохранить' : 'Создать'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCaseForm(false);
+                    setEditingCase(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-green transition-all font-medium rounded"
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {moderatingSolution && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">

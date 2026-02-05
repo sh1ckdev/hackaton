@@ -14,10 +14,10 @@ const SubmitSolution = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    repository_url: '',
+    github_url: '',
     demo_url: '',
   });
-  const [file, setFile] = useState(null);
+  const [presentationFile, setPresentationFile] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const SubmitSolution = () => {
       setFormData({
         title: existingSolution.title || '',
         description: existingSolution.description || '',
-        repository_url: existingSolution.repository_url || '',
+        github_url: existingSolution.github_url || '',
         demo_url: existingSolution.demo_url || '',
       });
     }
@@ -47,8 +47,13 @@ const SubmitSolution = () => {
       return;
     }
 
+    if (!formData.github_url) {
+      setError('Ссылка на GitHub репозиторий обязательна');
+      return;
+    }
+
     try {
-      await solutionsStore.submitSolution(formData, file);
+      await solutionsStore.submitSolution(formData, presentationFile);
       navigate(`/cases/${caseId}`);
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка отправки решения');
@@ -123,18 +128,23 @@ const SubmitSolution = () => {
           </div>
 
           <div>
-            <label htmlFor="repository_url" className="block text-sm font-medium text-gray-300 mb-2">
- Ссылка на репозиторий
+            <label htmlFor="github_url" className="block text-sm font-medium text-gray-300 mb-2">
+              Ссылка на GitHub репозиторий{' '}
+              <span className="text-terminal-red">*</span>
             </label>
             <input
               type="url"
-              id="repository_url"
-              name="repository_url"
-              value={formData.repository_url}
+              id="github_url"
+              name="github_url"
+              value={formData.github_url}
               onChange={handleChange}
+              required
               className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
               placeholder="https://github.com/username/repo"
             />
+            <p className="mt-1 text-sm text-gray-400">
+              Обязательно укажите ссылку на ваш GitHub репозиторий
+            </p>
           </div>
 
           <div>
@@ -153,19 +163,19 @@ const SubmitSolution = () => {
           </div>
 
           <div>
-            <label htmlFor="file" className="block text-sm font-medium text-gray-300 mb-2">
- Файл с решением (архив)
+            <label htmlFor="presentation" className="block text-sm font-medium text-gray-300 mb-2">
+              Презентация (PDF, PPT, PPTX, ODP)
             </label>
             <input
               type="file"
-              id="file"
-              name="file"
-              onChange={(e) => setFile(e.target.files[0])}
-              accept=".zip,.rar,.7z,.tar,.gz"
+              id="presentation"
+              name="presentation"
+              onChange={(e) => setPresentationFile(e.target.files[0])}
+              accept=".pdf,.ppt,.pptx,.odp"
               className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
             />
             <p className="mt-1 text-sm text-gray-400">
- Максимальный размер: 50MB
+              Максимальный размер: 100MB. Презентация опциональна.
             </p>
           </div>
 
