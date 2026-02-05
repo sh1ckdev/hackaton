@@ -314,8 +314,8 @@ const AdminPanel = () => {
           <div className="p-6">
             <div className="space-y-4">
               {users.map((user) => {
-                const MAIN_ADMIN_ID = '1046635419';
-                const isMainAdmin = user.telegram_id?.toString() === MAIN_ADMIN_ID;
+                const MAIN_ADMIN_ID = 1046635419;
+                const isMainAdmin = user.telegram_id && Number(user.telegram_id) === MAIN_ADMIN_ID;
                 
                 return (
                   <div
