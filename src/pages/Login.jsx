@@ -24,6 +24,85 @@ const Login = () => {
     }
   }, [navigate]);
 
+  // Проверка Telegram Web App и автоматическая авторизация
+  useEffect(() => {
+    const checkTelegramWebApp = async () => {
+      // Проверяем, открыт ли сайт через Telegram Web App
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        setIsWebApp(true);
+
+        // Получаем initData из Web App
+        const initData = tg.initData;
+
+        // Если есть initData и пользователь еще не авторизован и нет токена в URL
+        if (initData && !authStore.isAuthenticated && !loginPending && !hasToken) {
+          setLoginPending(true);
+          setError(null);
+
+          try {
+            // Для Web App сначала пытаемся без капчи
+            const ok = await authStore.login(initData, '');
+            setLoginPending(false);
+            
+            if (ok) {
+              navigate('/profile');
+            } else {
+              // Если нужна капча, показываем сообщение
+              if (authStore.error?.includes('капч') || authStore.error?.includes('Капч')) {
+                setError('Пройдите проверку безопасности для завершения входа');
+              } else {
+                setError(authStore.error || 'Ошибка входа');
+              }
+            }
+          } catch (err) {
+            setLoginPending(false);
+            setError('Ошибка автоматической авторизации');
+          }
+        }
+      }
+    };
+
+    // Небольшая задержка для инициализации Web App
+    const timer = setTimeout(checkTelegramWebApp, 100);
+    return () => clearTimeout(timer);
+  }, [authStore.isAuthenticated, loginPending, hasToken, navigate]);
+
+  // Повторная попытка авторизации через Web App после получения капчи
+  useEffect(() => {
+    const retryWebAppAuth = async () => {
+      if (window.Telegram?.WebApp && captchaToken && !authStore.isAuthenticated && !loginPending && !hasToken && isWebApp) {
+        const tg = window.Telegram.WebApp;
+        const initData = tg.initData;
+        
+        if (initData) {
+          setLoginPending(true);
+          setError(null);
+          
+          try {
+            const ok = await authStore.login(initData, captchaToken);
+            setLoginPending(false);
+            
+            if (ok) {
+              navigate('/profile');
+            } else {
+              setError(authStore.error || 'Ошибка входа');
+            }
+          } catch (err) {
+            setLoginPending(false);
+            setError('Ошибка авторизации');
+          }
+        }
+      }
+    };
+
+    if (captchaToken && captchaReady && isWebApp) {
+      retryWebAppAuth();
+    }
+  }, [captchaToken, captchaReady, authStore.isAuthenticated, loginPending, hasToken, isWebApp, navigate]);
+
   useEffect(() => {
     if (!turnstileSiteKey) return;
     if (window.turnstile) {
@@ -132,9 +211,11 @@ const Login = () => {
                 Добро пожаловать
               </h2>
               <p className="text-gray-300 text-sm leading-relaxed animate-slide-in-left-delay">
-                {hasToken 
-                  ? 'Завершите вход, пройдя проверку безопасности' 
-                  : 'Войдите через Telegram бота для участия в соревнованиях'}
+                {isWebApp 
+                  ? 'Автоматическая авторизация через Telegram Web App'
+                  : hasToken 
+                    ? 'Завершите вход, пройдя проверку безопасности' 
+                    : 'Войдите через Telegram бота для участия в соревнованиях'}
               </p>
             </div>
           </div>
@@ -181,19 +262,6 @@ const Login = () => {
                   <PaperPlaneIcon size={20} className="relative z-10 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
                 </button>
                 
-                <div className="mt-6 p-4 bg-terminal-dark/30 border border-terminal-gray/20 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-terminal-cyan/10 border border-terminal-cyan/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <PaperPlaneIcon size={16} className="text-terminal-cyan" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white/90 text-sm font-medium mb-1">Как это работает?</p>
-                      <p className="text-gray-400 text-xs leading-relaxed">
-                        Нажмите кнопку выше, чтобы перейти в Telegram бота. После авторизации в боте вы автоматически вернетесь на сайт.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
             
@@ -216,11 +284,20 @@ const Login = () => {
             )}
           </div>
 
-          {!hasToken && (
+          {!hasToken && !isWebApp && (
             <div className="mt-8 pt-6 border-t border-terminal-gray/20 text-center">
               <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
                 <PaperPlaneIcon size={14} className="text-gray-600" />
                 <span>После авторизации в боте вернитесь на сайт</span>
+              </p>
+            </div>
+          )}
+          
+          {isWebApp && !authStore.isAuthenticated && (
+            <div className="mt-8 pt-6 border-t border-terminal-gray/20 text-center">
+              <p className="text-xs text-terminal-cyan flex items-center justify-center gap-2">
+                <PaperPlaneIcon size={14} className="text-terminal-cyan" />
+                <span>Открыто через Telegram Web App - авторизация происходит автоматически</span>
               </p>
             </div>
           )}
