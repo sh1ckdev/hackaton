@@ -3,10 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
+import authStore from '../stores/authStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
-import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon } from '../components/Icons';
+import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon, SolutionIcon } from '../components/Icons';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -23,6 +24,10 @@ const CaseDetail = () => {
 
   const mySolution = solutionsStore.solutions.find(s => s.case_id === parseInt(id));
 
+  // Проверяем, открыт ли кейс для обычных пользователей
+  const isCaseOpen = !caseItem?.opens_at || new Date(caseItem.opens_at) <= new Date();
+  const canViewDetails = authStore.isModerator || isCaseOpen;
+
   if (casesStore.loading) {
     return (
       <div className="text-center py-12">
@@ -38,6 +43,37 @@ const CaseDetail = () => {
         <Link to="/cases" className="text-terminal-green hover:text-terminal-cyan mt-4 inline-block">
           ← Назад к кейсам
         </Link>
+      </div>
+    );
+  }
+
+  // Если кейс не открыт и пользователь не модератор - показываем сообщение
+  if (!canViewDetails) {
+    return (
+      <div>
+        <Link
+          to="/cases"
+          className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 transition-colors group"
+        >
+          <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span>Назад к кейсам</span>
+        </Link>
+        <div className="text-center py-20 border border-terminal-cyan/30 rounded-xl bg-terminal-cyan/5 backdrop-blur-sm">
+          <TimeIcon size={48} className="text-terminal-cyan mx-auto mb-4 opacity-50" />
+          <h2 className="text-2xl font-semibold text-white mb-2">Кейс еще не открыт</h2>
+          <p className="text-gray-400 mb-4">
+            Информация о кейсе будет доступна после его открытия
+          </p>
+          {caseItem.opens_at && (
+            <div className="mt-6 inline-block border border-terminal-cyan/30 rounded-xl p-5 bg-terminal-cyan/5">
+              <div className="flex items-center gap-2 mb-3 justify-center">
+                <TimeIcon size={18} className="text-terminal-cyan" />
+                <p className="text-sm font-medium text-terminal-cyan">Кейс откроется через:</p>
+              </div>
+              <CountdownTimer targetDate={caseItem.opens_at} />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -91,6 +127,52 @@ const CaseDetail = () => {
               <h2 className="text-lg font-semibold text-white mb-4">Требования</h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{caseItem.requirements}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Файлы и ссылки (если есть) */}
+          {(caseItem.attachments || caseItem.links) && (
+            <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
+              <h2 className="text-lg font-semibold text-white mb-4">Дополнительные материалы</h2>
+              <div className="space-y-3">
+                {caseItem.links && caseItem.links.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Ссылки:</h3>
+                    <div className="space-y-2">
+                      {caseItem.links.map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-terminal-cyan hover:text-terminal-green transition-colors break-all"
+                        >
+                          {link.label || link.url}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {caseItem.attachments && caseItem.attachments.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Файлы:</h3>
+                    <div className="space-y-2">
+                      {caseItem.attachments.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-terminal-cyan hover:text-terminal-green transition-colors"
+                        >
+                          <UploadIcon size={16} />
+                          <span>{file.name || file.url}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

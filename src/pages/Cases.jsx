@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
+import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
 import { CaseIcon, TimeIcon, ArrowRightIcon, SearchIcon, FilterIcon, UsersIcon } from '../components/Icons';
@@ -27,9 +28,24 @@ const Cases = () => {
     return futureCases.length > 0 ? futureCases[0].toISOString() : null;
   }, [casesStore.cases]);
 
+  // Проверяем, открыты ли кейсы для обычных пользователей
+  const areCasesOpen = useMemo(() => {
+    const now = new Date();
+    // Если пользователь админ/модератор - всегда видит все
+    if (authStore.isModerator) return true;
+    // Для обычных пользователей проверяем дату открытия
+    return !globalOpenDate || new Date(globalOpenDate) <= now;
+  }, [globalOpenDate]);
+
   // Фильтрация и сортировка кейсов
   const filteredAndSortedCases = useMemo(() => {
     let filtered = [...casesStore.cases];
+
+    // Для обычных пользователей показываем только открытые кейсы
+    if (!authStore.isModerator) {
+      const now = new Date();
+      filtered = filtered.filter(c => !c.opens_at || new Date(c.opens_at) <= now);
+    }
 
     // Поиск
     if (searchQuery) {
@@ -210,6 +226,23 @@ const Cases = () => {
           </div>
           <div className="text-gray-400">Загрузка кейсов...</div>
         </div>
+      ) : !areCasesOpen && !authStore.isModerator ? (
+        <div className="text-center py-20 border border-terminal-cyan/30 rounded-xl bg-terminal-cyan/5 backdrop-blur-sm">
+          <TimeIcon size={48} className="text-terminal-cyan mx-auto mb-4 opacity-50" />
+          <h2 className="text-2xl font-semibold text-white mb-2">Кейсы еще не открыты</h2>
+          <p className="text-gray-400 mb-4">
+            Информация о кейсах будет доступна после их открытия
+          </p>
+          {globalOpenDate && (
+            <div className="mt-6 inline-block border border-terminal-cyan/30 rounded-xl p-5 bg-terminal-cyan/5">
+              <div className="flex items-center gap-2 mb-3 justify-center">
+                <TimeIcon size={18} className="text-terminal-cyan" />
+                <p className="text-sm font-medium text-terminal-cyan">Кейсы откроются через:</p>
+              </div>
+              <CountdownTimer targetDate={globalOpenDate} />
+            </div>
+          )}
+        </div>
       ) : filteredAndSortedCases.length === 0 ? (
         <div className="text-center py-20 border border-terminal-gray/30 rounded-xl bg-terminal-dark/30 backdrop-blur-sm">
           <CaseIcon size={48} className="text-gray-600 mx-auto mb-4 opacity-50" />
@@ -261,10 +294,16 @@ const Cases = () => {
                   {caseItem.title}
                 </h2>
 
-                {/* Описание */}
-                <p className="text-sm text-gray-400 line-clamp-3 mb-5 flex-1 leading-relaxed">
-                  {caseItem.description || 'Описание отсутствует'}
-                </p>
+                {/* Описание - скрыто для обычных пользователей до открытия */}
+                {(!caseItem.opens_at || new Date(caseItem.opens_at) <= new Date() || authStore.isModerator) ? (
+                  <p className="text-sm text-gray-400 line-clamp-3 mb-5 flex-1 leading-relaxed">
+                    {caseItem.description || 'Описание отсутствует'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 line-clamp-3 mb-5 flex-1 leading-relaxed italic">
+                    Информация будет доступна после открытия кейса
+                  </p>
+                )}
 
                 {/* Футер с информацией */}
                 <div className="pt-4 border-t border-terminal-gray/20 space-y-3 mt-auto">

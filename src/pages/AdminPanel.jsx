@@ -32,7 +32,11 @@ const AdminPanel = () => {
     max_participants: 0,
     status: 'active',
     opens_at: '',
+    links: [],
+    attachments: [],
   });
+  const [newLink, setNewLink] = useState({ label: '', url: '' });
+  const [attachmentFiles, setAttachmentFiles] = useState([]);
 
   useEffect(() => {
     fetchStats();
@@ -477,7 +481,7 @@ const AdminPanel = () => {
                         {team.members && team.members.length > 0 ? (
                           team.members.map((member) => (
                             <div key={member.id} className="flex items-center gap-3 glass rounded-lg p-3">
-                              <div className="h-10 w-10 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray flex-shrink-0">
+                              <div className="h-10 w-10 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray shrink-0">
                                 {member.photo_url ? (
                                   <img
                                     src={member.photo_url}
@@ -528,7 +532,11 @@ const AdminPanel = () => {
                     max_participants: 0,
                     status: 'active',
                     opens_at: '',
+                    links: [],
+                    attachments: [],
                   });
+                  setNewLink({ label: '', url: '' });
+                  setAttachmentFiles([]);
                   setShowCaseForm(true);
                 }}
                 className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
@@ -635,24 +643,47 @@ const AdminPanel = () => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const data = {
-                    ...caseFormData,
-                    opens_at: caseFormData.opens_at || null,
-                    max_participants: parseInt(caseFormData.max_participants) || 0,
-                  };
+                  const formData = new FormData();
+                  formData.append('title', caseFormData.title);
+                  formData.append('description', caseFormData.description);
+                  formData.append('requirements', caseFormData.requirements || '');
+                  formData.append('difficulty', caseFormData.difficulty);
+                  formData.append('max_participants', caseFormData.max_participants);
+                  formData.append('status', caseFormData.status);
+                  formData.append('opens_at', caseFormData.opens_at || '');
+                  formData.append('links', JSON.stringify(caseFormData.links));
+                  
+                  // Добавляем файлы - только новые файлы для загрузки
+                  // Существующие файлы (с URL) обрабатываются отдельно
+                  let preservedIndex = 0;
+                  caseFormData.attachments.forEach((att) => {
+                    if (att.file) {
+                      // Новые файлы добавляем как attachments (multer обработает массив)
+                      formData.append('attachments', att.file);
+                    } else if (att.url) {
+                      // Если это уже загруженный файл, сохраняем URL через attachment_url_*
+                      formData.append(`attachment_url_${preservedIndex}`, att.url);
+                      formData.append(`attachment_name_${preservedIndex}`, att.name || '');
+                      preservedIndex++;
+                    }
+                  });
+
                   if (editingCase) {
-                    await casesStore.updateCase(editingCase.id, data);
+                    await casesStore.updateCase(editingCase.id, formData, true);
                   } else {
-                    await casesStore.createCase(data);
+                    await casesStore.createCase(formData, true);
                   }
                   setShowCaseForm(false);
                   setEditingCase(null);
+                  setNewLink({ label: '', url: '' });
+                  setAttachmentFiles([]);
                   casesStore.fetchCases();
                 } catch (error) {
                   alert(error.response?.data?.error || 'Ошибка сохранения кейса');
                 }
               }}
               className="space-y-4"
+              encType="multipart/form-data"
             >
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
@@ -745,6 +776,114 @@ const AdminPanel = () => {
                   <option value="archived">Архивирован</option>
                 </select>
               </div>
+
+              {/* Ссылки */}
+              <div className="border-t border-terminal-gray/30 pt-4">
+                <label className="block text-sm font-medium text-white/80 mb-3">
+                  Ссылки (дополнительные материалы)
+                </label>
+                <div className="space-y-3 mb-3">
+                  {caseFormData.links.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-3 bg-terminal-dark/20 rounded border border-terminal-gray/20">
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{link.label || 'Без названия'}</div>
+                        <div className="text-gray-400 text-xs break-all">{link.url}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newLinks = caseFormData.links.filter((_, i) => i !== idx);
+                          setCaseFormData({ ...caseFormData, links: newLinks });
+                        }}
+                        className="px-3 py-1 text-xs border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded transition-colors"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newLink.label}
+                    onChange={(e) => setNewLink({ ...newLink, label: e.target.value })}
+                    placeholder="Название ссылки"
+                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded text-sm"
+                  />
+                  <input
+                    type="url"
+                    value={newLink.url}
+                    onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
+                    placeholder="https://..."
+                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newLink.url.trim()) {
+                        setCaseFormData({
+                          ...caseFormData,
+                          links: [...caseFormData.links, { label: newLink.label, url: newLink.url }]
+                        });
+                        setNewLink({ label: '', url: '' });
+                      }
+                    }}
+                    className="px-4 py-2 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded text-sm transition-colors"
+                  >
+                    Добавить
+                  </button>
+                </div>
+              </div>
+
+              {/* Файлы */}
+              <div className="border-t border-terminal-gray/30 pt-4">
+                <label className="block text-sm font-medium text-white/80 mb-3">
+                  Файлы (дополнительные материалы)
+                </label>
+                <div className="space-y-3 mb-3">
+                  {caseFormData.attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-3 bg-terminal-dark/20 rounded border border-terminal-gray/20">
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{att.name || 'Файл'}</div>
+                        {att.url && (
+                          <div className="text-gray-400 text-xs break-all">{att.url}</div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAttachments = caseFormData.attachments.filter((_, i) => i !== idx);
+                          setCaseFormData({ ...caseFormData, attachments: newAttachments });
+                        }}
+                        className="px-3 py-1 text-xs border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded transition-colors"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setAttachmentFiles([...attachmentFiles, ...files]);
+                    const newAttachments = files.map(file => ({
+                      name: file.name,
+                      file: file
+                    }));
+                    setCaseFormData({
+                      ...caseFormData,
+                      attachments: [...caseFormData.attachments, ...newAttachments]
+                    });
+                  }}
+                  multiple
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white rounded file:mr-4 file:py-1 file:px-3 file:border-0 file:text-sm file:bg-terminal-gray/40 file:text-white file:cursor-pointer cursor-pointer"
+                />
+                <p className="text-xs text-white/60 mt-2">
+                  Максимальный размер файла: 100MB. Поддерживаемые форматы: PDF, DOC, DOCX, ZIP, RAR
+                </p>
+              </div>
+
               <div className="flex gap-4 border-t border-terminal-gray pt-4">
                 <button
                   type="submit"
