@@ -17,6 +17,7 @@ const Login = () => {
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaReady, setCaptchaReady] = useState(false);
   const [loginPending, setLoginPending] = useState(false);
+  const [isWebApp, setIsWebApp] = useState(false);
 
   useEffect(() => {
     if (authStore.isAuthenticated) {
@@ -26,6 +27,9 @@ const Login = () => {
 
   // Проверка Telegram Web App и автоматическая авторизация
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenFromUrl = params.get('token');
+    
     const checkTelegramWebApp = async () => {
       // Проверяем, открыт ли сайт через Telegram Web App
       if (window.Telegram?.WebApp) {
@@ -38,24 +42,31 @@ const Login = () => {
         const initData = tg.initData;
 
         // Если есть initData и пользователь еще не авторизован и нет токена в URL
-        if (initData && !authStore.isAuthenticated && !loginPending && !hasToken) {
+        if (initData && !authStore.isAuthenticated && !loginPending && !tokenFromUrl) {
           setLoginPending(true);
           setError(null);
 
           try {
-            // Для Web App сначала пытаемся без капчи
-            const ok = await authStore.login(initData, '');
-            setLoginPending(false);
-            
-            if (ok) {
-              navigate('/profile');
-            } else {
-              // Если нужна капча, показываем сообщение
-              if (authStore.error?.includes('капч') || authStore.error?.includes('Капч')) {
-                setError('Пройдите проверку безопасности для завершения входа');
+            // Для Web App сначала пытаемся без капчи (если капча не обязательна)
+            // Если нужна капча, ждем её прохождения
+            if (!turnstileSiteKey) {
+              // Если капча не настроена, авторизуем сразу
+              const ok = await authStore.login(initData, '');
+              setLoginPending(false);
+              
+              if (ok) {
+                navigate('/profile');
               } else {
-                setError(authStore.error || 'Ошибка входа');
+                // Если нужна капча, показываем сообщение
+                if (authStore.error?.includes('капч') || authStore.error?.includes('Капч')) {
+                  setError('Пройдите проверку безопасности для завершения входа');
+                } else {
+                  setError(authStore.error || 'Ошибка входа');
+                }
               }
+            } else {
+              // Если капча настроена, ждем её прохождения
+              setError(null);
             }
           } catch (err) {
             setLoginPending(false);
@@ -68,12 +79,15 @@ const Login = () => {
     // Небольшая задержка для инициализации Web App
     const timer = setTimeout(checkTelegramWebApp, 100);
     return () => clearTimeout(timer);
-  }, [authStore.isAuthenticated, loginPending, hasToken, navigate]);
+  }, [authStore.isAuthenticated, loginPending, location.search, navigate, turnstileSiteKey]);
 
   // Повторная попытка авторизации через Web App после получения капчи
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenFromUrl = params.get('token');
+    
     const retryWebAppAuth = async () => {
-      if (window.Telegram?.WebApp && captchaToken && !authStore.isAuthenticated && !loginPending && !hasToken && isWebApp) {
+      if (window.Telegram?.WebApp && captchaToken && !authStore.isAuthenticated && !loginPending && !tokenFromUrl && isWebApp) {
         const tg = window.Telegram.WebApp;
         const initData = tg.initData;
         
@@ -98,10 +112,10 @@ const Login = () => {
       }
     };
 
-    if (captchaToken && captchaReady && isWebApp) {
+    if (captchaToken && captchaReady && isWebApp && !tokenFromUrl) {
       retryWebAppAuth();
     }
-  }, [captchaToken, captchaReady, authStore.isAuthenticated, loginPending, hasToken, isWebApp, navigate]);
+  }, [captchaToken, captchaReady, authStore.isAuthenticated, loginPending, location.search, isWebApp, navigate]);
 
   useEffect(() => {
     if (!turnstileSiteKey) return;
@@ -221,15 +235,19 @@ const Login = () => {
           </div>
 
           <div className="space-y-6">
-            {hasToken ? (
+            {(hasToken || isWebApp) ? (
               <div className="space-y-6 animate-fade-in">
                 <div className="text-center p-6 bg-terminal-cyan/5 border border-terminal-cyan/20 rounded-xl">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-terminal-cyan/10 border border-terminal-cyan/30 mb-4">
                     <PaperPlaneIcon size={32} className="text-terminal-cyan" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Почти готово!</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {isWebApp ? 'Авторизация через Telegram' : 'Почти готово!'}
+                  </h3>
                   <p className="text-gray-300 text-sm">
-                    Пройдите проверку безопасности для завершения входа
+                    {isWebApp && !turnstileSiteKey
+                      ? 'Выполняется автоматическая авторизация...'
+                      : 'Пройдите проверку безопасности для завершения входа'}
                   </p>
                 </div>
                 
