@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ..
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
     container_name: hackathon-backend
     env_file:
       - ".env"
