@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin, requireAdminOrModerator } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -55,8 +55,8 @@ router.get('/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Получение всех решений (для админа)
-router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
+// Получение всех решений (для админа и модератора)
+router.get('/all', authenticateToken, requireAdminOrModerator, async (req, res) => {
   try {
     const { status, case_id } = req.query;
     let query = `
@@ -115,7 +115,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const solution = result.rows[0];
     
     // Проверка прав доступа
-    if (solution.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (solution.user_id !== req.user.id && !['admin', 'moderator'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Нет доступа' });
     }
 
@@ -192,8 +192,8 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
   }
 });
 
-// Модерация решения (только админ)
-router.put('/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
+// Модерация решения (админ или модератор)
+router.put('/:id/moderate', authenticateToken, requireAdminOrModerator, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_comment, score } = req.body;
@@ -232,7 +232,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Решение не найдено' });
     }
 
-    if (solutionResult.rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
+    if (solutionResult.rows[0].user_id !== req.user.id && !['admin', 'moderator'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Нет прав на удаление' });
     }
 

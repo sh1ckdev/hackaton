@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(255),
     photo_url TEXT,
     phone VARCHAR(32),
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'moderator')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

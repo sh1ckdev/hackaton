@@ -5,10 +5,15 @@ import pool from './db/index.js';
 export function startBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const mainAdminTelegramId = process.env.MAIN_ADMIN_TELEGRAM_ID ? parseInt(process.env.MAIN_ADMIN_TELEGRAM_ID) : null;
 
   if (!token) {
     console.warn('TELEGRAM_BOT_TOKEN не задан, бот не запущен.');
     return;
+  }
+
+  if (!mainAdminTelegramId) {
+    console.warn('MAIN_ADMIN_TELEGRAM_ID не задан. Главный админ не будет создан автоматически.');
   }
 
   const bot = new TelegramBot(token, { polling: true });
@@ -29,7 +34,15 @@ export function startBot() {
           photoUrl
         ]
       );
-      return result.rows[0];
+      const user = result.rows[0];
+
+      // Если это главный админ из env - назначаем админом
+      if (mainAdminTelegramId && telegramId === mainAdminTelegramId) {
+        await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', user.id]);
+        user.role = 'admin';
+      }
+
+      return user;
     }
 
     const result = await pool.query(
@@ -50,6 +63,17 @@ export function startBot() {
       ]
     );
     return result.rows[0];
+  };
+
+  const makeAdmin = async (telegramId) => {
+    if (!mainAdminTelegramId || telegramId !== mainAdminTelegramId) {
+      return false;
+    }
+    await pool.query(
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = $2',
+      ['admin', telegramId]
+    );
+    return true;
   };
 
   const getPhotoUrl = async (telegramId) => {
@@ -83,12 +107,20 @@ export function startBot() {
     }
   };
 
-  bot.onText(/\/start/, async (msg) => {
+  // Обычный вход
+  bot.onText(/\/start$/, async (msg) => {
     try {
       const chatId = msg.chat.id;
       const from = msg.from;
       const photoUrl = await getPhotoUrl(from.id);
       const user = await upsertUser(from, photoUrl);
+      
+      // Если это главный админ из env - автоматически делаем админом
+      if (mainAdminTelegramId && from.id === mainAdminTelegramId && user.role !== 'admin') {
+        await makeAdmin(from.id);
+        user.role = 'admin';
+      }
+      
       const loginToken = await createLoginToken(user.id);
       const loginUrl = `${clientUrl}/login?token=${loginToken}`;
 
@@ -116,6 +148,67 @@ export function startBot() {
         );
       }
 
+      if (!user.phone) {
+        await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
+          reply_markup: {
+            keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
+            one_time_keyboard: true,
+            resize_keyboard: true
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка /start:', error);
+    }
+  });
+
+  // Функция для обработки входа главного админа
+  const handleAdminLogin = async (msg) => {
+    const chatId = msg.chat.id;
+    const from = msg.from;
+    
+    if (!mainAdminTelegramId || from.id !== mainAdminTelegramId) {
+      await bot.sendMessage(chatId, '❌ У вас нет доступа к этой команде.');
+      return;
+    }
+
+    const photoUrl = await getPhotoUrl(from.id);
+    const user = await upsertUser(from, photoUrl);
+    
+    // Назначаем админом
+    const isAdmin = await makeAdmin(from.id);
+    if (isAdmin) {
+      await bot.sendMessage(chatId, '✅ Вы назначены главным администратором.');
+    }
+    
+    const loginToken = await createLoginToken(user.id);
+    const loginUrl = `${clientUrl}/login?token=${loginToken}`;
+
+    if (isHttpsUrl(loginUrl)) {
+      await bot.sendMessage(
+        chatId,
+        '🔐 Для входа в админ-панель нажмите кнопку ниже.',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: 'Войти в админ-панель', url: loginUrl }]
+            ]
+          }
+        }
+      );
+    } else {
+      await bot.sendMessage(
+        chatId,
+        'Для входа нужен HTTPS-адрес сайта. Задайте CLIENT_URL с https.'
+      );
+      await bot.sendMessage(
+        chatId,
+        `Ваш одноразовый токен: ${loginToken}\n` +
+          `Откройте вручную: ${clientUrl}/login?token=${loginToken}`
+      );
+    }
+
+    if (!user.phone) {
       await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
         reply_markup: {
           keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
@@ -123,10 +216,14 @@ export function startBot() {
           resize_keyboard: true
         }
       });
-    } catch (error) {
-      console.error('Ошибка /start:', error);
     }
-  });
+  };
+
+  // Специальный путь для входа главного админа: /start admin
+  bot.onText(/\/start\s+admin/, handleAdminLogin);
+
+  // Альтернативная команда для входа главного админа: /admin
+  bot.onText(/^\/admin$/, handleAdminLogin);
 
   bot.on('message', async (msg) => {
     if (!msg.contact) return;

@@ -11,6 +11,7 @@ import casesRoutes from './routes/cases.js';
 import solutionsRoutes from './routes/solutions.js';
 import adminRoutes from './routes/admin.js';
 import teamsRoutes from './routes/teams.js';
+import leaderboardRoutes from './routes/leaderboard.js';
 import { startBot } from './bot.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -77,11 +78,37 @@ app.use('/api/cases', casesRoutes);
 app.use('/api/solutions', solutionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teams', teamsRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Frontend (SPA) в production: раздаём статические файлы и делаем fallback на index.html
+// Это устраняет 404 на прямых переходах вида /cases, /profile и т.п.
+const clientDistPath = process.env.CLIENT_DIST_PATH
+  ? path.resolve(process.env.CLIENT_DIST_PATH)
+  : path.join(__dirname, 'public');
+const clientIndexHtml = path.join(clientDistPath, 'index.html');
+
+if (fs.existsSync(clientIndexHtml)) {
+  app.use(express.static(clientDistPath));
+
+  // SPA fallback: все не-API запросы ведём в index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    return res.sendFile(clientIndexHtml);
+  });
+} else {
+  console.warn(
+    `[frontend] dist не найден: ${clientIndexHtml}. ` +
+      'Если нужен фронт на этом же домене — соберите client и положите dist в server/public ' +
+      'или установите CLIENT_DIST_PATH.'
+  );
+}
 
 // Инициализация БД и запуск сервера
 async function startServer() {
