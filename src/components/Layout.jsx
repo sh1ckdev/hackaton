@@ -16,44 +16,44 @@ const Layout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <Link to="/cases" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors">
-                <span className="text-terminal-green mr-2">&gt;</span> hackathon
+              <Link to="/cases" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors font-mono">
+                <span className="text-terminal-green mr-2">$</span> hackathon
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   to="/cases"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
                 >
                   cases
                 </Link>
                 <Link
                   to="/solutions"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
                 >
                   solutions
                 </Link>
                 <Link
-                  to="/profile"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
+                  to="/team"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-cyan font-mono"
                 >
-                  profile
-                </Link>
-                <Link
-                  to="/info"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
-                >
-                  info
+                  team
                 </Link>
                 <Link
                   to="/leaderboard"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-blue font-mono"
                 >
                   leaderboard
+                </Link>
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
+                >
+                  profile
                 </Link>
                 {authStore.isAdmin && (
                   <Link
                     to="/admin"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-red"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-red font-mono"
                   >
                     admin
                   </Link>

@@ -128,6 +128,10 @@ class AuthStore {
   get isAdmin() {
     return this.user?.role === 'admin';
   }
+
+  get isModerator() {
+    return this.user?.role === 'moderator' || this.user?.role === 'admin';
+  }
 }
 
 export default new AuthStore();
