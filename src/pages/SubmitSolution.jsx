@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { UploadIcon, GitHubIcon, ArrowLeftIcon, SolutionIcon } from '../components/Icons';
 
 const SubmitSolution = () => {
   const { caseId } = useParams();
@@ -76,27 +77,38 @@ const SubmitSolution = () => {
   }
 
   return (
-    <div className="px-4 py-6 max-w-3xl mx-auto">
+    <div className="px-4 py-6 max-w-3xl mx-auto relative z-10">
       <button
         onClick={() => navigate(`/cases/${caseId}`)}
-        className="text-gray-300 hover:text-gray-400 mb-4 inline-block"
+        className="group flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 inline-block glass-light px-4 py-2 rounded-lg hover:bg-glass transition-all"
       >
-        ← Назад
+        <ArrowLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Назад</span>
       </button>
 
-      <div className="glass rounded-xl p-8 animate-fade-in-up">
-        <h1 className="text-3xl font-semibold text-gray-100 mb-2">
-          Отправить решение
-        </h1>
-        {casesStore.selectedCase && (
-          <p className="text-gray-400 mb-6">
-            Кейс: {casesStore.selectedCase.title}
-          </p>
-        )}
+      <div className="glass-strong rounded-2xl p-8 animate-fade-in-up relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-terminal-cyan/10 rounded-full blur-3xl"></div>
+        <div className="relative">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 glass-light rounded-xl">
+              <SolutionIcon size={32} className="text-terminal-cyan" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Отправить решение
+              </h1>
+              {casesStore.selectedCase && (
+                <p className="text-gray-300">
+                  Кейс: {casesStore.selectedCase.title}
+                </p>
+              )}
+            </div>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="title" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
+              <SolutionIcon size={18} className="text-terminal-cyan" />
               Название решения{' '}
               <span className="text-terminal-red">*</span>
             </label>
@@ -107,14 +119,14 @@ const SubmitSolution = () => {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all"
               placeholder="Введите название решения"
             />
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
- Описание
+            <label htmlFor="description" className="block text-sm font-bold text-white mb-3">
+              Описание
             </label>
             <textarea
               id="description"
@@ -122,13 +134,14 @@ const SubmitSolution = () => {
               value={formData.description}
               onChange={handleChange}
               rows={6}
-              className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all resize-none"
               placeholder="Опишите ваше решение, используемые технологии, подход и т.д."
             />
           </div>
 
           <div>
-            <label htmlFor="github_url" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="github_url" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
+              <GitHubIcon size={18} className="text-terminal-green" />
               Ссылка на GitHub репозиторий{' '}
               <span className="text-terminal-red">*</span>
             </label>
@@ -139,17 +152,17 @@ const SubmitSolution = () => {
               value={formData.github_url}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all"
               placeholder="https://github.com/username/repo"
             />
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-gray-400">
               Обязательно укажите ссылку на ваш GitHub репозиторий
             </p>
           </div>
 
           <div>
-            <label htmlFor="demo_url" className="block text-sm font-medium text-gray-300 mb-2">
- Ссылка на демо
+            <label htmlFor="demo_url" className="block text-sm font-bold text-white mb-3">
+              Ссылка на демо
             </label>
             <input
               type="url"
@@ -157,54 +170,58 @@ const SubmitSolution = () => {
               name="demo_url"
               value={formData.demo_url}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-cyan focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-cyan/50 transition-all"
               placeholder="https://your-demo.com"
             />
           </div>
 
           <div>
-            <label htmlFor="presentation" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="presentation" className="flex items-center gap-2 text-sm font-bold text-white mb-3">
+              <UploadIcon size={18} className="text-terminal-purple" />
               Презентация (PDF, PPT, PPTX, ODP)
             </label>
-            <input
-              type="file"
-              id="presentation"
-              name="presentation"
-              onChange={(e) => setPresentationFile(e.target.files[0])}
-              accept=".pdf,.ppt,.pptx,.odp"
-              className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
-            />
-            <p className="mt-1 text-sm text-gray-400">
+            <div className="glass-light border border-terminal-gray/40 rounded-xl p-4 hover:border-terminal-purple/50 transition-all">
+              <input
+                type="file"
+                id="presentation"
+                name="presentation"
+                onChange={(e) => setPresentationFile(e.target.files[0])}
+                accept=".pdf,.ppt,.pptx,.odp"
+                className="w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-terminal-purple/20 file:text-terminal-purple hover:file:bg-terminal-purple/30 file:cursor-pointer cursor-pointer"
+              />
+            </div>
+            <p className="mt-2 text-sm text-gray-400">
               Максимальный размер: 100MB. Презентация опциональна.
             </p>
           </div>
 
           {error && (
-            <div className="p-4 glass rounded border border-terminal-red">
-              <p className="text-terminal-red text-sm">{error}</p>
+            <div className="p-4 glass-light rounded-xl border-2 border-terminal-red/50 bg-terminal-red/10">
+              <p className="text-terminal-red text-sm font-medium">{error}</p>
             </div>
           )}
 
           {solutionsStore.error && (
-            <div className="p-4 glass rounded border border-terminal-red">
-              <p className="text-terminal-red text-sm">{solutionsStore.error}</p>
+            <div className="p-4 glass-light rounded-xl border-2 border-terminal-red/50 bg-terminal-red/10">
+              <p className="text-terminal-red text-sm font-medium">{solutionsStore.error}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-between border-t border-terminal-gray pt-4">
+          <div className="flex items-center justify-between border-t border-terminal-gray/40 pt-6">
             <button
               type="button"
               onClick={() => navigate(`/cases/${caseId}`)}
-              className="px-6 py-2 border border-terminal-gray text-gray-400 hover:border-terminal-cyan transition-all font-bold"
+              className="px-6 py-3 glass-light border border-terminal-gray/40 text-gray-300 hover:border-terminal-cyan hover:text-terminal-cyan transition-all font-bold rounded-xl"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={solutionsStore.loading}
-              className="px-6 py-2 bg-terminal-dark border border-terminal-green text-gray-300 hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 font-bold disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40 disabled:transform-none"
+              className="group flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-terminal-green to-terminal-cyan text-terminal-bg hover:shadow-2xl hover:shadow-terminal-green/50 transition-all font-bold rounded-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {solutionsStore.loading ? 'Отправка...' : 'Отправить решение →'}
+              <UploadIcon size={20} />
+              <span>{solutionsStore.loading ? 'Отправка...' : 'Отправить'}</span>
             </button>
           </div>
         </form>

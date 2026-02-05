@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
+import { CaseIcon, TimeIcon, ArrowRightIcon } from '../components/Icons';
 
 const Cases = () => {
   useDocumentTitle('Кейсы');
@@ -31,10 +32,18 @@ const Cases = () => {
   };
 
   return (
-    <div className="px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-100 mb-2">Кейсы</h1>
-        <p className="text-gray-400">Выберите кейс и начните работу над решением</p>
+    <div className="px-4 py-6 relative z-10">
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-terminal-green/20 blur-xl"></div>
+            <CaseIcon size={48} className="relative text-terminal-green" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Кейсы</h1>
+            <p className="text-gray-300">Выберите кейс и начните работу над решением</p>
+          </div>
+        </div>
       </div>
 
       {casesStore.loading ? (
@@ -55,13 +64,18 @@ const Cases = () => {
           {casesStore.cases.map((caseItem, index) => (
             <div
               key={caseItem.id}
-              className="glass rounded-lg hover:border-terminal-green transition-all duration-300 p-6 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-terminal-green/20 animate-fade-in-up"
+              className="glass-strong glass-hover rounded-2xl p-6 transform hover:scale-[1.03] animate-fade-in-up group"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-start justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-100 flex-1">
-                  {caseItem.title}
-                </h2>
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="p-2 glass-light rounded-lg group-hover:bg-terminal-green/10 transition-colors">
+                    <CaseIcon size={24} className="text-terminal-green" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white flex-1 group-hover:text-terminal-green transition-colors">
+                    {caseItem.title}
+                  </h2>
+                </div>
                 {getDifficultyBadge(caseItem.difficulty)}
               </div>
               
@@ -81,10 +95,14 @@ const Cases = () => {
               )}
 
               {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-                <div className="mb-4 p-4 glass rounded-lg border-2 border-terminal-cyan/70 bg-terminal-dark/60">
-                  <p className="text-sm text-terminal-cyan font-medium mb-3 text-center">
-                    ⏰ Кейс откроется через:
-                  </p>
+                <div className="mb-4 p-5 glass-gradient-cyan rounded-xl border-2 border-terminal-cyan/50 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-terminal-cyan/10 rounded-full blur-2xl"></div>
+                  <div className="relative flex items-center gap-3 mb-3">
+                    <TimeIcon size={20} className="text-terminal-cyan" />
+                    <p className="text-sm text-terminal-cyan font-bold">
+                      Кейс откроется через:
+                    </p>
+                  </div>
                   <CountdownTimer targetDate={caseItem.opens_at} />
                   <p className="text-xs text-gray-400 mt-3 text-center">
                     {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
@@ -103,9 +121,10 @@ const Cases = () => {
 
               <Link
                 to={`/cases/${caseItem.id}`}
-                className="block w-full text-center py-2.5 px-4 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
+                className="group flex items-center justify-center gap-2 w-full py-3 px-4 glass-gradient-green border border-terminal-green/50 text-terminal-green hover:border-terminal-green font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
               >
-                Подробнее →
+                <span>Подробнее</span>
+                <ArrowRightIcon size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
           ))}

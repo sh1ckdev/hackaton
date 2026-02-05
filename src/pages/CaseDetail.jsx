@@ -6,6 +6,7 @@ import solutionsStore from '../stores/solutionsStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
+import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon } from '../components/Icons';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -42,23 +43,31 @@ const CaseDetail = () => {
   }
 
   return (
-    <div className="px-4 py-6 max-w-4xl mx-auto">
+    <div className="px-4 py-6 max-w-4xl mx-auto relative z-10">
       <Link
         to="/cases"
-        className="text-terminal-green hover:text-terminal-cyan mb-4 inline-block"
+        className="group inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 glass-light px-4 py-2 rounded-lg hover:bg-glass transition-all"
       >
-        ← Назад к кейсам
+        <ArrowLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
+        <span>Назад к кейсам</span>
       </Link>
 
-      <div className="glass rounded-lg p-8 mb-6 animate-fade-in-up">
-        <div className="flex items-start justify-between mb-6 border-b border-terminal-gray pb-4">
-          <h1 className="text-3xl font-semibold text-gray-100">
-            {caseItem.title}
-          </h1>
-          <span className={`px-3 py-1 text-xs rounded border ${
-            caseItem.difficulty === 'easy' ? 'border-terminal-green text-terminal-green' :
-            caseItem.difficulty === 'medium' ? 'border-terminal-cyan text-terminal-cyan' :
-            'border-terminal-red text-terminal-red'
+      <div className="glass-strong rounded-2xl p-8 mb-6 animate-fade-in-up relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-terminal-green/10 rounded-full blur-3xl"></div>
+        <div className="relative">
+        <div className="flex items-start justify-between mb-6 border-b border-terminal-gray/40 pb-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="p-3 glass-light rounded-xl">
+              <CaseIcon size={32} className="text-terminal-green" />
+            </div>
+            <h1 className="text-3xl font-bold text-white">
+              {caseItem.title}
+            </h1>
+          </div>
+          <span className={`px-4 py-2 text-xs font-bold rounded-xl border-2 ${
+            caseItem.difficulty === 'easy' ? 'border-terminal-green text-terminal-green bg-terminal-green/10' :
+            caseItem.difficulty === 'medium' ? 'border-terminal-cyan text-terminal-cyan bg-terminal-cyan/10' :
+            'border-terminal-red text-terminal-red bg-terminal-red/10'
           }`}>
             {caseItem.difficulty === 'easy' ? 'Легко' :
              caseItem.difficulty === 'medium' ? 'Средне' : 'Сложно'}
@@ -78,19 +87,25 @@ const CaseDetail = () => {
         )}
 
         {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-          <div className="mb-6 p-6 glass rounded-lg border-2 border-terminal-cyan/70 bg-terminal-dark/60">
-            <p className="text-lg text-terminal-cyan font-semibold mb-4 text-center">
-              ⏰ Кейс откроется через:
-            </p>
-            <div className="mb-4">
-              <CountdownTimer targetDate={caseItem.opens_at} />
+          <div className="mb-6 p-8 glass-gradient-cyan rounded-2xl border-2 border-terminal-cyan/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-terminal-cyan/20 rounded-full blur-3xl"></div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-6 justify-center">
+                <TimeIcon size={28} className="text-terminal-cyan" />
+                <p className="text-xl text-terminal-cyan font-bold">
+                  Кейс откроется через:
+                </p>
+              </div>
+              <div className="mb-6">
+                <CountdownTimer targetDate={caseItem.opens_at} />
+              </div>
+              <p className="text-sm text-gray-300 text-center mb-2">
+                Дата открытия: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+              </p>
+              <p className="text-xs text-gray-400 text-center">
+                Вы получите уведомление в Telegram, когда кейс будет открыт
+              </p>
             </div>
-            <p className="text-sm text-gray-400 text-center mb-2">
-              Дата открытия: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
-            </p>
-            <p className="text-xs text-gray-500 text-center">
-              Вы получите уведомление в Telegram, когда кейс будет открыт
-            </p>
           </div>
         )}
 
@@ -203,12 +218,14 @@ const CaseDetail = () => {
               <h2 className="text-xl font-semibold text-gray-100 mb-4">
                 Вы еще не отправили решение
               </h2>
-              <Link
-                to={`/solutions/submit/${caseItem.id}`}
-                className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
-              >
-                Отправить решение →
-              </Link>
+          <Link
+            to={`/solutions/submit/${caseItem.id}`}
+            className="group flex items-center gap-2 px-6 py-3 glass-gradient-green border border-terminal-green/50 text-terminal-green hover:border-terminal-green font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
+          >
+            <UploadIcon size={20} />
+            <span>Отправить решение</span>
+            <ArrowRightIcon size={18} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
             </>
           )}
         </div>
