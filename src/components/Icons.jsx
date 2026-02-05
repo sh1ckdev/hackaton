@@ -332,3 +332,41 @@ export const ArrowLeftIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
+
+// Иконка поиска
+export const SearchIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <circle
+      cx="11"
+      cy="11"
+      r="8"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M21 21L16.65 16.65"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+// Иконка фильтра
+export const FilterIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
