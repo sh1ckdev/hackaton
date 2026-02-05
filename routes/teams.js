@@ -1,6 +1,7 @@
 import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireModerator } from '../middleware/auth.js';
+import { containsProfanity, getProfanityErrorMessage } from '../utils/profanityFilter.js';
 
 const router = express.Router();
 
@@ -73,6 +74,11 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     if (!teamName) {
       return res.status(400).json({ error: 'Название команды обязательно' });
+    }
+
+    // Проверка на бранные слова
+    if (containsProfanity(teamName)) {
+      return res.status(400).json({ error: getProfanityErrorMessage() });
     }
 
     const existing = await pool.query(

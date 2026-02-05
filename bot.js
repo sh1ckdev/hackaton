@@ -163,6 +163,11 @@ export function setBotInstance(bot) {
   botInstance = bot;
 }
 
+// Функция для получения экземпляра бота
+export function getBotInstance() {
+  return botInstance;
+}
+
 // Функция для рассылки сообщений всем участникам
 export async function broadcastMessage(message) {
   const token = process.env.TELEGRAM_BOT_TOKEN;

@@ -264,6 +264,9 @@ async function applyAdditionalMigrations() {
 
   // Проверка и добавление недостающих колонок
   await ensureColumnsExist();
+  
+  // Проверка и добавление новых полей для кейсов и решений
+  await ensureNewFieldsExist();
 
   // Проверка и создание недостающих индексов
   await ensureIndexesExist();
@@ -313,6 +316,60 @@ async function ensureColumnsExist() {
 }
 
 /**
+ * Проверяет и добавляет новые поля для кейсов и решений
+ */
+async function ensureNewFieldsExist() {
+  try {
+    // Проверяем наличие поля opens_at в таблице cases
+    const casesOpensAtExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cases' 
+        AND column_name = 'opens_at'
+      )
+    `);
+
+    if (!casesOpensAtExists.rows[0].exists) {
+      await pool.query('ALTER TABLE cases ADD COLUMN opens_at TIMESTAMP');
+      console.log('Добавлено поле opens_at в таблицу cases');
+    }
+
+    // Проверяем наличие поля github_url в таблице solutions
+    const solutionsGithubExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'solutions' 
+        AND column_name = 'github_url'
+      )
+    `);
+
+    if (!solutionsGithubExists.rows[0].exists) {
+      await pool.query('ALTER TABLE solutions ADD COLUMN github_url TEXT');
+      console.log('Добавлено поле github_url в таблицу solutions');
+    }
+
+    // Проверяем наличие поля presentation_file_path в таблице solutions
+    const solutionsPresentationExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'solutions' 
+        AND column_name = 'presentation_file_path'
+      )
+    `);
+
+    if (!solutionsPresentationExists.rows[0].exists) {
+      await pool.query('ALTER TABLE solutions ADD COLUMN presentation_file_path TEXT');
+      console.log('Добавлено поле presentation_file_path в таблицу solutions');
+    }
+  } catch (error) {
+    console.warn('Предупреждение при проверке новых полей:', error.message);
+  }
+}
+
+/**
  * Проверяет и создает недостающие индексы
  */
 async function ensureIndexesExist() {
@@ -326,6 +383,7 @@ async function ensureIndexesExist() {
     { name: 'idx_auth_tokens_token', table: 'auth_tokens', column: 'token', unique: false },
     { name: 'idx_auth_tokens_user_id', table: 'auth_tokens', column: 'user_id', unique: false },
     { name: 'idx_refresh_tokens_user_id', table: 'refresh_tokens', column: 'user_id', unique: false },
+    { name: 'idx_cases_opens_at', table: 'cases', column: 'opens_at', unique: false, partial: true },
   ];
 
   for (const index of requiredIndexes) {
@@ -359,9 +417,10 @@ async function ensureIndexesExist() {
 
       // Создаем индекс
       const uniqueClause = index.unique ? 'UNIQUE' : '';
+      const partialClause = index.partial ? `WHERE ${index.column} IS NOT NULL` : '';
       await pool.query(`
         CREATE ${uniqueClause} INDEX IF NOT EXISTS ${index.name} 
-        ON ${index.table}(${index.column})
+        ON ${index.table}(${index.column}) ${partialClause}
       `);
     } catch (error) {
       // Игнорируем ошибки создания индекса, если он уже существует

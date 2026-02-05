@@ -13,6 +13,7 @@ import solutionsRoutes from './routes/solutions.js';
 import adminRoutes from './routes/admin.js';
 import teamsRoutes from './routes/teams.js';
 import { startBot, setBotInstance } from './bot.js';
+import { startCaseOpenerScheduler } from './utils/caseOpener.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -157,6 +158,10 @@ async function startServer() {
     await ensureMainAdmin();
     const bot = startBot();
     setBotInstance(bot);
+    
+    // Запускаем планировщик открытия кейсов
+    startCaseOpenerScheduler();
+    
     app.listen(PORT, () => {
       console.log(`Сервер запущен на порту ${PORT}`);
     });

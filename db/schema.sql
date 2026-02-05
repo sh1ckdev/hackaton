@@ -55,9 +55,12 @@ CREATE TABLE IF NOT EXISTS cases (
     max_participants INTEGER DEFAULT 0,
     current_participants INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'closed', 'archived')),
+    opens_at TIMESTAMP, -- Дата и время открытия кейса (null = открыт сразу)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS opens_at TIMESTAMP;
 
 -- Создание таблицы решений
 CREATE TABLE IF NOT EXISTS solutions (
@@ -66,9 +69,10 @@ CREATE TABLE IF NOT EXISTS solutions (
     case_id INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    repository_url TEXT,
+    github_url TEXT, -- Ссылка на GitHub репозиторий
+    presentation_file_path TEXT, -- Путь к файлу презентации
     demo_url TEXT,
-    file_path TEXT,
+    file_path TEXT, -- Оставлено для обратной совместимости
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'reviewing')),
     admin_comment TEXT,
     score INTEGER DEFAULT 0,
@@ -76,6 +80,9 @@ CREATE TABLE IF NOT EXISTS solutions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, case_id)
 );
+
+ALTER TABLE solutions ADD COLUMN IF NOT EXISTS github_url TEXT;
+ALTER TABLE solutions ADD COLUMN IF NOT EXISTS presentation_file_path TEXT;
 
 -- Таблица команд
 CREATE TABLE IF NOT EXISTS teams (
@@ -130,3 +137,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_team_code ON teams(team_code);
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_token ON auth_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON auth_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_cases_opens_at ON cases(opens_at) WHERE opens_at IS NOT NULL;

@@ -23,16 +23,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB для презентаций
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /zip|rar|7z|tar|gz/;
+    // Разрешаем презентации: PDF, PPT, PPTX, ODP
+    const allowedTypes = /pdf|ppt|pptx|odp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype === 'application/octet-stream';
+    const mimetype = allowedTypes.test(file.mimetype) || 
+                     file.mimetype === 'application/pdf' ||
+                     file.mimetype === 'application/vnd.ms-powerpoint' ||
+                     file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+                     file.mimetype === 'application/vnd.oasis.opendocument.presentation';
     
     if (extname && mimetype) {
       return cb(null, true);
     } else {
-      cb(new Error('Разрешены только архивы (zip, rar, 7z, tar, gz)'));
+      cb(new Error('Разрешены только презентации (PDF, PPT, PPTX, ODP)'));
     }
   }
 });
@@ -127,18 +132,38 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Создание/обновление решения
-router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
+router.post('/', authenticateToken, upload.single('presentation'), async (req, res) => {
   try {
-    const { case_id, title, description, repository_url, demo_url } = req.body;
+    const { case_id, title, description, github_url, demo_url } = req.body;
 
     if (!case_id || !title) {
       return res.status(400).json({ error: 'ID кейса и название обязательны' });
+    }
+
+    if (!github_url) {
+      return res.status(400).json({ error: 'Ссылка на GitHub репозиторий обязательна' });
+    }
+
+    // Валидация GitHub URL
+    try {
+      const githubUrl = new URL(github_url);
+      if (!githubUrl.hostname.includes('github.com')) {
+        return res.status(400).json({ error: 'Укажите корректную ссылку на GitHub репозиторий' });
+      }
+    } catch (urlError) {
+      return res.status(400).json({ error: 'Некорректный формат URL GitHub' });
     }
 
     // Проверка существования кейса
     const caseResult = await pool.query('SELECT * FROM cases WHERE id = $1', [case_id]);
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Кейс не найден' });
+    }
+
+    // Проверка, открыт ли кейс
+    const caseData = caseResult.rows[0];
+    if (caseData.opens_at && new Date(caseData.opens_at) > new Date()) {
+      return res.status(403).json({ error: 'Кейс еще не открыт' });
     }
 
     // Проверка, не отправил ли пользователь уже решение
@@ -150,20 +175,20 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
     let solution;
     if (existingSolution.rows.length > 0) {
       // Обновление существующего решения
-      const filePath = req.file ? req.file.path : existingSolution.rows[0].file_path;
+      const presentationPath = req.file ? req.file.path : existingSolution.rows[0].presentation_file_path;
       const result = await pool.query(
         `UPDATE solutions 
-         SET title = $1, description = $2, repository_url = $3, demo_url = $4,
-             file_path = $5, status = 'pending', updated_at = CURRENT_TIMESTAMP
+         SET title = $1, description = $2, github_url = $3, demo_url = $4,
+             presentation_file_path = $5, status = 'pending', updated_at = CURRENT_TIMESTAMP
          WHERE id = $6
          RETURNING *`,
-        [title, description || null, repository_url || null, demo_url || null, filePath, existingSolution.rows[0].id]
+        [title, description || null, github_url, demo_url || null, presentationPath, existingSolution.rows[0].id]
       );
       solution = result.rows[0];
     } else {
       // Создание нового решения
       const result = await pool.query(
-        `INSERT INTO solutions (user_id, case_id, title, description, repository_url, demo_url, file_path)
+        `INSERT INTO solutions (user_id, case_id, title, description, github_url, demo_url, presentation_file_path)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
         [
@@ -171,7 +196,7 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
           case_id,
           title,
           description || null,
-          repository_url || null,
+          github_url,
           demo_url || null,
           req.file ? req.file.path : null
         ]
