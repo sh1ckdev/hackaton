@@ -64,12 +64,34 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
 
     console.log('[Admin] Изменение роли:', { telegramId: telegramIdParam, role, body: req.body });
 
-    // Преобразуем telegram_id в число для сравнения
-    const telegramId = typeof telegramIdParam === 'string' 
-      ? (telegramIdParam.includes('.') ? null : parseInt(telegramIdParam, 10))
-      : Number(telegramIdParam);
-
-    if (isNaN(telegramId) || telegramId <= 0) {
+    // Преобразуем telegram_id в число для сравнения (используем BigInt для больших чисел)
+    let telegramId;
+    try {
+      if (typeof telegramIdParam === 'string') {
+        // Проверяем, что это целое число без десятичной точки
+        if (telegramIdParam.includes('.') || !/^\d+$/.test(telegramIdParam)) {
+          throw new Error('Некорректный формат');
+        }
+        // Используем Number для чисел, которые помещаются в Number.MAX_SAFE_INTEGER
+        const parsed = Number(telegramIdParam);
+        if (parsed > Number.MAX_SAFE_INTEGER) {
+          // Для очень больших чисел используем строку (PostgreSQL BIGINT примет строку)
+          telegramId = telegramIdParam;
+        } else {
+          telegramId = parsed;
+        }
+      } else {
+        telegramId = Number(telegramIdParam);
+      }
+      
+      // Проверяем валидность значения
+      if (typeof telegramId === 'number' && (isNaN(telegramId) || telegramId <= 0)) {
+        throw new Error('Некорректное значение');
+      }
+      if (typeof telegramId === 'string' && (!/^\d+$/.test(telegramId) || telegramId === '0')) {
+        throw new Error('Некорректное значение');
+      }
+    } catch (error) {
       console.error('[Admin] Некорректный Telegram ID:', telegramIdParam);
       return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
@@ -134,7 +156,7 @@ router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
     console.error('[Admin] Ошибка изменения роли:', {
       message: error.message,
       stack: error.stack,
-      userId: req.params.id,
+      telegramId: req.params.telegramId,
       role: req.body?.role
     });
     res.status(500).json({ 
