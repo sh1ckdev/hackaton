@@ -2,6 +2,8 @@ import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 import { broadcastMessage } from '../bot.js';
+import { adminOperationLimiter, logSuspiciousActivity } from '../middleware/security.js';
+import { validateIdParam } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -56,7 +58,7 @@ router.get('/users', requireAdmin, async (req, res) => {
 
 // Изменение роли пользователя (только админ)
 // Использует telegram_id вместо id из БД
-router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
+router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const telegramIdParam = req.params.telegramId;
     const { role } = req.body;

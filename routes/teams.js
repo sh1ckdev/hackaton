@@ -2,6 +2,8 @@ import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireModerator } from '../middleware/auth.js';
 import { containsProfanity, getProfanityErrorMessage } from '../utils/profanityFilter.js';
+import { teamCreationLimiter, teamJoinLimiter, checkDuplicate, logSuspiciousActivity } from '../middleware/security.js';
+import { validateTeamCreation, validateTeamJoin } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -67,7 +69,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 // Создать команду
-router.post('/create', authenticateToken, async (req, res) => {
+router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreation, async (req, res) => {
   try {
     const { name } = req.body;
     const teamName = (name || '').trim();
@@ -78,7 +80,19 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     // Проверка на бранные слова
     if (containsProfanity(teamName)) {
+      await logSuspiciousActivity(req, 'profanity_detected', {
+        team_name: teamName
+      });
       return res.status(400).json({ error: getProfanityErrorMessage() });
+    }
+
+    // Проверка на дубликаты (защита от спама)
+    const isNotDuplicate = await checkDuplicate(req, 'teams', 'name', teamName, 60000);
+    if (!isNotDuplicate) {
+      await logSuspiciousActivity(req, 'duplicate_team_creation', {
+        team_name: teamName
+      });
+      return res.status(429).json({ error: 'Недавно была создана команда с таким названием. Подождите немного.' });
     }
 
     const existing = await pool.query(
@@ -112,7 +126,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Вступить в команду по ID
-router.post('/join', authenticateToken, async (req, res) => {
+router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async (req, res) => {
   try {
     const { team_code } = req.body;
     if (!team_code) {

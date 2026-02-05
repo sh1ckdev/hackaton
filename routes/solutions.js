@@ -1,6 +1,8 @@
 import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
+import { solutionCreationLimiter, checkMassOperation, logSuspiciousActivity } from '../middleware/security.js';
+import { validateSolutionCreation, validateIdParam } from '../middleware/validation.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -99,7 +101,7 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Получение решения по ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -132,7 +134,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Создание/обновление решения
-router.post('/', authenticateToken, upload.single('presentation'), async (req, res) => {
+router.post('/', 
+  authenticateToken, 
+  solutionCreationLimiter,
+  validateSolutionCreation,
+  upload.single('presentation'), 
+  async (req, res) => {
   try {
     const { case_id, title, description, github_url, demo_url } = req.body;
 
@@ -140,18 +147,13 @@ router.post('/', authenticateToken, upload.single('presentation'), async (req, r
       return res.status(400).json({ error: 'ID кейса и название обязательны' });
     }
 
-    if (!github_url) {
-      return res.status(400).json({ error: 'Ссылка на GitHub репозиторий обязательна' });
-    }
-
-    // Валидация GitHub URL
-    try {
-      const githubUrl = new URL(github_url);
-      if (!githubUrl.hostname.includes('github.com')) {
-        return res.status(400).json({ error: 'Укажите корректную ссылку на GitHub репозиторий' });
-      }
-    } catch (urlError) {
-      return res.status(400).json({ error: 'Некорректный формат URL GitHub' });
+    // Проверка на массовые операции
+    const canProceed = await checkMassOperation(req, 'solution_creation', 5);
+    if (!canProceed) {
+      await logSuspiciousActivity(req, 'too_many_solutions', {
+        case_id: case_id
+      });
+      return res.status(429).json({ error: 'Слишком много решений за короткое время. Попробуйте позже.' });
     }
 
     // Проверка существования кейса
@@ -218,7 +220,7 @@ router.post('/', authenticateToken, upload.single('presentation'), async (req, r
 });
 
 // Модерация решения (админ или модератор)
-router.put('/:id/moderate', authenticateToken, requireModerator, async (req, res) => {
+router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, admin_comment, score } = req.body;
@@ -247,7 +249,7 @@ router.put('/:id/moderate', authenticateToken, requireModerator, async (req, res
 });
 
 // Удаление решения
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     

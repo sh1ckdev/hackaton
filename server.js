@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
+import { sanitizeInput } from './middleware/security.js';
 import { initDB } from './db/index.js';
 import pool from './db/index.js';
 import authRoutes from './routes/auth.js';
@@ -69,6 +70,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Санитизация входных данных
+app.use(sanitizeInput);
 
 // Статические файлы для загрузок
 app.use('/uploads', express.static(uploadsDir));

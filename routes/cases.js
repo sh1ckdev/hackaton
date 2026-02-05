@@ -1,6 +1,8 @@
 import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
+import { adminOperationLimiter } from '../middleware/security.js';
+import { validateCaseCreation, validateIdParam } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -23,10 +25,8 @@ router.get('/', async (req, res) => {
       params.push('active');
     }
 
-    // Фильтрация по дате открытия (показываем только открытые кейсы для обычных пользователей)
-    if (include_future !== 'true') {
-      query += ` AND (opens_at IS NULL OR opens_at <= CURRENT_TIMESTAMP)`;
-    }
+    // Показываем все кейсы, включая будущие (убрали фильтрацию по дате открытия)
+    // Кейсы с opens_at > NOW будут показаны с обратным отсчетом на фронтенде
 
     query += ' ORDER BY COALESCE(opens_at, created_at) DESC, created_at DESC';
 
@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
 });
 
 // Получение кейса по ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM cases WHERE id = $1', [id]);
@@ -56,7 +56,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Создание кейса (админ или модератор)
-router.post('/', authenticateToken, requireModerator, async (req, res) => {
+router.post('/', authenticateToken, requireModerator, adminOperationLimiter, validateCaseCreation, async (req, res) => {
   try {
     const { title, description, requirements, difficulty, max_participants, opens_at } = req.body;
 
@@ -88,7 +88,7 @@ router.post('/', authenticateToken, requireModerator, async (req, res) => {
 });
 
 // Обновление кейса (админ или модератор)
-router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
+router.put('/:id', authenticateToken, requireModerator, adminOperationLimiter, validateIdParam, validateCaseCreation, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, requirements, difficulty, max_participants, status, opens_at } = req.body;
@@ -133,7 +133,7 @@ router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
 });
 
 // Удаление кейса (только админ)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, adminOperationLimiter, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM cases WHERE id = $1', [id]);
