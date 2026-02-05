@@ -5,6 +5,7 @@ import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import CountdownTimer from '../components/CountdownTimer';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -77,11 +78,17 @@ const CaseDetail = () => {
         )}
 
         {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-          <div className="mb-6 p-4 glass rounded border border-terminal-cyan">
-            <p className="text-terminal-cyan font-medium">
-              ⏰ Кейс откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+          <div className="mb-6 p-6 glass rounded-lg border-2 border-terminal-cyan/70 bg-terminal-dark/60">
+            <p className="text-lg text-terminal-cyan font-semibold mb-4 text-center">
+              ⏰ Кейс откроется через:
             </p>
-            <p className="text-sm text-gray-400 mt-1">
+            <div className="mb-4">
+              <CountdownTimer targetDate={caseItem.opens_at} />
+            </div>
+            <p className="text-sm text-gray-400 text-center mb-2">
+              Дата открытия: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+            </p>
+            <p className="text-xs text-gray-500 text-center">
               Вы получите уведомление в Telegram, когда кейс будет открыт
             </p>
           </div>

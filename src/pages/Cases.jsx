@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import CountdownTimer from '../components/CountdownTimer';
 
 const Cases = () => {
   useDocumentTitle('Кейсы');
@@ -32,7 +33,7 @@ const Cases = () => {
   return (
     <div className="px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-100 mb-2">Доступные кейсы</h1>
+        <h1 className="text-3xl font-semibold text-gray-100 mb-2">Кейсы</h1>
         <p className="text-gray-400">Выберите кейс и начните работу над решением</p>
       </div>
 
@@ -80,9 +81,13 @@ const Cases = () => {
               )}
 
               {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-                <div className="mb-4 p-3 glass rounded border border-terminal-cyan/50">
-                  <p className="text-xs text-terminal-cyan">
-                    ⏰ Откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+                <div className="mb-4 p-4 glass rounded-lg border-2 border-terminal-cyan/70 bg-terminal-dark/60">
+                  <p className="text-sm text-terminal-cyan font-medium mb-3 text-center">
+                    ⏰ Кейс откроется через:
+                  </p>
+                  <CountdownTimer targetDate={caseItem.opens_at} />
+                  <p className="text-xs text-gray-400 mt-3 text-center">
+                    {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
                   </p>
                 </div>
               )}
