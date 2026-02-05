@@ -45,6 +45,20 @@ const AdminRoute = observer(({ children }) => {
   return children;
 });
 
+const LandingRoute = observer(() => {
+  if (authStore.initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+        <div className="glass rounded-xl p-6 text-white/70">Загрузка...</div>
+      </div>
+    );
+  }
+  if (authStore.isAuthenticated) {
+    return <Navigate to="/cases" replace />;
+  }
+  return <Landing />;
+});
+
 function App() {
   console.log('[App] App компонент рендерится');
   return (
@@ -55,22 +69,21 @@ function App() {
       }}
     >
       <Routes>
-        {/* Публичная главная */}
-        <Route path="/" element={<Landing />} />
+        {/* Публичная главная - только для неавторизованных */}
+        <Route path="/" element={<LandingRoute />} />
 
         {/* Логин */}
         <Route path="/login" element={<Login />} />
 
         {/* Рабочее приложение */}
         <Route
-          path="/app"
+          path="/"
           element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Cases />} />
           <Route path="cases" element={<Cases />} />
           <Route path="cases/:id" element={<CaseDetail />} />
           <Route path="solutions" element={<MySolutions />} />
@@ -87,6 +100,10 @@ function App() {
             }
           />
         </Route>
+
+        {/* Редиректы со старых /app путей */}
+        <Route path="/app" element={<Navigate to="/cases" replace />} />
+        <Route path="/app/*" element={<Navigate to="/cases" replace />} />
 
         {/* Фоллбек */}
         <Route path="*" element={<Navigate to="/" replace />} />

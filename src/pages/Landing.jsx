@@ -54,10 +54,10 @@ const Landing = () => {
           <span className="text-xs text-white/50">
             Уже авторизованы? Откройте рабочий интерфейс:&nbsp;
             <Link
-              to="/app/cases"
+              to="/cases"
               className="text-terminal-cyan hover:text-terminal-green underline underline-offset-4"
             >
-              /app
+              /cases
             </Link>
           </span>
         </div>

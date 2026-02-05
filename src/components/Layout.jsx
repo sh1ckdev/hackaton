@@ -16,43 +16,43 @@ const Layout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <Link to="/app" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors">
+              <Link to="/cases" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors">
                 <span className="text-terminal-green mr-2">&gt;</span> hackathon
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  to="/app/cases"
+                  to="/cases"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   cases
                 </Link>
                 <Link
-                  to="/app/solutions"
+                  to="/solutions"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   solutions
                 </Link>
                 <Link
-                  to="/app/profile"
+                  to="/profile"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   profile
                 </Link>
                 <Link
-                  to="/app/info"
+                  to="/info"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   info
                 </Link>
                 <Link
-                  to="/app/leaderboard"
+                  to="/leaderboard"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   leaderboard
                 </Link>
                 {authStore.isAdmin && (
                   <Link
-                    to="/app/admin"
+                    to="/admin"
                     className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-red"
                   >
                     admin
