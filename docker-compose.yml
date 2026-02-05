@@ -6,13 +6,16 @@ services:
       context: ./
       dockerfile: Dockerfile
       args:
-        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
-        VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
-        VITE_FRONTEND_URL: ${VITE_FRONTEND_URL}
         VITE_API_URL: ${VITE_API_URL}
-        ALLOWED_HOSTS: ${ALLOWED_HOSTS}
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "${FRONTEND_PORT:-4173}:4173"
+    networks:
+      - frontend-network
+
+networks:
+  frontend-network:
+    name: hackathon-frontend
+    driver: bridge
