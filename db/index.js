@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logInfo, logError, logWarn } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,11 +46,11 @@ export async function initDB() {
 
     // Создаём БД, если её нет
     if (dbCheck.rows.length === 0) {
-      console.log(`Создание базы данных ${dbName}...`);
+      logInfo(`Создание базы данных ${dbName}`);
       await adminPool.query(`CREATE DATABASE ${dbName}`);
-      console.log(`База данных ${dbName} создана успешно`);
+      logInfo(`База данных ${dbName} создана успешно`);
     } else {
-      console.log(`База данных ${dbName} уже существует`);
+      logInfo(`База данных ${dbName} уже существует`);
     }
 
     await adminPool.end();
@@ -57,7 +58,7 @@ export async function initDB() {
     await adminPool.end();
     // Если ошибка не связана с существованием БД, пробрасываем дальше
     if (error.code !== '42P04') { // 42P04 = database already exists
-      console.error('Ошибка при создании БД:', error);
+      logError('Ошибка при создании БД', error, { dbName });
       throw error;
     }
   }
@@ -67,9 +68,9 @@ export async function initDB() {
     // Используем систему миграций для автоматического применения изменений
     const { runMigrations } = await import('./migrations.js');
     await runMigrations();
-    console.log('База данных инициализирована и миграции применены успешно');
+    logInfo('База данных инициализирована и миграции применены успешно');
   } catch (error) {
-    console.error('Ошибка инициализации БД:', error);
+    logError('Ошибка инициализации БД', error);
     throw error;
   }
 }

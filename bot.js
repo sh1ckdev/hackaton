@@ -1,13 +1,14 @@
 import TelegramBot from 'node-telegram-bot-api';
 import crypto from 'crypto';
 import pool from './db/index.js';
+import { logError, logWarn, logInfo } from './utils/logger.js';
 
 export function startBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
   if (!token) {
-    console.warn('TELEGRAM_BOT_TOKEN не задан, бот не запущен.');
+    logWarn('TELEGRAM_BOT_TOKEN не задан, бот не запущен');
     return;
   }
 
@@ -133,7 +134,7 @@ export function startBot() {
         });
       }
     } catch (error) {
-      console.error('Ошибка /start:', error);
+      logError('Ошибка /start в боте', error, { chatId: msg.chat.id });
     }
   });
 
@@ -146,11 +147,11 @@ export function startBot() {
       );
       await bot.sendMessage(msg.chat.id, 'Телефон сохранен.');
     } catch (error) {
-      console.error('Ошибка сохранения телефона:', error);
+      logError('Ошибка сохранения телефона в боте', error, { telegramId: msg.from.id });
     }
   });
 
-  console.log('Telegram бот запущен.');
+  logInfo('Telegram бот запущен');
   
   return bot;
 }
@@ -200,14 +201,14 @@ export async function broadcastMessage(message) {
         // Небольшая задержка между сообщениями
         await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
-        console.error(`Ошибка отправки сообщения пользователю ${telegramId}:`, error.message);
+        logError('Ошибка отправки сообщения пользователю', error, { telegramId });
         failCount++;
       }
     }
 
     return { success: successCount, failed: failCount, total: telegramIds.length };
   } catch (error) {
-    console.error('Ошибка рассылки сообщений:', error);
+    logError('Ошибка рассылки сообщений', error);
     throw error;
   }
 }

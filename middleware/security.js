@@ -4,6 +4,7 @@
 
 import rateLimit from 'express-rate-limit';
 import pool from '../db/index.js';
+import { logSecurity, logError } from '../utils/logger.js';
 
 /**
  * Валидация и санитизация входных данных
@@ -140,28 +141,14 @@ export const adminOperationLimiter = rateLimit({
  */
 export const logSuspiciousActivity = async (req, activity, details = {}) => {
   try {
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.get('user-agent') || 'Unknown';
-    const userId = req.user?.id || null;
-    
-    console.warn('[SECURITY] Подозрительная активность:', {
-      timestamp: new Date().toISOString(),
-      ip,
-      userAgent,
-      userId,
-      activity,
-      path: req.path,
-      method: req.method,
-      ...details
-    });
-
+    logSecurity(`Подозрительная активность: ${activity}`, req, details);
     // Можно добавить сохранение в БД для анализа
     // await pool.query(
     //   'INSERT INTO security_logs (ip, user_id, activity, details, created_at) VALUES ($1, $2, $3, $4, NOW())',
-    //   [ip, userId, activity, JSON.stringify(details)]
+    //   [req.ip, req.user?.id, activity, JSON.stringify(details)]
     // );
   } catch (error) {
-    console.error('Ошибка логирования подозрительной активности:', error);
+    logError('Ошибка логирования подозрительной активности', error);
   }
 };
 
@@ -195,7 +182,7 @@ export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
 
     return true;
   } catch (error) {
-    console.error('Ошибка проверки массовых операций:', error);
+    logError('Ошибка проверки массовых операций', error, { operation });
     return true; // В случае ошибки разрешаем операцию
   }
 };
@@ -243,7 +230,7 @@ export const checkDuplicate = async (req, table, field, value, timeWindow = 6000
 
     return parseInt(result.rows[0].count) === 0;
   } catch (error) {
-    console.error('Ошибка проверки дубликатов:', error);
+    logError('Ошибка проверки дубликатов', error, { table, field, value });
     return true; // В случае ошибки разрешаем
   }
 };

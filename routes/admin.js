@@ -4,6 +4,7 @@ import { authenticateToken, requireAdmin, requireModerator } from '../middleware
 import { broadcastMessage } from '../bot.js';
 import { adminOperationLimiter, logSuspiciousActivity } from '../middleware/security.js';
 import { validateIdParam } from '../middleware/validation.js';
+import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
       }, {})
     });
   } catch (error) {
-    console.error('Ошибка получения статистики:', error);
+    logError('Ошибка получения статистики', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -51,7 +52,7 @@ router.get('/users', requireAdmin, async (req, res) => {
     );
     res.json({ users: result.rows });
   } catch (error) {
-    console.error('Ошибка получения пользователей:', error);
+    logError('Ошибка получения пользователей', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -64,7 +65,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
     const { role } = req.body;
     const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
 
-    console.log('[Admin] Изменение роли:', { telegramId: telegramIdParam, role, body: req.body });
+    logInfo('[Admin] Изменение роли', { telegramId: telegramIdParam, role, adminId: req.user?.id });
 
     // Преобразуем telegram_id в число для сравнения (используем BigInt для больших чисел)
     let telegramId;
@@ -94,7 +95,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
         throw new Error('Некорректное значение');
       }
     } catch (error) {
-      console.error('[Admin] Некорректный Telegram ID:', telegramIdParam);
+      logError('[Admin] Некорректный Telegram ID', null, { telegramId: telegramIdParam, adminId: req.user?.id });
       return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
 
@@ -102,7 +103,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
     const normalizedRole = role ? String(role).toLowerCase().trim() : null;
     
     if (!normalizedRole || !['user', 'moderator', 'admin'].includes(normalizedRole)) {
-      console.error('[Admin] Некорректная роль:', { 
+      logError('[Admin] Некорректная роль', null, { 
         original: role, 
         normalized: normalizedRole,
         type: typeof role 
@@ -116,12 +117,12 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
     // Проверяем, существует ли пользователь по telegram_id
     const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
     if (userCheck.rows.length === 0) {
-      console.error('[Admin] Пользователь не найден по Telegram ID:', telegramId);
+      logError('[Admin] Пользователь не найден по Telegram ID', null, { telegramId, adminId: req.user?.id });
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
     const currentUser = userCheck.rows[0];
-    console.log('[Admin] Текущий пользователь:', { 
+    logInfo('[Admin] Текущий пользователь', { 
       id: currentUser.id, 
       telegram_id: currentUser.telegram_id, 
       currentRole: currentUser.role 
@@ -134,13 +135,13 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       const telegramIdStr = String(userTelegramId);
       const mainAdminIdStr = String(MAIN_ADMIN_ID);
       if (telegramIdStr === mainAdminIdStr && roleToSet !== 'admin') {
-        console.warn('[Admin] Попытка снять роль у главного админа:', telegramId);
+        logWarn('[Admin] Попытка снять роль у главного админа', { telegramId, adminId: req.user?.id });
         return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
       }
     }
 
     // Обновляем роль по telegram_id
-    console.log('[Admin] Обновление роли:', { 
+    logInfo('[Admin] Обновление роли', { 
       telegramId, 
       telegramIdType: typeof telegramId,
       newRole: roleToSet,
@@ -149,7 +150,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
     });
 
     try {
-      console.log('[Admin] Выполнение SQL запроса:', {
+      logDatabase('UPDATE', 'users', {
         role: roleToSet,
         telegramId: telegramId,
         telegramIdType: typeof telegramId
@@ -161,11 +162,11 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       );
 
       if (result.rows.length === 0) {
-        console.error('[Admin] Пользователь не найден после обновления:', telegramId);
+        logError('[Admin] Пользователь не найден после обновления', null, { telegramId });
         return res.status(404).json({ error: 'Пользователь не найден после обновления' });
       }
 
-      console.log('[Admin] Роль успешно обновлена:', {
+      logInfo('[Admin] Роль успешно обновлена', {
         id: result.rows[0].id,
         telegram_id: result.rows[0].telegram_id,
         role: result.rows[0].role,
@@ -173,7 +174,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       });
       res.json({ user: result.rows[0] });
     } catch (dbError) {
-      console.error('[Admin] Ошибка SQL запроса:', {
+      logError('[Admin] Ошибка SQL запроса', dbError, {
         message: dbError.message,
         code: dbError.code,
         detail: dbError.detail,
@@ -185,7 +186,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       
       // Если ошибка связана с constraint, даем более понятное сообщение
       if (dbError.code === '23514' || dbError.constraint) {
-        console.error('[Admin] Ошибка constraint в БД. Возможно, нужно обновить схему БД.');
+        logError('[Admin] Ошибка constraint в БД', dbError, { telegramId, role });
         return res.status(400).json({ 
           error: 'Некорректная роль. Проверьте, что роль соответствует допустимым значениям: user, moderator, admin',
           details: process.env.NODE_ENV === 'development' ? dbError.message : undefined
@@ -195,7 +196,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       throw dbError; // Пробрасываем ошибку в общий catch блок
     }
   } catch (error) {
-    console.error('[Admin] Ошибка изменения роли:', {
+    logError('[Admin] Ошибка изменения роли', error, {
       message: error.message,
       stack: error.stack,
       telegramId: req.params.telegramId,
@@ -226,7 +227,7 @@ router.post('/broadcast', requireModerator, async (req, res) => {
       total: result.total
     });
   } catch (error) {
-    console.error('Ошибка рассылки сообщений:', error);
+    logError('Ошибка рассылки сообщений', error);
     res.status(500).json({ error: 'Ошибка сервера при рассылке сообщений' });
   }
 });

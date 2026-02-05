@@ -4,6 +4,7 @@ import { authenticateToken, requireModerator } from '../middleware/auth.js';
 import { containsProfanity, getProfanityErrorMessage } from '../utils/profanityFilter.js';
 import { teamCreationLimiter, teamJoinLimiter, checkDuplicate, logSuspiciousActivity } from '../middleware/security.js';
 import { validateTeamCreation, validateTeamJoin } from '../middleware/validation.js';
+import { logError } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.get('/me', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Ошибка получения команды:', error);
+    logError('Ошибка получения команды', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -120,7 +121,7 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
 
     res.status(201).json({ team: { id: team.id, code: team.team_code, name: team.name, role: 'captain' } });
   } catch (error) {
-    console.error('Ошибка создания команды:', error);
+    logError('Ошибка создания команды', error, { userId: req.user?.id, teamName: req.body?.name });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -161,7 +162,7 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
       }
     });
   } catch (error) {
-    console.error('Ошибка вступления в команду:', error);
+    logError('Ошибка вступления в команду', error, { userId: req.user?.id, teamCode: req.body?.team_code });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -203,7 +204,7 @@ router.post('/leave', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Вы покинули команду' });
   } catch (error) {
-    console.error('Ошибка выхода из команды:', error);
+    logError('Ошибка выхода из команды', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -243,7 +244,7 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
 
     res.json({ teams: teamsWithMembers });
   } catch (error) {
-    console.error('Ошибка получения команд:', error);
+    logError('Ошибка получения команд', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

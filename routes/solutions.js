@@ -3,6 +3,7 @@ import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 import { solutionCreationLimiter, checkMassOperation, logSuspiciousActivity } from '../middleware/security.js';
 import { validateSolutionCreation, validateIdParam } from '../middleware/validation.js';
+import { logError } from '../utils/logger.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -57,7 +58,7 @@ router.get('/my', authenticateToken, async (req, res) => {
     );
     res.json({ solutions: result.rows });
   } catch (error) {
-    console.error('Ошибка получения решений:', error);
+    logError('Ошибка получения решений', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -95,7 +96,7 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
     const result = await pool.query(query, params);
     res.json({ solutions: result.rows });
   } catch (error) {
-    console.error('Ошибка получения решений:', error);
+    logError('Ошибка получения решений', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -128,7 +129,7 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     res.json({ solution });
   } catch (error) {
-    console.error('Ошибка получения решения:', error);
+    logError('Ошибка получения решения', error, { solutionId: req.params.id, userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -214,7 +215,7 @@ router.post('/',
 
     res.status(201).json({ solution });
   } catch (error) {
-    console.error('Ошибка создания решения:', error);
+    logError('Ошибка создания решения', error, { caseId: req.body?.case_id, userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -243,7 +244,7 @@ router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam
 
     res.json({ solution: result.rows[0] });
   } catch (error) {
-    console.error('Ошибка модерации:', error);
+    logError('Ошибка модерации', error, { solutionId: req.params.id, moderatorId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -276,7 +277,7 @@ router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     res.json({ message: 'Решение удалено' });
   } catch (error) {
-    console.error('Ошибка удаления решения:', error);
+    logError('Ошибка удаления решения', error, { solutionId: req.params.id, userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

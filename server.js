@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 import { sanitizeInput } from './middleware/security.js';
+import { logInfo, logError, logWarn } from './utils/logger.js';
 import { initDB } from './db/index.js';
 import pool from './db/index.js';
 import authRoutes from './routes/auth.js';
@@ -107,11 +108,10 @@ if (fs.existsSync(clientIndexHtml)) {
     return res.sendFile(clientIndexHtml);
   });
 } else {
-  console.warn(
-    `[frontend] dist не найден: ${clientIndexHtml}. ` +
-      'Если нужен фронт на этом же домене — соберите client и положите dist в server/public ' +
-      'или установите CLIENT_DIST_PATH.'
-  );
+  logWarn('Frontend dist не найден', { 
+    path: clientIndexHtml,
+    message: 'Если нужен фронт на этом же домене — соберите client и положите dist в server/public или установите CLIENT_DIST_PATH'
+  });
 }
 
 // Автоматическое создание главного админа
@@ -119,7 +119,7 @@ async function ensureMainAdmin() {
   const mainAdminTelegramId = process.env.MAIN_ADMIN_TELEGRAM_ID;
   
   if (!mainAdminTelegramId) {
-    console.warn('MAIN_ADMIN_TELEGRAM_ID не задан. Главный админ не будет создан автоматически.');
+    logWarn('MAIN_ADMIN_TELEGRAM_ID не задан. Главный админ не будет создан автоматически');
     return;
   }
 
@@ -137,7 +137,7 @@ async function ensureMainAdmin() {
          ON CONFLICT (telegram_id) DO UPDATE SET role = $4`,
         [mainAdminTelegramId, 'admin', 'Главный администратор', 'admin']
       );
-      console.log(`Главный админ создан/обновлен: Telegram ID ${mainAdminTelegramId}`);
+      logInfo('Главный админ создан/обновлен', { telegramId: mainAdminTelegramId });
     } else {
       // Обновляем роль если пользователь существует
       if (result.rows[0].role !== 'admin') {
@@ -145,13 +145,13 @@ async function ensureMainAdmin() {
           'UPDATE users SET role = $1 WHERE telegram_id = $2',
           ['admin', mainAdminTelegramId]
         );
-        console.log(`Роль пользователя обновлена на админа: Telegram ID ${mainAdminTelegramId}`);
+        logInfo('Роль пользователя обновлена на админа', { telegramId: mainAdminTelegramId });
       } else {
-        console.log(`Главный админ уже существует: Telegram ID ${mainAdminTelegramId}`);
+        logInfo('Главный админ уже существует', { telegramId: mainAdminTelegramId });
       }
     }
   } catch (error) {
-    console.error('Ошибка при создании главного админа:', error);
+    logError('Ошибка при создании главного админа', error, { telegramId: mainAdminTelegramId });
   }
 }
 
@@ -167,10 +167,10 @@ async function startServer() {
     startCaseOpenerScheduler();
     
     app.listen(PORT, () => {
-      console.log(`Сервер запущен на порту ${PORT}`);
+      logInfo('Сервер запущен', { port: PORT, nodeEnv: process.env.NODE_ENV });
     });
   } catch (error) {
-    console.error('Ошибка запуска сервера:', error);
+    logError('Ошибка запуска сервера', error);
     process.exit(1);
   }
 }

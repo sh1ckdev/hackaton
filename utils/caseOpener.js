@@ -4,6 +4,7 @@
 
 import pool from '../db/index.js';
 import { getBotInstance } from '../bot.js';
+import { logInfo, logError, logWarn } from './logger.js';
 
 /**
  * Проверяет и открывает кейсы, которые должны быть открыты
@@ -37,15 +38,15 @@ export async function checkAndOpenCases() {
         const notified = await notifyUsersAboutCase(caseItem);
         notifiedCount += notified;
         
-        console.log(`Кейс "${caseItem.title}" открыт, уведомления отправлены ${notified} пользователям`);
+        logInfo('Кейс открыт, уведомления отправлены', { caseId: caseItem.id, caseTitle: caseItem.title, notified });
       } catch (error) {
-        console.error(`Ошибка при открытии кейса ${caseItem.id}:`, error);
+        logError('Ошибка при открытии кейса', error, { caseId: caseItem.id });
       }
     }
 
     return { opened: casesToOpen.length, notified: notifiedCount };
   } catch (error) {
-    console.error('Ошибка проверки кейсов для открытия:', error);
+    logError('Ошибка проверки кейсов для открытия', error);
     throw error;
   }
 }
@@ -57,7 +58,7 @@ async function notifyUsersAboutCase(caseItem) {
   const bot = getBotInstance();
   
   if (!bot) {
-    console.warn('Бот не инициализирован, уведомления не отправлены');
+    logWarn('Бот не инициализирован, уведомления не отправлены', { caseId: caseItem.id });
     return 0;
   }
 
@@ -86,14 +87,14 @@ async function notifyUsersAboutCase(caseItem) {
       } catch (error) {
         // Игнорируем ошибки отправки отдельным пользователям
         if (!error.message.includes('blocked') && !error.message.includes('chat not found')) {
-          console.warn(`Ошибка отправки уведомления пользователю ${telegramId}:`, error.message);
+          logWarn('Ошибка отправки уведомления пользователю', { telegramId, error: error.message });
         }
       }
     }
 
     return successCount;
   } catch (error) {
-    console.error('Ошибка отправки уведомлений о кейсе:', error);
+    logError('Ошибка отправки уведомлений о кейсе', error, { caseId: caseItem.id });
     return 0;
   }
 }
@@ -105,15 +106,15 @@ async function notifyUsersAboutCase(caseItem) {
 export function startCaseOpenerScheduler() {
   // Проверяем сразу при запуске
   checkAndOpenCases().catch(err => {
-    console.error('Ошибка при первоначальной проверке кейсов:', err);
+      logError('Ошибка при первоначальной проверке кейсов', err);
   });
 
   // Затем проверяем каждую минуту
   setInterval(() => {
     checkAndOpenCases().catch(err => {
-      console.error('Ошибка при периодической проверке кейсов:', err);
+      logError('Ошибка при периодической проверке кейсов', err);
     });
   }, 60 * 1000); // Каждую минуту
 
-  console.log('Планировщик открытия кейсов запущен');
+  logInfo('Планировщик открытия кейсов запущен');
 }

@@ -3,6 +3,7 @@ import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 import { adminOperationLimiter } from '../middleware/security.js';
 import { validateCaseCreation, validateIdParam } from '../middleware/validation.js';
+import { logError } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(query, params);
     res.json({ cases: result.rows });
   } catch (error) {
-    console.error('Ошибка получения кейсов:', error);
+    logError('Ошибка получения кейсов', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -50,7 +51,7 @@ router.get('/:id', validateIdParam, async (req, res) => {
 
     res.json({ case: result.rows[0] });
   } catch (error) {
-    console.error('Ошибка получения кейса:', error);
+    logError('Ошибка получения кейса', error, { id: req.params.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -82,7 +83,7 @@ router.post('/', authenticateToken, requireModerator, adminOperationLimiter, val
 
     res.status(201).json({ case: result.rows[0] });
   } catch (error) {
-    console.error('Ошибка создания кейса:', error);
+    logError('Ошибка создания кейса', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -127,7 +128,7 @@ router.put('/:id', authenticateToken, requireModerator, adminOperationLimiter, v
 
     res.json({ case: result.rows[0] });
   } catch (error) {
-    console.error('Ошибка обновления кейса:', error);
+    logError('Ошибка обновления кейса', error, { caseId: req.params.id, userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -139,7 +140,7 @@ router.delete('/:id', authenticateToken, requireAdmin, adminOperationLimiter, va
     await pool.query('DELETE FROM cases WHERE id = $1', [id]);
     res.json({ message: 'Кейс удален' });
   } catch (error) {
-    console.error('Ошибка удаления кейса:', error);
+    logError('Ошибка удаления кейса', error, { caseId: req.params.id, userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

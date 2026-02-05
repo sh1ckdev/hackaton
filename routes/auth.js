@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import pool from '../db/index.js';
+import { logError } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -106,7 +107,7 @@ router.post('/telegram', async (req, res) => {
 
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {
-    console.error('Ошибка аутентификации:', error);
+    logError('Ошибка аутентификации', error);
     res.status(500).json({ error: 'Ошибка сервера при аутентификации' });
   }
 });
@@ -168,7 +169,7 @@ router.post('/bot', async (req, res) => {
 
     res.json({ token: jwtToken, refresh_token: refresh.token, user });
   } catch (error) {
-    console.error('Ошибка входа через бота:', error);
+    logError('Ошибка входа через бота', error, { token: req.body?.token ? 'present' : 'missing' });
     res.status(500).json({ error: 'Ошибка сервера при входе' });
   }
 });
@@ -213,7 +214,7 @@ router.post('/refresh', async (req, res) => {
 
     res.json({ token: accessToken, refresh_token: newRefresh.token });
   } catch (error) {
-    console.error('Ошибка обновления токена:', error);
+    logError('Ошибка обновления токена', error);
     res.status(500).json({ error: 'Ошибка сервера при обновлении токена' });
   }
 });
@@ -229,7 +230,7 @@ router.post('/logout', async (req, res) => {
     await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1', [tokenHash]);
     res.json({ ok: true });
   } catch (error) {
-    console.error('Ошибка выхода:', error);
+    logError('Ошибка выхода', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера при выходе' });
   }
 });

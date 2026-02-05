@@ -22,6 +22,7 @@ import pool from './index.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logInfo, logWarn, logError } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -151,7 +152,7 @@ async function applySchemaChanges() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   
   if (!fs.existsSync(schemaPath)) {
-    console.warn('Файл schema.sql не найден, пропускаю миграции');
+    logWarn('Файл schema.sql не найден, пропускаю миграции');
     return;
   }
 
@@ -164,14 +165,14 @@ async function applySchemaChanges() {
 
   // Если схема не изменилась и не требуется принудительное применение, пропускаем
   if (currentVersion === schemaHash && !forceMigrate) {
-    console.log('Схема БД актуальна, миграции не требуются');
+    logInfo('Схема БД актуальна, миграции не требуются');
     return;
   }
 
   if (forceMigrate) {
-    console.log('Принудительное применение миграций (FORCE_DB_MIGRATE=true)...');
+    logInfo('Принудительное применение миграций (FORCE_DB_MIGRATE=true)');
   } else {
-    console.log('Обнаружены изменения в схеме БД, применяю миграции...');
+    logInfo('Обнаружены изменения в схеме БД, применяю миграции');
   }
 
   // Парсим SQL на отдельные команды
@@ -186,7 +187,7 @@ async function applySchemaChanges() {
 
     try {
       await pool.query(statement);
-      console.log(`Применена команда ${i + 1}/${statements.length}`);
+      logInfo(`Применена команда ${i + 1}/${statements.length}`, { total: statements.length, current: i + 1 });
     } catch (error) {
       // Игнорируем ошибки "уже существует" и подобные
       if (
@@ -200,12 +201,11 @@ async function applySchemaChanges() {
         error.message.includes('уже существует')
       ) {
         // Это нормально, объект уже существует
-        console.log(`Команда ${i + 1}/${statements.length} пропущена (объект уже существует)`);
+        logInfo(`Команда ${i + 1}/${statements.length} пропущена (объект уже существует)`, { total: statements.length, current: i + 1 });
         continue;
       }
       // Для других ошибок логируем, но продолжаем
-      console.warn(`Предупреждение при применении команды ${i + 1}/${statements.length}:`, error.message);
-      console.warn('Код ошибки:', error.code);
+      logWarn(`Предупреждение при применении команды ${i + 1}/${statements.length}`, { error: error.message, code: error.code, total: statements.length, current: i + 1 });
     }
   }
 
@@ -214,7 +214,7 @@ async function applySchemaChanges() {
 
   // Сохраняем версию
   await saveMigrationVersion(schemaHash, `Схема обновлена: ${new Date().toISOString()}`);
-  console.log('Миграции схемы применены успешно');
+  logInfo('Миграции схемы применены успешно');
 }
 
 /**
@@ -241,7 +241,7 @@ async function applyAdditionalMigrations() {
     }
 
     if (!hasCorrectConstraint) {
-      console.log('Обновление CHECK constraint для роли пользователя...');
+      logInfo('Обновление CHECK constraint для роли пользователя');
       // Удаляем старые constraints
       for (const row of constraintCheck.rows) {
         try {
@@ -256,10 +256,10 @@ async function applyAdditionalMigrations() {
         ALTER TABLE users ADD CONSTRAINT users_role_check 
         CHECK (role IN ('user', 'moderator', 'admin'))
       `);
-      console.log('CHECK constraint для роли обновлен успешно');
+      logInfo('CHECK constraint для роли обновлен успешно');
     }
   } catch (error) {
-    console.warn('Предупреждение при проверке constraint для роли:', error.message);
+    logWarn('Предупреждение при проверке constraint для роли', { error: error.message });
   }
 
   // Проверка и добавление недостающих колонок
@@ -308,7 +308,7 @@ async function ensureColumnsExist() {
       } catch (error) {
         // Игнорируем ошибки, если колонка уже существует
         if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
-          console.warn(`Предупреждение при добавлении колонки ${tableName}.${column.name}:`, error.message);
+          logWarn(`Предупреждение при добавлении колонки ${tableName}.${column.name}`, { error: error.message, table: tableName, column: column.name });
         }
       }
     }
@@ -332,7 +332,7 @@ async function ensureNewFieldsExist() {
 
     if (!casesOpensAtExists.rows[0].exists) {
       await pool.query('ALTER TABLE cases ADD COLUMN opens_at TIMESTAMP');
-      console.log('Добавлено поле opens_at в таблицу cases');
+      logInfo('Добавлено поле opens_at в таблицу cases');
     }
 
     // Проверяем наличие поля github_url в таблице solutions
@@ -347,7 +347,7 @@ async function ensureNewFieldsExist() {
 
     if (!solutionsGithubExists.rows[0].exists) {
       await pool.query('ALTER TABLE solutions ADD COLUMN github_url TEXT');
-      console.log('Добавлено поле github_url в таблицу solutions');
+      logInfo('Добавлено поле github_url в таблицу solutions');
     }
 
     // Проверяем наличие поля presentation_file_path в таблице solutions
@@ -362,10 +362,10 @@ async function ensureNewFieldsExist() {
 
     if (!solutionsPresentationExists.rows[0].exists) {
       await pool.query('ALTER TABLE solutions ADD COLUMN presentation_file_path TEXT');
-      console.log('Добавлено поле presentation_file_path в таблицу solutions');
+      logInfo('Добавлено поле presentation_file_path в таблицу solutions');
     }
   } catch (error) {
-    console.warn('Предупреждение при проверке новых полей:', error.message);
+    logWarn('Предупреждение при проверке новых полей', { error: error.message });
   }
 }
 
@@ -425,7 +425,7 @@ async function ensureIndexesExist() {
     } catch (error) {
       // Игнорируем ошибки создания индекса, если он уже существует
       if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
-        console.warn(`Предупреждение при создании индекса ${index.name}:`, error.message);
+        logWarn(`Предупреждение при создании индекса ${index.name}`, { error: error.message, index: index.name, table: index.table });
       }
     }
   }
@@ -439,7 +439,7 @@ export async function runMigrations() {
     await ensureMigrationsTable();
     await applySchemaChanges();
   } catch (error) {
-    console.error('Ошибка при выполнении миграций:', error);
+    logError('Ошибка при выполнении миграций', error);
     throw error;
   }
 }
