@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
@@ -44,33 +44,47 @@ const Login = () => {
     });
   }, [turnstileSiteKey, captchaReady]);
 
-  const handleTelegramRedirect = () => {
-    if (!botUsername) {
-      setError('Укажите VITE_TELEGRAM_BOT_USERNAME в .env клиента.');
-      return;
-    }
-    window.location.href = `https://t.me/${botUsername}?start=login`;
-  };
-
-  const handleTokenLogin = async () => {
-    if (!captchaToken) {
+  const handleTokenLogin = useCallback(async (tokenFromUrl = null, captchaTokenFromCallback = null) => {
+    const params = new URLSearchParams(location.search);
+    const token = tokenFromUrl || params.get('token');
+    const captcha = captchaTokenFromCallback || captchaToken;
+    
+    if (!captcha) {
       setError('Пройдите капчу.');
       return;
     }
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
     if (!token) {
       setError('Токен входа не найден.');
       return;
     }
+    
     setLoginPending(true);
-    const ok = await authStore.loginWithToken(token, captchaToken);
+    setError(null);
+    const ok = await authStore.loginWithToken(token, captcha);
     setLoginPending(false);
     if (ok) {
       navigate('/profile');
     } else {
       setError(authStore.error || 'Ошибка входа');
     }
+  }, [location.search, captchaToken, navigate]);
+
+  // Автоматический вход после прохождения капчи, если есть токен в URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    
+    if (token && captchaToken && !loginPending) {
+      handleTokenLogin(token, captchaToken);
+    }
+  }, [captchaToken, location.search, loginPending, handleTokenLogin]);
+
+  const handleTelegramRedirect = () => {
+    if (!botUsername) {
+      setError('Укажите VITE_TELEGRAM_BOT_USERNAME в .env клиента.');
+      return;
+    }
+    window.location.href = `https://t.me/${botUsername}?start=login`;
   };
 
   return (
@@ -86,24 +100,41 @@ const Login = () => {
         </div>
 
         <div className="space-y-4">
-          <button
-            onClick={handleTelegramRedirect}
-            className="w-full flex justify-center py-3 px-4 border border-terminal-green bg-terminal-dark/40 text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
-          >
-            Перейти к боту
-          </button>
-          {turnstileSiteKey && (
-            <div className="flex justify-center">
-              <div ref={captchaRef}></div>
-            </div>
-          )}
-          <button
-            onClick={handleTokenLogin}
-            disabled={loginPending}
-            className="w-full flex justify-center py-3 px-4 border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all font-medium rounded disabled:opacity-50"
-          >
-            {loginPending ? 'Вход...' : 'Подтвердить вход'}
-          </button>
+          {(() => {
+            const params = new URLSearchParams(location.search);
+            const hasToken = params.get('token');
+            
+            if (hasToken) {
+              // Если есть токен в URL - показываем капчу и статус входа
+              return (
+                <>
+                  <div className="text-center text-white/70 text-sm mb-2">
+                    Пройдите капчу для завершения входа
+                  </div>
+                  {turnstileSiteKey && (
+                    <div className="flex justify-center">
+                      <div ref={captchaRef}></div>
+                    </div>
+                  )}
+                  {loginPending && (
+                    <div className="text-center text-terminal-green text-sm">
+                      Вход...
+                    </div>
+                  )}
+                </>
+              );
+            } else {
+              // Если токена нет - показываем кнопку перехода к боту
+              return (
+                <button
+                  onClick={handleTelegramRedirect}
+                  className="w-full flex justify-center py-3 px-4 border border-terminal-green bg-terminal-dark/40 text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                >
+                  Перейти к боту
+                </button>
+              );
+            }
+          })()}
           {error && (
             <div className="border border-terminal-red bg-terminal-dark/40 p-3 rounded">
               <p className="text-terminal-red text-sm">
