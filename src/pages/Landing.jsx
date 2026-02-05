@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const Landing = () => {
+  useDocumentTitle('Главная');
+  
   return (
     <div className="min-h-screen bg-terminal-bg flex items-center justify-center relative overflow-hidden">
       {/* Background gradient */}

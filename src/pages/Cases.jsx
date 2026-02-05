@@ -2,8 +2,11 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const Cases = () => {
+  useDocumentTitle('Кейсы');
+  
   useEffect(() => {
     casesStore.fetchCases('active');
   }, []);
@@ -35,7 +38,12 @@ const Cases = () => {
 
       {casesStore.loading ? (
         <div className="text-center py-12">
-          <div className="text-gray-400">Загрузка...</div>
+          <div className="inline-flex items-center gap-2 text-terminal-green">
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-1"></div>
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-2"></div>
+            <span className="ml-2 text-gray-400">Загрузка...</span>
+          </div>
         </div>
       ) : casesStore.cases.length === 0 ? (
         <div className="text-center py-12 glass rounded-lg">
@@ -43,10 +51,11 @@ const Cases = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {casesStore.cases.map((caseItem) => (
+          {casesStore.cases.map((caseItem, index) => (
             <div
               key={caseItem.id}
-              className="glass rounded-lg hover:border-terminal-green transition-all p-6"
+              className="glass rounded-lg hover:border-terminal-green transition-all duration-300 p-6 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-terminal-green/20 animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-start justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-100 flex-1">
@@ -81,9 +90,9 @@ const Cases = () => {
 
               <Link
                 to={`/cases/${caseItem.id}`}
-                className="block w-full text-center py-2 px-4 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+                className="block w-full text-center py-2.5 px-4 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
               >
-                Подробнее
+                Подробнее →
               </Link>
             </div>
           ))}

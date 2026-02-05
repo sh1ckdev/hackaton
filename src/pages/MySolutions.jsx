@@ -2,8 +2,11 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import solutionsStore from '../stores/solutionsStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const MySolutions = () => {
+  useDocumentTitle('Мои решения');
+  
   useEffect(() => {
     solutionsStore.fetchMySolutions();
   }, []);
@@ -37,7 +40,12 @@ const MySolutions = () => {
 
       {solutionsStore.loading ? (
         <div className="text-center py-12">
-          <div className="text-gray-400">Загрузка...</div>
+          <div className="inline-flex items-center gap-2 text-terminal-green">
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-1"></div>
+            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-2"></div>
+            <span className="ml-2 text-gray-400">Загрузка...</span>
+          </div>
         </div>
       ) : solutionsStore.solutions.length === 0 ? (
         <div className="text-center py-12 glass rounded-lg">
@@ -51,10 +59,11 @@ const MySolutions = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {solutionsStore.solutions.map((solution) => (
+          {solutionsStore.solutions.map((solution, index) => (
             <div
               key={solution.id}
-              className="glass rounded-lg hover:border-terminal-green transition-all p-6"
+              className="glass rounded-lg hover:border-terminal-green transition-all duration-300 p-6 transform hover:scale-[1.01] hover:shadow-lg hover:shadow-terminal-green/10 animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-start justify-between mb-4 border-b-2 border-terminal-gray pb-3">
                 <div className="flex-1">

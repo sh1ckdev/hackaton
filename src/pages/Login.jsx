@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import PixelSnow from '../components/PixelSnow';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const Login = () => {
+  useDocumentTitle('Вход');
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState(null);

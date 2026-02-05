@@ -1,9 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import { Link } from 'react-router-dom';
 import authStore from '../stores/authStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const Profile = () => {
   const user = authStore.user;
+  useDocumentTitle('Профиль');
 
   return (
     <div className="px-4 py-6">
@@ -16,7 +18,7 @@ const Profile = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="glass rounded-xl p-6">
             <div className="flex items-center gap-4 mb-6">
-              <div className="h-20 w-20 rounded-full overflow-hidden bg-terminal-dark border-2 border-terminal-green">
+              <div className="h-20 w-20 rounded-full overflow-hidden bg-terminal-dark border-2 border-terminal-green shadow-lg shadow-terminal-green/30 transform hover:scale-110 transition-transform duration-300">
                 {user?.photo_url ? (
                   <img
                     src={user.photo_url}
@@ -75,27 +77,27 @@ const Profile = () => {
           <div className="space-y-3">
             <Link
               to="/cases"
-              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
+              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all duration-300 transform hover:translate-x-1 hover:shadow-md hover:shadow-terminal-green/20"
             >
-              Кейсы
+              Кейсы →
             </Link>
             <Link
               to="/team"
-              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
+              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all duration-300 transform hover:translate-x-1 hover:shadow-md hover:shadow-terminal-green/20"
             >
-              Команда
+              Команда →
             </Link>
             <Link
               to="/solutions"
-              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
+              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all duration-300 transform hover:translate-x-1 hover:shadow-md hover:shadow-terminal-green/20"
             >
-              Мои решения
+              Мои решения →
             </Link>
             <Link
               to="/info"
-              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
+              className="block px-4 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all duration-300 transform hover:translate-x-1 hover:shadow-md hover:shadow-terminal-green/20"
             >
-              Информация
+              Информация →
             </Link>
           </div>
         </aside>

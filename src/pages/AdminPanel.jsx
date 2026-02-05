@@ -3,8 +3,10 @@ import { observer } from 'mobx-react-lite';
 import solutionsStore from '../stores/solutionsStore';
 import casesStore from '../stores/casesStore';
 import api from '../utils/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const AdminPanel = () => {
+  useDocumentTitle('Панель администратора');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -146,20 +148,20 @@ const AdminPanel = () => {
 
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="glass rounded-lg p-4">
-            <div className="text-3xl font-semibold text-white">{stats.users}</div>
+          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-green border border-terminal-gray/50">
+            <div className="text-3xl font-semibold text-white mb-1">{stats.users}</div>
             <div className="text-sm text-white/70">Пользователей</div>
           </div>
-          <div className="glass rounded-lg p-4">
-            <div className="text-3xl font-semibold text-white">{stats.cases}</div>
+          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-cyan border border-terminal-gray/50">
+            <div className="text-3xl font-semibold text-white mb-1">{stats.cases}</div>
             <div className="text-sm text-white/70">Кейсов</div>
           </div>
-          <div className="glass rounded-lg p-4">
-            <div className="text-3xl font-semibold text-white">{stats.solutions}</div>
+          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-blue border border-terminal-gray/50">
+            <div className="text-3xl font-semibold text-white mb-1">{stats.solutions}</div>
             <div className="text-sm text-white/70">Решений</div>
           </div>
-          <div className="glass rounded-lg p-4">
-            <div className="text-3xl font-semibold text-white">
+          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-purple border border-terminal-gray/50">
+            <div className="text-3xl font-semibold text-white mb-1">
               {stats.solutionsByStatus?.pending || 0}
             </div>
             <div className="text-sm text-white/70">На модерации</div>
@@ -244,10 +246,11 @@ const AdminPanel = () => {
             </div>
 
             <div className="space-y-4">
-              {solutionsStore.allSolutions.map((solution) => (
+              {solutionsStore.allSolutions.map((solution, index) => (
                 <div
                   key={solution.id}
-                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 bg-terminal-dark"
+                  className="border border-terminal-gray hover:border-terminal-green transition-all duration-300 p-4 bg-terminal-dark transform hover:scale-[1.01] hover:shadow-lg hover:shadow-terminal-green/10 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
                 >
                     <div className="flex items-start justify-between mb-2 border-b border-terminal-gray/60 pb-2">
                     <div className="flex-1">
@@ -297,9 +300,9 @@ const AdminPanel = () => {
                   )}
                   <button
                     onClick={() => setModeratingSolution(solution)}
-                    className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                    className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 text-sm font-medium rounded transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
                   >
-                    Модерировать
+                    Модерировать →
                   </button>
                 </div>
               ))}
@@ -310,86 +313,112 @@ const AdminPanel = () => {
         {activeTab === 'users' && (
           <div className="p-6">
             <div className="space-y-4">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 flex items-center justify-between bg-terminal-dark"
-                >
-                  <div>
-                    <p className="font-semibold text-terminal-green">
-                      {user.first_name} {user.last_name} ({user.username})
-                    </p>
-                    <p className="text-sm text-white/70">
-                      Решений: {user.solutions_count} | Роль: {
-                        user.role === 'admin' ? 'Администратор' :
-                        user.role === 'moderator' ? 'Модератор' : 'Пользователь'
-                      }
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {user.role !== 'admin' && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const newRole = user.role === 'moderator' ? 'user' : 'moderator';
-                            const response = await api.put(`/admin/users/${user.id}/role`, { role: newRole });
-                            if (response.data && response.data.user) {
-                              fetchUsers();
-                            } else {
-                              throw new Error('Неожиданный ответ от сервера');
+              {users.map((user) => {
+                const MAIN_ADMIN_ID = '1046635419';
+                const isMainAdmin = user.telegram_id?.toString() === MAIN_ADMIN_ID;
+                
+                return (
+                  <div
+                    key={user.id}
+                    className={`border transition-all p-4 flex items-center justify-between bg-terminal-dark ${
+                      isMainAdmin 
+                        ? 'border-terminal-green/50 hover:border-terminal-green' 
+                        : 'border-terminal-gray hover:border-terminal-green'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold text-terminal-green">
+                          {user.first_name} {user.last_name} ({user.username})
+                        </p>
+                        {isMainAdmin && (
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-green/50 text-terminal-green bg-terminal-green/10">
+                            Главный админ
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-white/70">
+                        Решений: {user.solutions_count} | Роль: {
+                          user.role === 'admin' ? 'Администратор' :
+                          user.role === 'moderator' ? 'Модератор' : 'Пользователь'
+                        }
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {user.role !== 'admin' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const newRole = user.role === 'moderator' ? 'user' : 'moderator';
+                              const response = await api.put(`/admin/users/${user.id}/role`, { role: newRole });
+                              if (response.data && response.data.user) {
+                                fetchUsers();
+                              } else {
+                                throw new Error('Неожиданный ответ от сервера');
+                              }
+                            } catch (error) {
+                              console.error('Ошибка изменения роли:', error);
+                              const errorMessage = error.response?.data?.error || error.message || 'Ошибка изменения роли';
+                              alert(errorMessage);
                             }
-                          } catch (error) {
-                            console.error('Ошибка изменения роли:', error);
-                            const errorMessage = error.response?.data?.error || error.message || 'Ошибка изменения роли';
-                            alert(errorMessage);
-                          }
-                        }}
-                        className={`px-4 py-2 bg-terminal-dark/40 border text-sm font-medium rounded transition-all ${
-                          user.role === 'moderator'
-                            ? 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
-                            : 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
-                        }`}
-                      >
-                        {user.role === 'moderator' ? 'Убрать модератора' : 'Назначить модератором'}
-                      </button>
-                    )}
-                    {user.role === 'admin' ? (
-                      <button
-                        onClick={async () => {
-                          if (!confirm('Вы уверены, что хотите снять права администратора у этого пользователя?')) {
-                            return;
-                          }
-                          try {
-                            await api.put(`/admin/users/${user.id}/role`, { role: 'user' });
-                            fetchUsers();
-                          } catch (error) {
-                            console.error('Ошибка изменения роли:', error);
-                            alert(error.response?.data?.error || 'Ошибка изменения роли');
-                          }
-                        }}
-                        className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
-                      >
-                        Снять админа
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
-                            fetchUsers();
-                          } catch (error) {
-                            console.error('Ошибка изменения роли:', error);
-                            alert(error.response?.data?.error || 'Ошибка изменения роли');
-                          }
-                        }}
-                        className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"
-                      >
-                        Сделать админом
-                      </button>
-                    )}
+                          }}
+                          className={`px-4 py-2 bg-terminal-dark/40 border text-sm font-medium rounded transition-all ${
+                            user.role === 'moderator'
+                              ? 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
+                              : 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
+                          }`}
+                        >
+                          {user.role === 'moderator' ? 'Убрать модератора' : 'Назначить модератором'}
+                        </button>
+                      )}
+                      {user.role === 'admin' ? (
+                        !isMainAdmin ? (
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Вы уверены, что хотите снять права администратора у этого пользователя?')) {
+                                return;
+                              }
+                              try {
+                                await api.put(`/admin/users/${user.id}/role`, { role: 'user' });
+                                fetchUsers();
+                              } catch (error) {
+                                console.error('Ошибка изменения роли:', error);
+                                alert(error.response?.data?.error || 'Ошибка изменения роли');
+                              }
+                            }}
+                            className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                          >
+                            Снять админа
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray/30 text-terminal-gray/50 cursor-not-allowed text-sm font-medium rounded"
+                            title="Нельзя снять роль у главного администратора"
+                          >
+                            Снять админа
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
+                              fetchUsers();
+                            } catch (error) {
+                              console.error('Ошибка изменения роли:', error);
+                              alert(error.response?.data?.error || 'Ошибка изменения роли');
+                            }
+                          }}
+                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                        >
+                          Сделать админом
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

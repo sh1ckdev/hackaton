@@ -60,7 +60,7 @@ const Layout = () => {
               </span>
               <button
                 onClick={handleLogout}
-                className="text-sm text-white/70 hover:text-white transition-colors px-3 py-1 border border-terminal-gray/60 hover:border-terminal-red rounded"
+                className="text-sm text-white/70 hover:text-white transition-all duration-300 px-3 py-1 border border-terminal-gray/60 hover:border-terminal-red rounded transform hover:scale-105"
               >
                 exit
               </button>

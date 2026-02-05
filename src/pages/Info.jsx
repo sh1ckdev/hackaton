@@ -1,4 +1,8 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+
 const Info = () => {
+  useDocumentTitle('Информация');
+  
   return (
     <div className="px-4 py-6">
       <div className="glass rounded-xl p-6">

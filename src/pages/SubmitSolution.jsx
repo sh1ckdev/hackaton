@@ -3,10 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const SubmitSolution = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  
+  const caseItem = casesStore.selectedCase;
+  useDocumentTitle(caseItem ? `Отправить решение: ${caseItem.title}` : 'Отправить решение');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -75,7 +79,7 @@ const SubmitSolution = () => {
         ← Назад
       </button>
 
-      <div className="glass rounded-xl p-8">
+      <div className="glass rounded-xl p-8 animate-fade-in-up">
         <h1 className="text-3xl font-semibold text-gray-100 mb-2">
           Отправить решение
         </h1>
@@ -188,9 +192,9 @@ const SubmitSolution = () => {
             <button
               type="submit"
               disabled={solutionsStore.loading}
-              className="px-6 py-2 bg-terminal-dark border border-terminal-green text-gray-300 hover:bg-terminal-green hover:text-terminal-bg transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-terminal-dark border border-terminal-green text-gray-300 hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 font-bold disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40 disabled:transform-none"
             >
-              {solutionsStore.loading ? 'Отправка...' : 'Отправить решение'}
+              {solutionsStore.loading ? 'Отправка...' : 'Отправить решение →'}
             </button>
           </div>
         </form>

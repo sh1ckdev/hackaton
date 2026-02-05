@@ -4,18 +4,21 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import api from '../utils/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const CaseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
 
+  const caseItem = casesStore.selectedCase;
+  useDocumentTitle(caseItem ? caseItem.title : 'Кейс');
+
   useEffect(() => {
     casesStore.fetchCase(id);
     solutionsStore.fetchMySolutions();
   }, [id]);
 
-  const caseItem = casesStore.selectedCase;
   const mySolution = solutionsStore.solutions.find(s => s.case_id === parseInt(id));
 
   if (casesStore.loading) {
@@ -46,7 +49,7 @@ const CaseDetail = () => {
         ← Назад к кейсам
       </Link>
 
-      <div className="glass rounded-lg p-8 mb-6">
+      <div className="glass rounded-lg p-8 mb-6 animate-fade-in-up">
         <div className="flex items-start justify-between mb-6 border-b border-terminal-gray pb-4">
           <h1 className="text-3xl font-semibold text-gray-100">
             {caseItem.title}
@@ -84,7 +87,7 @@ const CaseDetail = () => {
       </div>
 
       {mySolution ? (
-        <div className="glass rounded-lg p-6 mb-6">
+        <div className="glass rounded-lg p-6 mb-6 animate-fade-in-up">
           <h2 className="text-xl font-semibold text-gray-100 mb-4 border-b border-terminal-gray pb-2">
             Мое решение
           </h2>
@@ -125,9 +128,9 @@ const CaseDetail = () => {
           <div className="flex gap-3">
             <Link
               to={`/solutions/submit/${caseItem.id}`}
-              className="inline-block px-4 py-2 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+              className="inline-block px-4 py-2 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
             >
-              Редактировать решение
+              Редактировать решение →
             </Link>
             <button
               onClick={async () => {
@@ -147,7 +150,7 @@ const CaseDetail = () => {
                 }
               }}
               disabled={deleting}
-              className="px-4 py-2 bg-terminal-dark border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-terminal-dark border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-md hover:shadow-terminal-red/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {deleting ? 'Удаление...' : 'Сняться с соревнования'}
             </button>
@@ -160,9 +163,9 @@ const CaseDetail = () => {
           </h2>
           <Link
             to={`/solutions/submit/${caseItem.id}`}
-            className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+            className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 rounded font-medium transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
           >
-            Отправить решение
+            Отправить решение →
           </Link>
         </div>
       )}

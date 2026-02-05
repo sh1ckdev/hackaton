@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import api from '../utils/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const Team = () => {
+  useDocumentTitle('Команда');
   const [team, setTeam] = useState(null);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [teamError, setTeamError] = useState(null);
@@ -116,7 +118,7 @@ const Team = () => {
                     alert(error.response?.data?.error || 'Ошибка при выходе из команды');
                   }
                 }}
-                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all duration-300 text-sm font-medium rounded transform hover:scale-105 shadow-md hover:shadow-terminal-red/30"
               >
                 Покинуть команду
               </button>
@@ -182,13 +184,13 @@ const Team = () => {
               <button
                 onClick={handleCreate}
                 disabled={!teamName.trim()}
-                className="px-6 py-2 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 shadow-md hover:shadow-terminal-green/30 disabled:transform-none"
               >
                 Создать команду
               </button>
               <button
                 onClick={() => setShowJoin((prev) => !prev)}
-                className="px-6 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
+                className="px-6 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all duration-300 transform hover:scale-105"
               >
                 Войти в команду
               </button>
