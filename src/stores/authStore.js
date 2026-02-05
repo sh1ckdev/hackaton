@@ -130,7 +130,7 @@ class AuthStore {
   }
 
   get isModerator() {
-    return this.user?.role === 'moderator' || this.user?.role === 'admin';
+    return this.user?.role === 'admin' || this.user?.role === 'moderator';
   }
 }
 

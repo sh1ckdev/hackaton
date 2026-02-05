@@ -16,44 +16,38 @@ const Layout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <Link to="/cases" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors font-mono">
-                <span className="text-terminal-green mr-2">$</span> hackathon
+              <Link to="/" className="flex items-center px-2 py-2 text-lg font-semibold text-white/90 hover:text-white transition-colors">
+                <span className="text-terminal-green mr-2">&gt;</span> hackathon
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   to="/cases"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   cases
                 </Link>
                 <Link
                   to="/solutions"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   solutions
                 </Link>
                 <Link
                   to="/team"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-cyan font-mono"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   team
                 </Link>
                 <Link
-                  to="/leaderboard"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-blue font-mono"
-                >
-                  leaderboard
-                </Link>
-                <Link
                   to="/profile"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green font-mono"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-green"
                 >
                   profile
                 </Link>
                 {authStore.isAdmin && (
                   <Link
                     to="/admin"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-red font-mono"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-white/70 hover:text-white transition-colors border-b-2 border-transparent hover:border-terminal-red"
                   >
                     admin
                   </Link>

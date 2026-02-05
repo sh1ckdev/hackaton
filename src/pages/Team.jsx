@@ -7,9 +7,9 @@ const Team = () => {
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [teamError, setTeamError] = useState(null);
   const [teamName, setTeamName] = useState('');
+  const [teamNameError, setTeamNameError] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [teamCode, setTeamCode] = useState('');
-  const [nameError, setNameError] = useState(false);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -48,10 +48,10 @@ const Team = () => {
   const handleCreate = async () => {
     const trimmedName = teamName.trim();
     if (!trimmedName) {
-      setNameError(true);
+      setTeamNameError(true);
       return;
     }
-    setNameError(false);
+    setTeamNameError(false);
     try {
       const response = await api.post('/teams/create', {
         name: trimmedName
@@ -67,55 +67,40 @@ const Team = () => {
   return (
     <div className="px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-white mb-2 font-mono">
-          <span className="text-terminal-green">&gt;</span> Команда
-        </h1>
-        <p className="text-white/60 font-mono">Управление командой и участниками</p>
+        <h1 className="text-3xl font-semibold text-gray-100 mb-2">Команда</h1>
+        <p className="text-gray-400">Управляйте своей командой и участниками</p>
       </div>
 
       {loadingTeam ? (
-        <div className="glass rounded-xl p-8 text-center">
-          <p className="text-white/60 font-mono">Загрузка...</p>
+        <div className="glass rounded-xl p-6">
+          <p className="text-white/60">Загрузка...</p>
         </div>
       ) : hasTeam ? (
         <div className="space-y-6">
-          <div className="glass rounded-xl p-6 border border-terminal-gray/30">
-            <h2 className="text-xl font-semibold text-white mb-4 font-mono">Информация о команде</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="glass rounded-lg p-4 border border-terminal-gray/20">
-                <div className="text-white/60 text-sm font-mono mb-1">Код команды</div>
-                <div className="text-white text-2xl font-mono font-bold text-terminal-green">{team.code}</div>
-                <div className="text-white/40 text-xs font-mono mt-2">Поделитесь этим кодом для приглашения</div>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Информация о команде</h2>
+            <div className="space-y-3">
+              <div className="glass rounded-lg p-4">
+                <div className="text-white/60 text-sm">Код команды</div>
+                <div className="text-white text-lg font-mono">{team.code}</div>
+                <p className="text-xs text-white/50 mt-2">Поделитесь этим кодом, чтобы пригласить участников</p>
               </div>
-              <div className="glass rounded-lg p-4 border border-terminal-gray/20">
-                <div className="text-white/60 text-sm font-mono mb-1">Название</div>
-                <div className="text-white text-xl font-mono">{team.name}</div>
+              <div className="glass rounded-lg p-4">
+                <div className="text-white/60 text-sm">Название</div>
+                <div className="text-white">{team.name}</div>
               </div>
-              <div className="glass rounded-lg p-4 border border-terminal-gray/20">
-                <div className="text-white/60 text-sm font-mono mb-1">Ваша роль</div>
-                <div className="text-white text-lg font-mono">
-                  {team.role === 'captain' ? (
-                    <span className="text-terminal-green">Капитан</span>
-                  ) : (
-                    <span className="text-terminal-cyan">Участник</span>
-                  )}
-                </div>
-              </div>
-              <div className="glass rounded-lg p-4 border border-terminal-gray/20">
-                <div className="text-white/60 text-sm font-mono mb-1">Участников</div>
-                <div className="text-white text-2xl font-mono font-bold">{team.members?.length || 0}</div>
+              <div className="glass rounded-lg p-4">
+                <div className="text-white/60 text-sm">Ваша роль</div>
+                <div className="text-white">{team.role === 'captain' ? 'Капитан' : 'Участник'}</div>
               </div>
             </div>
           </div>
 
-          <div className="glass rounded-xl p-6 border border-terminal-gray/30">
-            <h2 className="text-xl font-semibold text-white mb-4 font-mono">Участники команды</h2>
+          <div className="glass rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Участники</h2>
             <div className="space-y-3">
               {team.members?.map((member) => (
-                <div
-                  key={member.id}
-                  className="glass rounded-lg p-4 border border-terminal-gray/20 flex items-center gap-4 hover:border-terminal-green transition-all"
-                >
+                <div key={member.id} className="flex items-center gap-3 glass rounded-lg p-4">
                   <div className="h-12 w-12 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray flex-shrink-0">
                     {member.photo_url ? (
                       <img
@@ -124,100 +109,92 @@ const Team = () => {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-white/50 text-lg font-mono">
+                      <div className="h-full w-full flex items-center justify-center text-white/50 text-lg font-semibold">
                         {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-mono">
+                    <div className="text-white/90 font-medium">
                       {member.first_name || ''} {member.last_name || ''}
                       {(!member.first_name && !member.last_name) && (member.username || 'Участник')}
                     </div>
-                    <div className="text-white/60 text-sm font-mono">
+                    <div className="text-white/60 text-sm">
                       @{member.username || '—'} · {member.role === 'captain' ? 'Капитан' : 'Участник'}
                     </div>
                   </div>
-                  {member.role === 'captain' && (
-                    <div className="px-3 py-1 border border-terminal-green text-terminal-green text-xs font-mono rounded">
-                      Капитан
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="glass rounded-xl p-6 border border-terminal-gray/30">
-            <h2 className="text-xl font-semibold text-white mb-4 font-mono">Создать команду</h2>
-            <div className="space-y-4">
-              <div>
-                <input
-                  value={teamName}
-                  onChange={(e) => {
-                    setTeamName(e.target.value);
-                    setNameError(false);
-                  }}
-                  placeholder="Название команды"
-                  className={`w-full px-4 py-3 rounded border font-mono bg-terminal-dark/50 text-white focus:outline-none transition-all ${
-                    nameError
-                      ? 'border-terminal-red focus:border-terminal-red'
-                      : 'border-terminal-gray focus:border-terminal-green'
-                  }`}
-                />
-                {nameError && (
-                  <p className="text-terminal-red text-xs mt-1 font-mono">Укажите название команды</p>
-                )}
-              </div>
+        <div className="glass rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Создать или вступить в команду</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Название команды
+              </label>
+              <input
+                value={teamName}
+                onChange={(e) => {
+                  setTeamName(e.target.value);
+                  setTeamNameError(false);
+                }}
+                placeholder="Введите название команды"
+                className={`w-full px-4 py-2 rounded border bg-terminal-dark/50 text-white focus:outline-none transition-all ${
+                  teamNameError
+                    ? 'border-terminal-red focus:border-terminal-red'
+                    : 'border-terminal-gray focus:border-terminal-green'
+                }`}
+              />
+              {teamNameError && (
+                <p className="mt-1 text-sm text-terminal-red">Название команды обязательно</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleCreate}
-                className="w-full px-4 py-3 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-mono font-semibold"
+                disabled={!teamName.trim()}
+                className="px-6 py-2 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Создать команду
               </button>
-            </div>
-          </div>
-
-          <div className="glass rounded-xl p-6 border border-terminal-gray/30">
-            <h2 className="text-xl font-semibold text-white mb-4 font-mono">Войти в команду</h2>
-            <div className="space-y-4">
               <button
                 onClick={() => setShowJoin((prev) => !prev)}
-                className="w-full px-4 py-3 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all font-mono"
+                className="px-6 py-2 rounded border border-terminal-gray text-white/80 hover:text-white hover:border-terminal-green transition-all"
               >
-                {showJoin ? 'Скрыть' : 'Показать форму входа'}
+                Войти в команду
               </button>
-
-              {showJoin && (
-                <form onSubmit={handleJoin} className="space-y-4">
-                  <input
-                    value={teamCode}
-                    onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                    placeholder="Введите код команды (6 букв)"
-                    maxLength={6}
-                    className="w-full px-4 py-3 rounded border border-terminal-gray bg-terminal-dark/50 text-white focus:border-terminal-green focus:outline-none font-mono uppercase"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-3 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-mono font-semibold"
-                  >
-                    Войти в команду
-                  </button>
-                </form>
-              )}
-              <p className="text-xs text-white/60 font-mono">
-                Код команды можно получить у капитана
-              </p>
             </div>
-          </div>
-        </div>
-      )}
 
-      {teamError && (
-        <div className="mt-4 glass rounded-lg p-4 border border-terminal-red">
-          <p className="text-terminal-red text-sm font-mono">{teamError}</p>
+            {showJoin && (
+              <form onSubmit={handleJoin} className="mt-4 space-y-3">
+                <input
+                  value={teamCode}
+                  onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                  placeholder="Введите код команды (6 букв)"
+                  maxLength={6}
+                  className="w-full px-4 py-2 rounded border border-terminal-gray bg-terminal-dark/50 text-white focus:border-terminal-green focus:outline-none uppercase"
+                />
+                <button
+                  type="submit"
+                  className="w-full px-4 py-2 rounded border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all"
+                >
+                  Войти
+                </button>
+              </form>
+            )}
+
+            {teamError && (
+              <div className="mt-4 glass rounded p-3 border border-terminal-red">
+                <p className="text-terminal-red text-sm">{teamError}</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

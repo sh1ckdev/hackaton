@@ -87,93 +87,86 @@ const Login = () => {
     window.location.href = `https://t.me/${botUsername}?start=login`;
   };
 
+  const params = new URLSearchParams(location.search);
+  const hasToken = params.get('token');
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-terminal-bg relative overflow-hidden">
-      {/* Анимированный фон */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-terminal-green animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-1 h-1 bg-terminal-cyan animate-pulse delay-300"></div>
-        <div className="absolute bottom-20 left-1/4 w-1.5 h-1.5 bg-terminal-blue animate-pulse delay-700"></div>
-        <div className="absolute bottom-40 right-1/3 w-1 h-1 bg-terminal-green animate-pulse delay-1000"></div>
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-terminal-green/10 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-terminal-cyan/10 rounded-full blur-3xl animate-pulse-slow-delay"></div>
       </div>
 
-      <div className="max-w-md w-full space-y-8 p-10 glass rounded-xl relative z-10 border border-terminal-gray/30">
-        <div className="text-center space-y-3">
-          <div className="inline-block">
-            <span className="text-terminal-green text-2xl font-mono">$</span>
-            <span className="text-white text-2xl font-mono ml-2">hackathon login</span>
+      <div className="max-w-md w-full space-y-8 p-10 glass rounded-xl relative z-10 animate-fade-in-up">
+        <div className="text-center mb-8">
+          <div className="inline-block mb-4">
+            <span className="text-4xl font-bold text-terminal-green animate-typing">&gt;</span>
+            <span className="text-4xl font-bold text-white ml-2">Hackathon</span>
           </div>
-          <div className="border-l-2 border-terminal-green pl-4 text-left">
-            <h2 className="text-xl font-semibold text-white mb-1 font-mono">
-              &gt; Авторизация через Telegram
+          <div className="border-l-2 border-terminal-green pl-4 mt-4 text-left">
+            <h2 className="text-2xl font-semibold text-white mb-2 animate-slide-in-left">
+              Вход в систему
             </h2>
-            <p className="text-white/60 text-sm font-mono">
-              Используйте бота для безопасного входа
+            <p className="text-white/70 text-sm animate-slide-in-left-delay">
+              {hasToken ? 'Завершите вход, пройдя капчу' : 'Нажмите кнопку, чтобы перейти к боту в Telegram'}
             </p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          {(() => {
-            const params = new URLSearchParams(location.search);
-            const hasToken = params.get('token');
-            
-            if (hasToken) {
-              // Если есть токен в URL - показываем капчу и статус входа
-              return (
-                <>
-                  <div className="text-center space-y-4">
-                    <div className="inline-block px-4 py-2 glass rounded border border-terminal-green/50">
-                      <span className="text-terminal-green text-sm font-mono">✓ Токен получен</span>
-                    </div>
-                    <p className="text-white/70 text-sm font-mono">
-                      Пройдите проверку безопасности
-                    </p>
-                    {turnstileSiteKey && (
-                      <div className="flex justify-center py-4">
-                        <div ref={captchaRef}></div>
-                      </div>
-                    )}
-                    {loginPending && (
-                      <div className="flex items-center justify-center gap-2 text-terminal-green text-sm font-mono">
-                        <span className="animate-pulse">●</span>
-                        <span>Выполняется вход...</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              );
-            } else {
-              // Если токена нет - показываем кнопку перехода к боту
-              return (
-                <div className="space-y-4">
-                  <button
-                    onClick={handleTelegramRedirect}
-                    className="w-full group relative overflow-hidden flex items-center justify-center gap-3 py-4 px-6 border-2 border-terminal-green bg-terminal-dark/60 text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-mono font-semibold rounded-lg"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0-.225 0-.44-.11-.567-.297l-1.028-1.457-3.06-1.01c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
-                      </svg>
-                      <span>Перейти к боту</span>
-                    </span>
-                    <div className="absolute inset-0 bg-terminal-green transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
-                  </button>
-                  <div className="text-center text-xs text-white/50 font-mono space-y-1">
-                    <p>1. Нажмите кнопку выше</p>
-                    <p>2. Откройте бота в Telegram</p>
-                    <p>3. Нажмите /start</p>
-                    <p>4. Вернитесь на сайт</p>
+        <div className="space-y-4">
+          {hasToken ? (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-terminal-green mb-4 animate-spin-slow">
+                  <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-terminal-green border-b-transparent border-l-transparent"></div>
+                </div>
+                <p className="text-white/70 text-sm mb-4">
+                  Пройдите капчу для завершения входа
+                </p>
+              </div>
+              {turnstileSiteKey && (
+                <div className="flex justify-center animate-scale-in">
+                  <div ref={captchaRef} className="transform transition-all"></div>
+                </div>
+              )}
+              {loginPending && (
+                <div className="text-center animate-pulse">
+                  <div className="inline-flex items-center gap-2 text-terminal-green">
+                    <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-1"></div>
+                    <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-2"></div>
+                    <span className="ml-2">Вход...</span>
                   </div>
                 </div>
-              );
-            }
-          })()}
+              )}
+            </div>
+          ) : (
+            <div className="animate-fade-in-up">
+              <button
+                onClick={handleTelegramRedirect}
+                className="group w-full flex items-center justify-center gap-3 py-4 px-6 border-2 border-terminal-green bg-terminal-dark/40 text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded-lg transform hover:scale-105 shadow-lg shadow-terminal-green/20 hover:shadow-terminal-green/40"
+              >
+                <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span>Войти через Telegram</span>
+              </button>
+              <div className="mt-4 flex items-center gap-2 text-white/50 text-xs">
+                <div className="flex-1 h-px bg-terminal-gray"></div>
+                <span>Безопасный вход</span>
+                <div className="flex-1 h-px bg-terminal-gray"></div>
+              </div>
+            </div>
+          )}
+          
           {error && (
-            <div className="border-2 border-terminal-red bg-terminal-dark/60 p-4 rounded-lg">
+            <div className="border border-terminal-red bg-terminal-red/10 p-4 rounded-lg animate-shake">
               <div className="flex items-center gap-2">
-                <span className="text-terminal-red font-mono">✗</span>
-                <p className="text-terminal-red text-sm font-mono">
+                <svg className="w-5 h-5 text-terminal-red flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-terminal-red text-sm">
                   {error}
                 </p>
               </div>
@@ -181,9 +174,11 @@ const Login = () => {
           )}
         </div>
 
-        <div className="text-xs text-white/40 border-t border-terminal-gray/30 pt-4 text-center font-mono">
-          <span className="text-terminal-green">//</span> Безопасный вход через Telegram Bot API
-        </div>
+        {!hasToken && (
+          <div className="text-xs text-white/60 border-t border-terminal-gray pt-4 text-center animate-fade-in-delay">
+            После авторизации в боте вернитесь на сайт
+          </div>
+        )}
       </div>
     </div>
   );

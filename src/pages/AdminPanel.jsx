@@ -245,81 +245,50 @@ const AdminPanel = () => {
                   className="border border-terminal-gray hover:border-terminal-green transition-all p-4 flex items-center justify-between bg-terminal-dark"
                 >
                   <div>
-                    <p className="font-semibold text-white font-mono">
+                    <p className="font-semibold text-terminal-green">
                       {user.first_name} {user.last_name} ({user.username})
                     </p>
-                    <p className="text-sm text-white/70 font-mono">
-                      Решений: {user.solutions_count} | Роль: 
-                      <span className={`ml-1 ${
-                        user.role === 'admin' ? 'text-terminal-red' :
-                        user.role === 'moderator' ? 'text-terminal-cyan' :
-                        'text-white/60'
-                      }`}>
-                        {user.role === 'admin' ? 'Администратор' :
-                         user.role === 'moderator' ? 'Модератор' : 'Пользователь'}
-                      </span>
+                    <p className="text-sm text-white/70">
+                      Решений: {user.solutions_count} | Роль: {
+                        user.role === 'admin' ? 'Администратор' :
+                        user.role === 'moderator' ? 'Модератор' : 'Пользователь'
+                      }
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {user.role !== 'admin' && user.role !== 'moderator' && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.put(`/admin/users/${user.id}/role`, { role: 'moderator' });
-                              fetchUsers();
-                            } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
-                            }
-                          }}
-                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all text-sm font-medium rounded font-mono"
-                        >
-                          Модератор
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
-                              fetchUsers();
-                            } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
-                            }
-                          }}
-                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded font-mono"
-                        >
-                          Админ
-                        </button>
-                      </>
+                    {user.role !== 'admin' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.put(`/admin/users/${user.id}/role`, { role: user.role === 'moderator' ? 'user' : 'moderator' });
+                            fetchUsers();
+                          } catch (error) {
+                            console.error('Ошибка изменения роли:', error);
+                          }
+                        }}
+                        className={`px-4 py-2 bg-terminal-dark/40 border text-sm font-medium rounded transition-all ${
+                          user.role === 'moderator'
+                            ? 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
+                            : 'border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg'
+                        }`}
+                      >
+                        {user.role === 'moderator' ? 'Убрать модератора' : 'Назначить модератором'}
+                      </button>
                     )}
-                    {user.role === 'moderator' && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.put(`/admin/users/${user.id}/role`, { role: 'user' });
-                              fetchUsers();
-                            } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
-                            }
-                          }}
-                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white/70 hover:border-terminal-red hover:text-terminal-red transition-all text-sm font-medium rounded font-mono"
-                        >
-                          Убрать
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
-                              fetchUsers();
-                            } catch (error) {
-                              console.error('Ошибка изменения роли:', error);
-                            }
-                          }}
-                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded font-mono"
-                        >
-                          Админ
-                        </button>
-                      </>
+                    {user.role !== 'admin' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
+                            fetchUsers();
+                          } catch (error) {
+                            console.error('Ошибка изменения роли:', error);
+                          }
+                        }}
+                        className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                      >
+                        Сделать админом
+                      </button>
                     )}
                   </div>
                 </div>

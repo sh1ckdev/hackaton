@@ -10,9 +10,9 @@ import SubmitSolution from './pages/SubmitSolution';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
 import Team from './pages/Team';
-import Leaderboard from './pages/Leaderboard';
 import Info from './pages/Info';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const ProtectedRoute = observer(({ children }) => {
   console.log('[App] ProtectedRoute рендер:', {
@@ -49,12 +49,13 @@ const AdminRoute = observer(({ children }) => {
 function App() {
   console.log('[App] App компонент рендерится');
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <ErrorBoundary>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Landing />} />
@@ -72,7 +73,6 @@ function App() {
           <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
           <Route path="profile" element={<Profile />} />
           <Route path="team" element={<Team />} />
-          <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="info" element={<Info />} />
           <Route
             path="admin"
@@ -85,6 +85,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </ErrorBoundary>
   );
 }
 
