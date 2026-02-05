@@ -349,7 +349,13 @@ const AdminPanel = () => {
                         <button
                           onClick={async () => {
                             try {
+                              if (!user.id) {
+                                console.error('user.id отсутствует:', user);
+                                alert('Ошибка: ID пользователя не найден');
+                                return;
+                              }
                               const newRole = user.role === 'moderator' ? 'user' : 'moderator';
+                              console.log('[AdminPanel] Изменение роли:', { userId: user.id, user, newRole });
                               const response = await api.put(`/admin/users/${user.id}/role`, { role: newRole });
                               if (response.data && response.data.user) {
                                 fetchUsers();
@@ -379,6 +385,12 @@ const AdminPanel = () => {
                                 return;
                               }
                               try {
+                                if (!user.id) {
+                                  console.error('user.id отсутствует:', user);
+                                  alert('Ошибка: ID пользователя не найден');
+                                  return;
+                                }
+                                console.log('[AdminPanel] Снятие роли админа:', { userId: user.id, user });
                                 await api.put(`/admin/users/${user.id}/role`, { role: 'user' });
                                 fetchUsers();
                               } catch (error) {
@@ -403,6 +415,12 @@ const AdminPanel = () => {
                         <button
                           onClick={async () => {
                             try {
+                              if (!user.id) {
+                                console.error('user.id отсутствует:', user);
+                                alert('Ошибка: ID пользователя не найден');
+                                return;
+                              }
+                              console.log('[AdminPanel] Назначение роли админа:', { userId: user.id, user });
                               await api.put(`/admin/users/${user.id}/role`, { role: 'admin' });
                               fetchUsers();
                             } catch (error) {
