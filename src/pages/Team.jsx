@@ -36,7 +36,9 @@ const Team = () => {
     }
     try {
       const response = await api.post('/teams/join', { team_code: teamCode.trim().toUpperCase() });
-      setTeam(response.data.team);
+      // Получаем полную информацию о команде с участниками
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
       setShowJoin(false);
       setTeamCode('');
       setTeamError(null);
@@ -53,10 +55,12 @@ const Team = () => {
     }
     setTeamNameError(false);
     try {
-      const response = await api.post('/teams/create', {
+      await api.post('/teams/create', {
         name: trimmedName
       });
-      setTeam(response.data.team);
+      // Получаем полную информацию о команде с участниками
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
       setTeamName('');
       setTeamError(null);
     } catch (error) {

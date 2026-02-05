@@ -260,10 +260,12 @@ const AdminPanel = () => {
                       <button
                         onClick={async () => {
                           try {
-                            await api.put(`/admin/users/${user.id}/role`, { role: user.role === 'moderator' ? 'user' : 'moderator' });
+                            const newRole = user.role === 'moderator' ? 'user' : 'moderator';
+                            await api.put(`/admin/users/${user.id}/role`, { role: newRole });
                             fetchUsers();
                           } catch (error) {
                             console.error('Ошибка изменения роли:', error);
+                            alert(error.response?.data?.error || 'Ошибка изменения роли');
                           }
                         }}
                         className={`px-4 py-2 bg-terminal-dark/40 border text-sm font-medium rounded transition-all ${
@@ -275,7 +277,25 @@ const AdminPanel = () => {
                         {user.role === 'moderator' ? 'Убрать модератора' : 'Назначить модератором'}
                       </button>
                     )}
-                    {user.role !== 'admin' && (
+                    {user.role === 'admin' ? (
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Вы уверены, что хотите снять права администратора у этого пользователя?')) {
+                            return;
+                          }
+                          try {
+                            await api.put(`/admin/users/${user.id}/role`, { role: 'user' });
+                            fetchUsers();
+                          } catch (error) {
+                            console.error('Ошибка изменения роли:', error);
+                            alert(error.response?.data?.error || 'Ошибка изменения роли');
+                          }
+                        }}
+                        className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                      >
+                        Снять админа
+                      </button>
+                    ) : (
                       <button
                         onClick={async () => {
                           try {
@@ -283,6 +303,7 @@ const AdminPanel = () => {
                             fetchUsers();
                           } catch (error) {
                             console.error('Ошибка изменения роли:', error);
+                            alert(error.response?.data?.error || 'Ошибка изменения роли');
                           }
                         }}
                         className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
+import PixelSnow from '../components/PixelSnow';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -92,10 +93,21 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-terminal-bg relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-terminal-green/10 rounded-full blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-terminal-cyan/10 rounded-full blur-3xl animate-pulse-slow-delay"></div>
+      <div style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0 }}>
+        <PixelSnow 
+          color="#ffffff"
+          flakeSize={0.01}
+          minFlakeSize={1.25}
+          pixelResolution={200}
+          speed={1.25}
+          density={0.3}
+          direction={125}
+          brightness={1}
+          depthFade={8}
+          farPlane={20}
+          gamma={0.4545}
+          variant="square"
+        />
       </div>
 
       <div className="max-w-md w-full space-y-8 p-10 glass rounded-xl relative z-10 animate-fade-in-up">
