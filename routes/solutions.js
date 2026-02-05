@@ -183,18 +183,6 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
         'UPDATE cases SET current_participants = current_participants + 1 WHERE id = $1',
         [case_id]
       );
-
-      // Сбрасываем флаг opted_out, если пользователь снова отправляет решение (возвращается в соревнование)
-      await pool.query(
-        'UPDATE users SET opted_out = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-        [req.user.id]
-      );
-    } else {
-      // При обновлении решения также сбрасываем флаг opted_out
-      await pool.query(
-        'UPDATE users SET opted_out = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-        [req.user.id]
-      );
     }
 
     res.status(201).json({ solution });
@@ -249,7 +237,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     const caseId = solutionResult.rows[0].case_id;
-    const userId = solutionResult.rows[0].user_id;
 
     // Удаляем решение
     await pool.query('DELETE FROM solutions WHERE id = $1', [id]);
@@ -259,21 +246,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       'UPDATE cases SET current_participants = GREATEST(0, current_participants - 1) WHERE id = $1',
       [caseId]
     );
-
-    // Помечаем пользователя как снявшегося с соревнования
-    // Проверяем, есть ли у пользователя другие активные решения
-    const otherSolutions = await pool.query(
-      'SELECT COUNT(*) as count FROM solutions WHERE user_id = $1',
-      [userId]
-    );
-
-    // Если у пользователя больше нет решений, значит он снялся
-    if (parseInt(otherSolutions.rows[0].count) === 0) {
-      await pool.query(
-        'UPDATE users SET opted_out = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-        [userId]
-      );
-    }
 
     res.json({ message: 'Решение удалено' });
   } catch (error) {

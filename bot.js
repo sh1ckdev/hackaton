@@ -174,13 +174,13 @@ export async function broadcastMessage(message) {
   const bot = botInstance || new TelegramBot(token);
   
   try {
-    // Получаем всех пользователей, у которых есть telegram_id и которые НЕ снялись с соревнования
-    // opted_out = FALSE означает, что пользователь не снялся
+    // Получаем всех пользователей, у которых есть telegram_id и которые не снялись с соревнований
+    // Отправляем рассылку всем пользователям, у которых есть telegram_id
+    // (включая тех, кто имеет решения, и тех, кто никогда не отправлял)
     const result = await pool.query(
       `SELECT DISTINCT u.telegram_id 
        FROM users u
-       WHERE u.telegram_id IS NOT NULL
-       AND (u.opted_out = FALSE OR u.opted_out IS NULL)`
+       WHERE u.telegram_id IS NOT NULL`
     );
 
     const telegramIds = result.rows.map(row => row.telegram_id);
