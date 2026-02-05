@@ -41,17 +41,10 @@ const verifyCaptcha = async (captchaToken) => {
 router.post('/telegram', async (req, res) => {
   try {
     const { initData, captcha_token } = req.body;
-    
-    // Для Web App капча опциональна (можно настроить)
-    // Если капча предоставлена - проверяем её
-    if (captcha_token) {
-      const captchaOk = await verifyCaptcha(captcha_token);
-      if (!captchaOk) {
-        return res.status(400).json({ error: 'Капча не пройдена' });
-      }
+    const captchaOk = await verifyCaptcha(captcha_token);
+    if (!captchaOk) {
+      return res.status(400).json({ error: 'Капча не пройдена' });
     }
-    // Если капчи нет, но она настроена - можно требовать или разрешить
-    // Для упрощения разрешаем вход без капчи для Web App
 
     if (!initData) {
       return res.status(400).json({ error: 'Данные Telegram отсутствуют' });
