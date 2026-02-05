@@ -17,26 +17,24 @@ services:
       - "${FRONTEND_PORT:-4173}:4173"
     networks:
       - frontend-network
-      - traefik-public
+      - dokploy-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`chermanx.ru`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=4173"
-      # HTTPS
-      - "traefik.http.routers.frontend-secure.rule=Host(`chermanx.ru`)"
-      - "traefik.http.routers.frontend-secure.entrypoints=websecure"
-      - "traefik.http.routers.frontend-secure.tls=true"
-      - "traefik.http.routers.frontend-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-secure.service=frontend"
       # HTTP to HTTPS redirect
+      - "traefik.http.routers.frontend-http.rule=Host(`chermanx.ru`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.frontend.middlewares=redirect-to-https"
-      - "traefik.docker.network=traefik-public"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
 networks:
   frontend-network:
     name: hackathon-frontend
     driver: bridge
-  traefik-public:
+  dokploy-network:
     external: true
