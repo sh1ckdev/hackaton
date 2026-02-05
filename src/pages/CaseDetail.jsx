@@ -5,7 +5,8 @@ import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon, SolutionIcon } from '../components/Icons';
+import CountdownTimer from '../components/CountdownTimer';
+import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, ArrowRightIcon } from '../components/Icons';
 
 const CaseDetail = () => {
   const { id } = useParams();
@@ -72,15 +73,16 @@ const CaseDetail = () => {
             </div>
           </div>
 
-          {/* Статус открытия */}
-          {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() ? (
+          {/* Таймер открытия */}
+          {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
             <div className="border border-terminal-cyan/30 rounded-xl p-5 bg-terminal-cyan/5 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <TimeIcon size={18} className="text-terminal-cyan" />
-                <p className="text-sm font-medium text-terminal-cyan">Кейс откроется позже</p>
+                <p className="text-sm font-medium text-terminal-cyan">Кейс откроется через:</p>
               </div>
-              <p className="text-xs text-gray-500">
-                Дата открытия: {new Date(caseItem.opens_at).toLocaleString('ru-RU', {
+              <CountdownTimer targetDate={caseItem.opens_at} />
+              <p className="text-xs text-gray-500 mt-3">
+                {new Date(caseItem.opens_at).toLocaleString('ru-RU', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
@@ -88,13 +90,6 @@ const CaseDetail = () => {
                   minute: '2-digit'
                 })}
               </p>
-            </div>
-          ) : (
-            <div className="border border-terminal-green/30 rounded-xl p-5 bg-terminal-green/5 backdrop-blur-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-terminal-green animate-pulse"></div>
-                <p className="text-sm font-medium text-terminal-green">Кейс открыт и доступен для участия</p>
-              </div>
             </div>
           )}
 

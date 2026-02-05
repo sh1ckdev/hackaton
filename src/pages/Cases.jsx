@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import CountdownTimer from '../components/CountdownTimer';
-import { CaseIcon, TimeIcon, ArrowRightIcon, SearchIcon, FilterIcon } from '../components/Icons';
+import { CaseIcon, TimeIcon, ArrowRightIcon, SearchIcon, FilterIcon, StatsIcon, UsersIcon } from '../components/Icons';
 
 const Cases = () => {
   useDocumentTitle('Кейсы');
@@ -78,9 +78,9 @@ const Cases = () => {
 
   const getDifficultyBadge = (difficulty) => {
     const styles = {
-      easy: 'border-terminal-green text-terminal-green',
-      medium: 'border-terminal-cyan text-terminal-cyan',
-      hard: 'border-terminal-red text-terminal-red',
+      easy: 'border-terminal-green text-terminal-green bg-terminal-green/10',
+      medium: 'border-terminal-cyan text-terminal-cyan bg-terminal-cyan/10',
+      hard: 'border-terminal-red text-terminal-red bg-terminal-red/10',
     };
     const labels = {
       easy: 'EASY',
@@ -88,7 +88,7 @@ const Cases = () => {
       hard: 'HARD',
     };
     return (
-      <span className={`px-3 py-1 text-xs rounded border ${styles[difficulty] || styles.medium}`}>
+      <span className={`px-3 py-1 text-xs font-semibold rounded-lg border ${styles[difficulty] || styles.medium}`}>
         {labels[difficulty] || labels.medium}
       </span>
     );
@@ -216,77 +216,81 @@ const Cases = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSortedCases.map((caseItem, index) => (
-            <Link
-              key={caseItem.id}
-              to={`/cases/${caseItem.id}`}
-              className="group relative border border-terminal-gray/30 rounded-xl p-6 hover:border-terminal-green/50 transition-all hover:shadow-lg hover:shadow-terminal-green/10 bg-terminal-dark/30 backdrop-blur-sm flex flex-col animate-fade-in-up"
-              style={{ animationDelay: `${index * 0.05}s` }}
-            >
-              {/* Бейдж сложности в правом верхнем углу */}
-              <div className="absolute top-4 right-4">
-                {getDifficultyBadge(caseItem.difficulty)}
-              </div>
-
-              {/* Иконка кейса */}
-              <div className="mb-4">
-                <div className="w-12 h-12 rounded-lg bg-terminal-green/10 border border-terminal-green/30 flex items-center justify-center group-hover:bg-terminal-green/20 transition-colors">
-                  <CaseIcon size={24} className="text-terminal-green" />
+          {filteredAndSortedCases.map((caseItem, index) => {
+            const isOpen = !caseItem.opens_at || new Date(caseItem.opens_at) <= new Date();
+            const participantsPercent = caseItem.max_participants > 0 
+              ? Math.min(100, ((caseItem.current_participants || 0) / caseItem.max_participants) * 100)
+              : 0;
+            
+            return (
+              <Link
+                key={caseItem.id}
+                to={`/cases/${caseItem.id}`}
+                className="group relative border border-terminal-gray/30 rounded-xl p-6 hover:border-terminal-green/50 transition-all hover:shadow-lg hover:shadow-terminal-green/10 bg-terminal-dark/30 backdrop-blur-sm flex flex-col animate-fade-in-up"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                {/* Бейдж сложности в правом верхнем углу */}
+                <div className="absolute top-4 right-4">
+                  {getDifficultyBadge(caseItem.difficulty)}
                 </div>
-              </div>
 
-              {/* Заголовок */}
-              <h2 className="text-xl font-semibold text-white mb-3 pr-16 group-hover:text-terminal-green transition-colors">
-                {caseItem.title}
-              </h2>
+                {/* Статус открытия */}
+                {isOpen && (
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2 py-1 text-xs font-semibold rounded-lg bg-terminal-green/20 border border-terminal-green/50 text-terminal-green">
+                      Открыт
+                    </span>
+                  </div>
+                )}
 
-              {/* Описание */}
-              <p className="text-sm text-gray-400 line-clamp-3 mb-4 flex-1">
-                {caseItem.description || 'Описание отсутствует'}
-              </p>
-
-              {/* Статус открытия */}
-              {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() ? (
-                <div className="mb-4 p-3 bg-terminal-dark/60 rounded-lg border border-terminal-cyan/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TimeIcon size={14} className="text-terminal-cyan" />
-                    <p className="text-xs text-terminal-cyan font-medium">Откроется позже</p>
+                {/* Иконка кейса */}
+                <div className="mb-4 mt-2">
+                  <div className="w-12 h-12 rounded-lg bg-terminal-green/10 border border-terminal-green/30 flex items-center justify-center group-hover:bg-terminal-green/20 transition-colors group-hover:scale-110">
+                    <CaseIcon size={24} className="text-terminal-green" />
                   </div>
                 </div>
-              ) : (
-                <div className="mb-4 p-2 bg-terminal-green/10 rounded-lg border border-terminal-green/20">
-                  <p className="text-xs text-terminal-green font-medium text-center">✓ Открыт</p>
-                </div>
-              )}
 
-              {/* Футер с информацией */}
-              <div className="pt-4 border-t border-terminal-gray/20 flex items-center justify-between">
-                <div className="text-xs text-gray-500">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{caseItem.current_participants || 0}</span>
-                    <span>участников</span>
+                {/* Заголовок */}
+                <h2 className="text-xl font-semibold text-white mb-3 pr-16 group-hover:text-terminal-green transition-colors">
+                  {caseItem.title}
+                </h2>
+
+                {/* Описание */}
+                <p className="text-sm text-gray-400 line-clamp-3 mb-4 flex-1">
+                  {caseItem.description || 'Описание отсутствует'}
+                </p>
+
+                {/* Футер с информацией */}
+                <div className="pt-4 border-t border-terminal-gray/20 space-y-3">
+                  {/* Участники с прогресс-баром */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-gray-500 flex items-center gap-1">
+                        <UsersIcon size={14} />
+                        <span>
+                          {caseItem.current_participants || 0} участников
+                          {caseItem.max_participants > 0 && ` / ${caseItem.max_participants}`}
+                        </span>
+                      </span>
+                    </div>
                     {caseItem.max_participants > 0 && (
-                      <>
-                        <span className="text-gray-600">/</span>
-                        <span className="text-gray-600">{caseItem.max_participants} макс.</span>
-                      </>
+                      <div className="w-full bg-terminal-gray/20 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-terminal-green h-1.5 rounded-full transition-all"
+                          style={{ width: `${participantsPercent}%` }}
+                        />
+                      </div>
                     )}
                   </div>
-                  {caseItem.max_participants > 0 && (
-                    <div className="mt-1 w-full bg-terminal-gray/20 rounded-full h-1.5">
-                      <div
-                        className="bg-terminal-green h-1.5 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(100, ((caseItem.current_participants || 0) / caseItem.max_participants) * 100)}%`
-                        }}
-                      />
-                    </div>
-                  )}
+
+                  {/* Стрелка */}
+                  <div className="flex items-center justify-end">
+                    <ArrowRightIcon size={16} className="text-terminal-green opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
-                <ArrowRightIcon size={16} className="text-terminal-green opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
 
