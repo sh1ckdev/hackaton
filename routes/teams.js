@@ -1,6 +1,6 @@
 import express from 'express';
 import pool from '../db/index.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireModerator } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -142,6 +142,46 @@ router.post('/join', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка вступления в команду:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получение всех команд (для админа и модератора)
+router.get('/all', authenticateToken, requireModerator, async (req, res) => {
+  try {
+    const teamsResult = await pool.query(
+      `SELECT t.id, t.team_code, t.name, t.created_at, 
+              COUNT(tm.user_id) as members_count
+       FROM teams t
+       LEFT JOIN team_members tm ON t.id = tm.team_id
+       GROUP BY t.id, t.team_code, t.name, t.created_at
+       ORDER BY t.created_at DESC`
+    );
+
+    const teams = teamsResult.rows;
+    
+    // Для каждой команды получаем участников
+    const teamsWithMembers = await Promise.all(
+      teams.map(async (team) => {
+        const membersResult = await pool.query(
+          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, tm.role
+           FROM team_members tm
+           JOIN users u ON tm.user_id = u.id
+           WHERE tm.team_id = $1
+           ORDER BY tm.role DESC, u.first_name ASC`,
+          [team.id]
+        );
+
+        return {
+          ...team,
+          members: membersResult.rows
+        };
+      })
+    );
+
+    res.json({ teams: teamsWithMembers });
+  } catch (error) {
+    console.error('Ошибка получения команд:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

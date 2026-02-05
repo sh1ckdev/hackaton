@@ -236,7 +236,17 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Нет прав на удаление' });
     }
 
+    const caseId = solutionResult.rows[0].case_id;
+
+    // Удаляем решение
     await pool.query('DELETE FROM solutions WHERE id = $1', [id]);
+
+    // Уменьшаем счетчик участников кейса
+    await pool.query(
+      'UPDATE cases SET current_participants = GREATEST(0, current_participants - 1) WHERE id = $1',
+      [caseId]
+    );
+
     res.json({ message: 'Решение удалено' });
   } catch (error) {
     console.error('Ошибка удаления решения:', error);

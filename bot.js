@@ -151,4 +151,59 @@ export function startBot() {
   });
 
   console.log('Telegram бот запущен.');
+  
+  return bot;
+}
+
+// Глобальная переменная для хранения экземпляра бота
+let botInstance = null;
+
+// Функция для установки экземпляра бота
+export function setBotInstance(bot) {
+  botInstance = bot;
+}
+
+// Функция для рассылки сообщений всем участникам
+export async function broadcastMessage(message) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error('TELEGRAM_BOT_TOKEN не задан');
+  }
+
+  // Используем существующий экземпляр бота или создаем новый
+  const bot = botInstance || new TelegramBot(token);
+  
+  try {
+    // Получаем всех пользователей, у которых есть telegram_id и которые участвуют в соревнованиях
+    const result = await pool.query(
+      `SELECT DISTINCT u.telegram_id 
+       FROM users u
+       WHERE u.telegram_id IS NOT NULL
+       AND EXISTS (
+         SELECT 1 FROM solutions s WHERE s.user_id = u.id
+       )`
+    );
+
+    const telegramIds = result.rows.map(row => row.telegram_id);
+    let successCount = 0;
+    let failCount = 0;
+
+    // Рассылаем сообщения с задержкой, чтобы не превысить лимиты API
+    for (const telegramId of telegramIds) {
+      try {
+        await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
+        successCount++;
+        // Небольшая задержка между сообщениями
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        console.error(`Ошибка отправки сообщения пользователю ${telegramId}:`, error.message);
+        failCount++;
+      }
+    }
+
+    return { success: successCount, failed: failCount, total: telegramIds.length };
+  } catch (error) {
+    console.error('Ошибка рассылки сообщений:', error);
+    throw error;
+  }
 }

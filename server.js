@@ -12,7 +12,7 @@ import casesRoutes from './routes/cases.js';
 import solutionsRoutes from './routes/solutions.js';
 import adminRoutes from './routes/admin.js';
 import teamsRoutes from './routes/teams.js';
-import { startBot } from './bot.js';
+import { startBot, setBotInstance } from './bot.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -155,7 +155,8 @@ async function startServer() {
   try {
     await initDB();
     await ensureMainAdmin();
-    startBot();
+    const bot = startBot();
+    setBotInstance(bot);
     app.listen(PORT, () => {
       console.log(`Сервер запущен на порту ${PORT}`);
     });
