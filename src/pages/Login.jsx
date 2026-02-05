@@ -130,9 +130,6 @@ const Login = () => {
           {hasToken ? (
             <div className="space-y-4 animate-fade-in">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-terminal-green mb-4 animate-spin-slow">
-                  <div className="w-12 h-12 rounded-full border-t-2 border-r-2 border-terminal-green border-b-transparent border-l-transparent"></div>
-                </div>
                 <p className="text-white/70 text-sm mb-4">
                   Пройдите капчу для завершения входа
                 </p>

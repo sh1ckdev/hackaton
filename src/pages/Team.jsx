@@ -101,7 +101,26 @@ const Team = () => {
           </div>
 
           <div className="glass rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Участники</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Участники</h2>
+              <button
+                onClick={async () => {
+                  if (!confirm('Вы уверены, что хотите покинуть команду?')) {
+                    return;
+                  }
+                  try {
+                    await api.post('/teams/leave');
+                    setTeam(null);
+                    alert('Вы покинули команду');
+                  } catch (error) {
+                    alert(error.response?.data?.error || 'Ошибка при выходе из команды');
+                  }
+                }}
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
+              >
+                Покинуть команду
+              </button>
+            </div>
             <div className="space-y-3">
               {team.members?.map((member) => (
                 <div key={member.id} className="flex items-center gap-3 glass rounded-lg p-4">

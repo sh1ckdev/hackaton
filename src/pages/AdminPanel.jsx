@@ -332,11 +332,16 @@ const AdminPanel = () => {
                         onClick={async () => {
                           try {
                             const newRole = user.role === 'moderator' ? 'user' : 'moderator';
-                            await api.put(`/admin/users/${user.id}/role`, { role: newRole });
-                            fetchUsers();
+                            const response = await api.put(`/admin/users/${user.id}/role`, { role: newRole });
+                            if (response.data && response.data.user) {
+                              fetchUsers();
+                            } else {
+                              throw new Error('Неожиданный ответ от сервера');
+                            }
                           } catch (error) {
                             console.error('Ошибка изменения роли:', error);
-                            alert(error.response?.data?.error || 'Ошибка изменения роли');
+                            const errorMessage = error.response?.data?.error || error.message || 'Ошибка изменения роли';
+                            alert(errorMessage);
                           }
                         }}
                         className={`px-4 py-2 bg-terminal-dark/40 border text-sm font-medium rounded transition-all ${
