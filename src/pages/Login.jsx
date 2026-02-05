@@ -164,11 +164,6 @@ const Login = () => {
                 </svg>
                 <span>Войти через Telegram</span>
               </button>
-              <div className="mt-4 flex items-center gap-2 text-white/50 text-xs">
-                <div className="flex-1 h-px bg-terminal-gray"></div>
-                <span>Безопасный вход</span>
-                <div className="flex-1 h-px bg-terminal-gray"></div>
-              </div>
             </div>
           )}
           
