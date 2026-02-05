@@ -231,6 +231,7 @@ const CaseDetail = () => {
         </div>
       )}
     </div>
+    </div>
   );
 };
 
