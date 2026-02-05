@@ -80,19 +80,15 @@ const SubmitSolution = () => {
     <div className="px-4 py-6 max-w-3xl mx-auto relative z-10">
       <button
         onClick={() => navigate(`/cases/${caseId}`)}
-        className="group flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 inline-block glass-light px-4 py-2 rounded-lg hover:bg-glass transition-all"
+        className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 glass px-4 py-2 rounded-lg hover:border-terminal-green transition-colors"
       >
         <ArrowLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
         <span>Назад</span>
       </button>
 
-      <div className="glass-strong rounded-2xl p-8 animate-fade-in-up relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-terminal-cyan/10 rounded-full blur-3xl"></div>
-        <div className="relative">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 glass-light rounded-xl">
-              <SolutionIcon size={32} className="text-terminal-cyan" />
-            </div>
+      <div className="glass rounded-lg p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <SolutionIcon size={32} className="text-terminal-cyan" />
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">
                 Отправить решение
@@ -119,7 +115,7 @@ const SubmitSolution = () => {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all"
+              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors"
               placeholder="Введите название решения"
             />
           </div>
@@ -134,7 +130,7 @@ const SubmitSolution = () => {
               value={formData.description}
               onChange={handleChange}
               rows={6}
-              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all resize-none"
+              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors resize-none"
               placeholder="Опишите ваше решение, используемые технологии, подход и т.д."
             />
           </div>
@@ -152,7 +148,7 @@ const SubmitSolution = () => {
               value={formData.github_url}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-green/50 transition-all"
+              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors"
               placeholder="https://github.com/username/repo"
             />
             <p className="mt-2 text-sm text-gray-400">
@@ -170,7 +166,7 @@ const SubmitSolution = () => {
               name="demo_url"
               value={formData.demo_url}
               onChange={handleChange}
-              className="w-full px-4 py-3 glass-light border border-terminal-gray/40 text-white focus:border-terminal-cyan focus:outline-none rounded-xl focus:ring-2 focus:ring-terminal-cyan/50 transition-all"
+              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/40 text-white focus:border-terminal-cyan focus:outline-none rounded-lg transition-colors"
               placeholder="https://your-demo.com"
             />
           </div>
@@ -180,7 +176,7 @@ const SubmitSolution = () => {
               <UploadIcon size={18} className="text-terminal-purple" />
               Презентация (PDF, PPT, PPTX, ODP)
             </label>
-            <div className="glass-light border border-terminal-gray/40 rounded-xl p-4 hover:border-terminal-purple/50 transition-all">
+            <div className="bg-terminal-dark/60 border border-terminal-gray/40 rounded-lg p-4 hover:border-terminal-purple/50 transition-colors">
               <input
                 type="file"
                 id="presentation"
@@ -196,13 +192,13 @@ const SubmitSolution = () => {
           </div>
 
           {error && (
-            <div className="p-4 glass-light rounded-xl border-2 border-terminal-red/50 bg-terminal-red/10">
+            <div className="p-4 bg-terminal-dark/60 rounded-lg border border-terminal-red/50">
               <p className="text-terminal-red text-sm font-medium">{error}</p>
             </div>
           )}
 
           {solutionsStore.error && (
-            <div className="p-4 glass-light rounded-xl border-2 border-terminal-red/50 bg-terminal-red/10">
+            <div className="p-4 bg-terminal-dark/60 rounded-lg border border-terminal-red/50">
               <p className="text-terminal-red text-sm font-medium">{solutionsStore.error}</p>
             </div>
           )}
@@ -211,7 +207,7 @@ const SubmitSolution = () => {
             <button
               type="button"
               onClick={() => navigate(`/cases/${caseId}`)}
-              className="px-6 py-3 glass-light border border-terminal-gray/40 text-gray-300 hover:border-terminal-cyan hover:text-terminal-cyan transition-all font-bold rounded-xl"
+              className="px-6 py-3 glass border border-terminal-gray/40 text-gray-300 hover:border-terminal-cyan hover:text-terminal-cyan transition-colors font-semibold rounded-lg"
             >
               Отмена
             </button>
@@ -226,7 +222,6 @@ const SubmitSolution = () => {
           </div>
         </form>
       </div>
-    </div>
     </div>
   );
 };

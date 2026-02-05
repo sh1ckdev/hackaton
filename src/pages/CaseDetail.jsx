@@ -46,20 +46,16 @@ const CaseDetail = () => {
     <div className="px-4 py-6 max-w-4xl mx-auto relative z-10">
       <Link
         to="/cases"
-        className="group inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 glass-light px-4 py-2 rounded-lg hover:bg-glass transition-all"
+        className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 glass px-4 py-2 rounded-lg hover:border-terminal-green transition-colors"
       >
         <ArrowLeftIcon size={18} className="group-hover:-translate-x-1 transition-transform" />
         <span>Назад к кейсам</span>
       </Link>
 
-      <div className="glass-strong rounded-2xl p-8 mb-6 animate-fade-in-up relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-terminal-green/10 rounded-full blur-3xl"></div>
-        <div className="relative">
+      <div className="glass rounded-lg p-8 mb-6">
         <div className="flex items-start justify-between mb-6 border-b border-terminal-gray/40 pb-4">
           <div className="flex items-center gap-4 flex-1">
-            <div className="p-3 glass-light rounded-xl">
-              <CaseIcon size={32} className="text-terminal-green" />
-            </div>
+            <CaseIcon size={32} className="text-terminal-green" />
             <h1 className="text-3xl font-bold text-white">
               {caseItem.title}
             </h1>
@@ -87,25 +83,29 @@ const CaseDetail = () => {
         )}
 
         {caseItem.opens_at && new Date(caseItem.opens_at) > new Date() && (
-          <div className="mb-6 p-8 glass-gradient-cyan rounded-2xl border-2 border-terminal-cyan/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-terminal-cyan/20 rounded-full blur-3xl"></div>
-            <div className="relative">
-              <div className="flex items-center gap-3 mb-6 justify-center">
-                <TimeIcon size={28} className="text-terminal-cyan" />
-                <p className="text-xl text-terminal-cyan font-bold">
-                  Кейс откроется через:
-                </p>
-              </div>
-              <div className="mb-6">
-                <CountdownTimer targetDate={caseItem.opens_at} />
-              </div>
-              <p className="text-sm text-gray-300 text-center mb-2">
-                Дата открытия: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
-              </p>
-              <p className="text-xs text-gray-400 text-center">
-                Вы получите уведомление в Telegram, когда кейс будет открыт
+          <div className="mb-6 p-6 bg-terminal-dark/60 rounded-lg border border-terminal-gray/40">
+            <div className="flex items-center gap-2 mb-4">
+              <TimeIcon size={20} className="text-terminal-cyan" />
+              <p className="text-sm text-terminal-cyan font-medium">
+                Кейс откроется через:
               </p>
             </div>
+            <div className="mb-4">
+              <CountdownTimer targetDate={caseItem.opens_at} />
+            </div>
+            <p className="text-xs text-gray-400 text-center mb-1">
+              {new Date(caseItem.opens_at).toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              })}
+            </p>
+            <p className="text-[10px] text-gray-500 text-center">
+              Вы получите уведомление в Telegram, когда кейс будет открыт
+            </p>
           </div>
         )}
 
@@ -116,7 +116,6 @@ const CaseDetail = () => {
               <span className="text-gray-500"> / {caseItem.max_participants} максимум</span>
             )}
           </div>
-        </div>
       </div>
 
       {mySolution ? (
@@ -220,7 +219,7 @@ const CaseDetail = () => {
               </h2>
           <Link
             to={`/solutions/submit/${caseItem.id}`}
-            className="group flex items-center gap-2 px-6 py-3 glass-gradient-green border border-terminal-green/50 text-terminal-green hover:border-terminal-green font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-terminal-green/40"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-terminal-green to-terminal-green/80 text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity"
           >
             <UploadIcon size={20} />
             <span>Отправить решение</span>

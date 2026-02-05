@@ -46,33 +46,33 @@ const CountdownTimer = ({ targetDate }) => {
 
   return (
     <div className="countdown-timer">
-      <div className="flex items-center justify-center gap-2 md:gap-4">
-        <div className="flex flex-col items-center">
-          <div className="text-3xl md:text-5xl font-bold text-terminal-cyan tabular-nums">
+      <div className="flex items-center justify-center gap-1 sm:gap-2">
+        <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
+          <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
             {String(timeLeft.days).padStart(2, '0')}
           </div>
-          <div className="text-xs md:text-sm text-gray-400 uppercase">Дней</div>
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase">ДНЕЙ</div>
         </div>
-        <div className="text-3xl md:text-5xl font-bold text-terminal-cyan">:</div>
-        <div className="flex flex-col items-center">
-          <div className="text-3xl md:text-5xl font-bold text-terminal-cyan tabular-nums">
+        <div className="text-2xl sm:text-3xl font-bold text-gray-500 mx-0.5">:</div>
+        <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
+          <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
             {String(timeLeft.hours).padStart(2, '0')}
           </div>
-          <div className="text-xs md:text-sm text-gray-400 uppercase">Часов</div>
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase">ЧАСОВ</div>
         </div>
-        <div className="text-3xl md:text-5xl font-bold text-terminal-cyan">:</div>
-        <div className="flex flex-col items-center">
-          <div className="text-3xl md:text-5xl font-bold text-terminal-cyan tabular-nums">
+        <div className="text-2xl sm:text-3xl font-bold text-gray-500 mx-0.5">:</div>
+        <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
+          <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
             {String(timeLeft.minutes).padStart(2, '0')}
           </div>
-          <div className="text-xs md:text-sm text-gray-400 uppercase">Минут</div>
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase">МИНУТ</div>
         </div>
-        <div className="text-3xl md:text-5xl font-bold text-terminal-cyan">:</div>
-        <div className="flex flex-col items-center">
-          <div className="text-3xl md:text-5xl font-bold text-terminal-cyan tabular-nums">
+        <div className="text-2xl sm:text-3xl font-bold text-gray-500 mx-0.5">:</div>
+        <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
+          <div className="text-2xl sm:text-3xl font-bold text-white tabular-nums">
             {String(timeLeft.seconds).padStart(2, '0')}
           </div>
-          <div className="text-xs md:text-sm text-gray-400 uppercase">Секунд</div>
+          <div className="text-[10px] sm:text-xs text-gray-400 uppercase">СЕК</div>
         </div>
       </div>
     </div>
