@@ -55,44 +55,23 @@ router.get('/users', requireAdmin, async (req, res) => {
 });
 
 // Изменение роли пользователя (только админ)
-router.put('/users/:id/role', requireAdmin, async (req, res) => {
+// Использует telegram_id вместо id из БД
+router.put('/users/:telegramId/role', requireAdmin, async (req, res) => {
   try {
-    const paramId = req.params.id;
+    const telegramIdParam = req.params.telegramId;
     const { role } = req.body;
     const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
 
-    console.log('[Admin] Изменение роли - входные данные:', { 
-      paramId, 
-      paramIdType: typeof paramId,
-      role, 
-      body: req.body,
-      url: req.url,
-      path: req.path
-    });
+    console.log('[Admin] Изменение роли:', { telegramId: telegramIdParam, role, body: req.body });
 
-    // Пробуем сначала как id из БД (число)
-    let userId = parseInt(paramId);
-    let userCheck;
-    
-    if (!isNaN(userId) && userId > 0) {
-      // Ищем по id из БД
-      userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE id = $1', [userId]);
-    } else {
-      // Если не число или 0, возможно это telegram_id
-      // Пробуем найти по telegram_id
-      const telegramId = paramId;
-      console.log('[Admin] Пробуем найти пользователя по telegram_id:', telegramId);
-      userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
-      
-      if (userCheck.rows.length > 0) {
-        userId = userCheck.rows[0].id; // Используем id из БД для дальнейших операций
-        console.log('[Admin] Пользователь найден по telegram_id, используем id из БД:', userId);
-      }
-    }
+    // Преобразуем telegram_id в число для сравнения
+    const telegramId = typeof telegramIdParam === 'string' 
+      ? (telegramIdParam.includes('.') ? null : parseInt(telegramIdParam, 10))
+      : Number(telegramIdParam);
 
-    if (isNaN(userId) || userId <= 0) {
-      console.error('[Admin] Некорректный ID пользователя:', paramId);
-      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    if (isNaN(telegramId) || telegramId <= 0) {
+      console.error('[Admin] Некорректный Telegram ID:', telegramIdParam);
+      return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
 
     if (!role || !['user', 'moderator', 'admin'].includes(role)) {
@@ -100,8 +79,10 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Некорректная роль. Допустимые значения: user, moderator, admin' });
     }
 
+    // Проверяем, существует ли пользователь по telegram_id
+    const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
     if (userCheck.rows.length === 0) {
-      console.error('[Admin] Пользователь не найден по id или telegram_id:', paramId);
+      console.error('[Admin] Пользователь не найден по Telegram ID:', telegramId);
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
@@ -119,22 +100,22 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
       const telegramIdStr = String(userTelegramId);
       const mainAdminIdStr = String(MAIN_ADMIN_ID);
       if (telegramIdStr === mainAdminIdStr && role !== 'admin') {
-        console.warn('[Admin] Попытка снять роль у главного админа:', userId);
+        console.warn('[Admin] Попытка снять роль у главного админа:', telegramId);
         return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
       }
     }
 
-    // Обновляем роль
-    console.log('[Admin] Обновление роли:', { userId, newRole: role, userIdType: typeof userId });
+    // Обновляем роль по telegram_id
+    console.log('[Admin] Обновление роли:', { telegramId, newRole: role });
 
     try {
       const result = await pool.query(
-        'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-        [role, userId]
+        'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = $2 RETURNING *',
+        [role, telegramId]
       );
 
       if (result.rows.length === 0) {
-        console.error('[Admin] Пользователь не найден после обновления:', userId);
+        console.error('[Admin] Пользователь не найден после обновления:', telegramId);
         return res.status(404).json({ error: 'Пользователь не найден после обновления' });
       }
 
