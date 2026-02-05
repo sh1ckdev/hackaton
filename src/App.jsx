@@ -40,7 +40,7 @@ const ProtectedRoute = observer(({ children }) => {
 });
 
 const AdminRoute = observer(({ children }) => {
-  if (!authStore.isAuthenticated || !authStore.isAdmin) {
+  if (!authStore.isAuthenticated || (!authStore.isAdmin && !authStore.isModerator)) {
     return <Navigate to="/" replace />;
   }
   return children;

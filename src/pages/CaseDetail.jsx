@@ -1,11 +1,14 @@
-import { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
+import api from '../utils/api';
 
 const CaseDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     casesStore.fetchCase(id);
@@ -119,12 +122,36 @@ const CaseDetail = () => {
               </div>
             )}
           </div>
-          <Link
-            to={`/solutions/submit/${caseItem.id}`}
-            className="inline-block px-4 py-2 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
-          >
-            Редактировать решение
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              to={`/solutions/submit/${caseItem.id}`}
+              className="inline-block px-4 py-2 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+            >
+              Редактировать решение
+            </Link>
+            <button
+              onClick={async () => {
+                if (!confirm('Вы уверены, что хотите сняться с соревнования? Ваше решение будет удалено.')) {
+                  return;
+                }
+                setDeleting(true);
+                try {
+                  await api.delete(`/solutions/${mySolution.id}`);
+                  solutionsStore.fetchMySolutions();
+                  casesStore.fetchCase(id);
+                  alert('Вы снялись с соревнования');
+                } catch (error) {
+                  alert(error.response?.data?.error || 'Ошибка при удалении решения');
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              disabled={deleting}
+              className="px-4 py-2 bg-terminal-dark border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleting ? 'Удаление...' : 'Сняться с соревнования'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="glass rounded-lg p-6 text-center">

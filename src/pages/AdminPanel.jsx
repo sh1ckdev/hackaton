@@ -7,6 +7,8 @@ import api from '../utils/api';
 const AdminPanel = () => {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [activeTab, setActiveTab] = useState('solutions');
   const [filters, setFilters] = useState({ status: '', case_id: '' });
   const [moderatingSolution, setModeratingSolution] = useState(null);
@@ -15,6 +17,9 @@ const AdminPanel = () => {
     admin_comment: '',
     score: 0,
   });
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState(null);
   const [showCaseForm, setShowCaseForm] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
   const [caseFormData, setCaseFormData] = useState({
@@ -29,9 +34,16 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchStats();
     fetchUsers();
+    fetchTeams();
     solutionsStore.fetchAllSolutions();
     casesStore.fetchCases();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'teams') {
+      fetchTeams();
+    }
+  }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -48,6 +60,45 @@ const AdminPanel = () => {
       setUsers(response.data.users);
     } catch (error) {
       console.error('Ошибка загрузки пользователей:', error);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const response = await api.get('/teams/all');
+      setTeams(response.data.teams);
+    } catch (error) {
+      console.error('Ошибка загрузки команд:', error);
+    }
+  };
+
+  const toggleTeam = (teamId) => {
+    const newExpanded = new Set(expandedTeams);
+    if (newExpanded.has(teamId)) {
+      newExpanded.delete(teamId);
+    } else {
+      newExpanded.add(teamId);
+    }
+    setExpandedTeams(newExpanded);
+  };
+
+  const handleBroadcast = async () => {
+    if (!broadcastMessage.trim()) {
+      alert('Введите сообщение для рассылки');
+      return;
+    }
+
+    setBroadcasting(true);
+    setBroadcastResult(null);
+    try {
+      const response = await api.post('/admin/broadcast', { message: broadcastMessage });
+      setBroadcastResult(response.data);
+      setBroadcastMessage('');
+      alert(`Сообщение отправлено ${response.data.sent} пользователям. Ошибок: ${response.data.failed}`);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка при рассылке сообщений');
+    } finally {
+      setBroadcasting(false);
     }
   };
 
@@ -138,6 +189,26 @@ const AdminPanel = () => {
               }`}
             >
               Пользователи
+            </button>
+            <button
+              onClick={() => setActiveTab('teams')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'teams'
+                  ? 'border-b-2 border-terminal-green text-white'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Команды
+            </button>
+            <button
+              onClick={() => setActiveTab('broadcast')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'broadcast'
+                  ? 'border-b-2 border-terminal-green text-white'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Рассылка
             </button>
           </nav>
         </div>
@@ -314,6 +385,119 @@ const AdminPanel = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teams' && (
+          <div className="p-6">
+            <div className="space-y-4">
+              {teams.length === 0 ? (
+                <p className="text-white/70 text-center py-8">Команды не найдены</p>
+              ) : (
+                teams.map((team) => (
+                  <div
+                    key={team.id}
+                    className="border border-terminal-gray hover:border-terminal-green transition-all bg-terminal-dark"
+                  >
+                    <div
+                      className="p-4 flex items-center justify-between cursor-pointer"
+                      onClick={() => toggleTeam(team.id)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-semibold text-terminal-green">
+                          {team.name}
+                        </p>
+                        <p className="text-sm text-white/70">
+                          Код: {team.code} | Участников: {team.members_count} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
+                      <svg
+                        className={`w-5 h-5 text-white/70 transition-transform ${
+                          expandedTeams.has(team.id) ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    {expandedTeams.has(team.id) && (
+                      <div className="border-t border-terminal-gray p-4 space-y-3">
+                        <h3 className="text-sm font-semibold text-white/80 mb-3">Участники:</h3>
+                        {team.members && team.members.length > 0 ? (
+                          team.members.map((member) => (
+                            <div key={member.id} className="flex items-center gap-3 glass rounded-lg p-3">
+                              <div className="h-10 w-10 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray flex-shrink-0">
+                                {member.photo_url ? (
+                                  <img
+                                    src={member.photo_url}
+                                    alt="avatar"
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center text-white/50 text-sm font-semibold">
+                                    {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-white/90 font-medium">
+                                  {member.first_name || ''} {member.last_name || ''}
+                                  {(!member.first_name && !member.last_name) && (member.username || 'Участник')}
+                                </div>
+                                <div className="text-white/60 text-sm">
+                                  @{member.username || '—'} · {member.role === 'captain' ? 'Капитан' : 'Участник'}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-white/60 text-sm">Нет участников</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'broadcast' && (
+          <div className="p-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Сообщение для рассылки
+                </label>
+                <textarea
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  placeholder="Введите сообщение, которое будет отправлено всем участникам соревнований..."
+                  rows={8}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                />
+                <p className="text-xs text-white/60 mt-2">
+                  Сообщение будет отправлено всем пользователям, которые участвуют в соревнованиях (имеют отправленные решения)
+                </p>
+              </div>
+              <button
+                onClick={handleBroadcast}
+                disabled={broadcasting || !broadcastMessage.trim()}
+                className="px-6 py-3 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {broadcasting ? 'Отправка...' : 'Отправить всем участникам'}
+              </button>
+              {broadcastResult && (
+                <div className="glass rounded-lg p-4 border border-terminal-green">
+                  <p className="text-white/90 mb-2">Результат рассылки:</p>
+                  <p className="text-sm text-white/70">
+                    Отправлено: {broadcastResult.sent} | Ошибок: {broadcastResult.failed} | Всего: {broadcastResult.total}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
