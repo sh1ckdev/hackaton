@@ -89,29 +89,41 @@ router.put('/users/:id/role', requireAdmin, async (req, res) => {
 
     // Защита главного админа от снятия роли
     const userTelegramId = currentUser.telegram_id;
-    if (userTelegramId) {
-      const telegramIdNum = typeof userTelegramId === 'string' ? parseInt(userTelegramId) : Number(userTelegramId);
-      if (!isNaN(telegramIdNum) && telegramIdNum === MAIN_ADMIN_ID && role !== 'admin') {
+    if (userTelegramId != null) {
+      // Преобразуем telegram_id в строку для надежного сравнения
+      const telegramIdStr = String(userTelegramId);
+      const mainAdminIdStr = String(MAIN_ADMIN_ID);
+      if (telegramIdStr === mainAdminIdStr && role !== 'admin') {
         console.warn('[Admin] Попытка снять роль у главного админа:', userId);
         return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
       }
     }
 
     // Обновляем роль
-    console.log('[Admin] Обновление роли:', { userId, newRole: role });
+    console.log('[Admin] Обновление роли:', { userId, newRole: role, userIdType: typeof userId });
 
-    const result = await pool.query(
-      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
-      [role, userId]
-    );
+    try {
+      const result = await pool.query(
+        'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+        [role, userId]
+      );
 
-    if (result.rows.length === 0) {
-      console.error('[Admin] Пользователь не найден после обновления:', userId);
-      return res.status(404).json({ error: 'Пользователь не найден после обновления' });
+      if (result.rows.length === 0) {
+        console.error('[Admin] Пользователь не найден после обновления:', userId);
+        return res.status(404).json({ error: 'Пользователь не найден после обновления' });
+      }
+
+      console.log('[Admin] Роль успешно обновлена:', result.rows[0]);
+      res.json({ user: result.rows[0] });
+    } catch (dbError) {
+      console.error('[Admin] Ошибка SQL запроса:', {
+        message: dbError.message,
+        code: dbError.code,
+        detail: dbError.detail,
+        constraint: dbError.constraint
+      });
+      throw dbError; // Пробрасываем ошибку в общий catch блок
     }
-
-    console.log('[Admin] Роль успешно обновлена:', result.rows[0]);
-    res.json({ user: result.rows[0] });
   } catch (error) {
     console.error('[Admin] Ошибка изменения роли:', {
       message: error.message,
