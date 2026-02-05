@@ -3,11 +3,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Копируем только файлы сервера
-COPY server/package.json server/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Копируем остальные файлы сервера
-COPY server/ .
+COPY . .
 
 ENV NODE_ENV=production
 
