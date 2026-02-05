@@ -159,7 +159,7 @@ const Login = () => {
                 )}
                 
                 {loginPending && (
-                  <div className="text-center p-6 bg-terminal-green/5 border border-terminal-green/20 rounded-xl animate-pulse">
+                  <div className="text-center p-2">
                     <div className="inline-flex items-center gap-3 text-terminal-green mb-2">
                       <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-1"></div>
