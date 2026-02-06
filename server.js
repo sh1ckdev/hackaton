@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
+import compression from 'compression';
 import { sanitizeInput } from './middleware/security.js';
 import { logInfo, logError, logWarn } from './utils/logger.js';
 import { initDB } from './db/index.js';
@@ -39,6 +40,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(
+  compression({
+    threshold: 1024, // не трогаем совсем маленькие ответы
+  })
+);
 app.use(helmet({
   contentSecurityPolicy: false
 }));
