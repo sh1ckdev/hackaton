@@ -1,14 +1,10 @@
-/**
- * Middleware для валидации входных данных
- */
 
-/**
- * Валидация создания кейса
- */
+
+
 export const validateCaseCreation = (req, res, next) => {
   const { title, description, requirements, difficulty, max_participants, opens_at } = req.body;
 
-  // Проверка обязательных полей
+
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
     return res.status(400).json({ error: 'Название кейса обязательно' });
   }
@@ -25,12 +21,12 @@ export const validateCaseCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Описание слишком длинное (максимум 10000 символов)' });
   }
 
-  // Валидация сложности
+
   if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) {
     return res.status(400).json({ error: 'Некорректная сложность' });
   }
 
-  // Валидация максимального количества участников
+
   if (max_participants !== undefined) {
     const maxParticipants = parseInt(max_participants);
     if (isNaN(maxParticipants) || maxParticipants < 0 || maxParticipants > 10000) {
@@ -38,19 +34,19 @@ export const validateCaseCreation = (req, res, next) => {
     }
   }
 
-  // Валидация даты открытия
+
   if (opens_at) {
     const openDate = new Date(opens_at);
     if (isNaN(openDate.getTime())) {
       return res.status(400).json({ error: 'Некорректная дата открытия' });
     }
-    // Проверяем, что дата не в прошлом (с небольшим запасом)
+
     if (openDate < new Date(Date.now() - 60000)) {
       return res.status(400).json({ error: 'Дата открытия не может быть в прошлом' });
     }
   }
 
-  // Валидация requirements
+
   if (requirements && typeof requirements === 'string' && requirements.length > 5000) {
     return res.status(400).json({ error: 'Требования слишком длинные (максимум 5000 символов)' });
   }
@@ -58,13 +54,11 @@ export const validateCaseCreation = (req, res, next) => {
   next();
 };
 
-/**
- * Валидация создания решения
- */
+
 export const validateSolutionCreation = (req, res, next) => {
   const { case_id, title, description, github_url, demo_url } = req.body;
 
-  // Проверка обязательных полей
+
   if (!case_id) {
     return res.status(400).json({ error: 'ID кейса обязателен' });
   }
@@ -82,12 +76,12 @@ export const validateSolutionCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Название решения слишком длинное (максимум 255 символов)' });
   }
 
-  // GitHub URL обязателен
+
   if (!github_url || typeof github_url !== 'string') {
     return res.status(400).json({ error: 'Ссылка на GitHub репозиторий обязательна' });
   }
 
-  // Валидация GitHub URL
+
   try {
     const githubUrl = new URL(github_url);
     if (!githubUrl.hostname.includes('github.com')) {
@@ -100,7 +94,7 @@ export const validateSolutionCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Некорректный формат URL GitHub' });
   }
 
-  // Валидация demo URL (если указан)
+
   if (demo_url) {
     try {
       const demoUrl = new URL(demo_url);
@@ -115,7 +109,7 @@ export const validateSolutionCreation = (req, res, next) => {
     }
   }
 
-  // Валидация описания
+
   if (description && typeof description === 'string' && description.length > 5000) {
     return res.status(400).json({ error: 'Описание слишком длинное (максимум 5000 символов)' });
   }
@@ -123,9 +117,7 @@ export const validateSolutionCreation = (req, res, next) => {
   next();
 };
 
-/**
- * Валидация создания команды
- */
+
 export const validateTeamCreation = (req, res, next) => {
   const { name } = req.body;
 
@@ -141,7 +133,7 @@ export const validateTeamCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Название команды слишком длинное (максимум 255 символов)' });
   }
 
-  // Проверка на только пробелы
+
   if (name.trim().length === 0) {
     return res.status(400).json({ error: 'Название команды не может состоять только из пробелов' });
   }
@@ -149,9 +141,7 @@ export const validateTeamCreation = (req, res, next) => {
   next();
 };
 
-/**
- * Валидация вступления в команду
- */
+
 export const validateTeamJoin = (req, res, next) => {
   const { team_code } = req.body;
 
@@ -163,7 +153,7 @@ export const validateTeamJoin = (req, res, next) => {
     return res.status(400).json({ error: 'Код команды должен содержать 6 символов' });
   }
 
-  // Проверка на только буквы
+
   if (!/^[A-Z]{6}$/.test(team_code.toUpperCase())) {
     return res.status(400).json({ error: 'Код команды должен содержать только буквы' });
   }
@@ -171,9 +161,7 @@ export const validateTeamJoin = (req, res, next) => {
   next();
 };
 
-/**
- * Валидация ID параметра
- */
+
 export const validateIdParam = (req, res, next) => {
   const { id } = req.params;
   

@@ -22,7 +22,7 @@ const generateTeamCode = async () => {
   throw new Error('Не удалось сгенерировать уникальный код команды');
 };
 
-// Получить команду текущего пользователя
+
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const memberResult = await pool.query(
@@ -69,7 +69,7 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// Создать команду
+
 router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreation, async (req, res) => {
   try {
     const { name } = req.body;
@@ -79,7 +79,7 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
       return res.status(400).json({ error: 'Название команды обязательно' });
     }
 
-    // Проверка на бранные слова
+
     if (containsProfanity(teamName)) {
       await logSuspiciousActivity(req, 'profanity_detected', {
         team_name: teamName
@@ -87,7 +87,7 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
       return res.status(400).json({ error: getProfanityErrorMessage() });
     }
 
-    // Проверка на дубликаты (защита от спама)
+
     const isNotDuplicate = await checkDuplicate(req, 'teams', 'name', teamName, 60000);
     if (!isNotDuplicate) {
       await logSuspiciousActivity(req, 'duplicate_team_creation', {
@@ -126,7 +126,7 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
   }
 });
 
-// Вступить в команду по ID
+
 router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async (req, res) => {
   try {
     const { team_code } = req.body;
@@ -167,10 +167,10 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
   }
 });
 
-// Покинуть команду
+
 router.post('/leave', authenticateToken, async (req, res) => {
   try {
-    // Проверяем, состоит ли пользователь в команде
+
     const memberResult = await pool.query(
       'SELECT tm.*, t.id as team_id FROM team_members tm JOIN teams t ON tm.team_id = t.id WHERE tm.user_id = $1',
       [req.user.id]
@@ -182,7 +182,7 @@ router.post('/leave', authenticateToken, async (req, res) => {
 
     const member = memberResult.rows[0];
 
-    // Если пользователь капитан, проверяем, есть ли другие участники
+
     if (member.role === 'captain') {
       const otherMembers = await pool.query(
         'SELECT COUNT(*) as count FROM team_members WHERE team_id = $1 AND user_id != $2',
@@ -195,10 +195,10 @@ router.post('/leave', authenticateToken, async (req, res) => {
         });
       }
 
-      // Если капитан один, удаляем команду полностью
+
       await pool.query('DELETE FROM teams WHERE id = $1', [member.team_id]);
     } else {
-      // Если обычный участник, просто удаляем его из команды
+
       await pool.query('DELETE FROM team_members WHERE user_id = $1 AND team_id = $2', [req.user.id, member.team_id]);
     }
 
@@ -209,7 +209,7 @@ router.post('/leave', authenticateToken, async (req, res) => {
   }
 });
 
-// Получение всех команд (для админа и модератора)
+
 router.get('/all', authenticateToken, requireModerator, async (req, res) => {
   try {
     const teamsResult = await pool.query(
@@ -223,7 +223,7 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
 
     const teams = teamsResult.rows;
     
-    // Для каждой команды получаем участников
+
     const teamsWithMembers = await Promise.all(
       teams.map(async (team) => {
         const membersResult = await pool.query(

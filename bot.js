@@ -117,13 +117,13 @@ export function startBot() {
         );
       }
 
-      // Проверяем, есть ли уже телефон у пользователя
+
       const userWithPhone = await pool.query(
         'SELECT phone FROM users WHERE telegram_id = $1',
         [from.id]
       );
       
-      // Предлагаем телефон только если его нет
+
       if (!userWithPhone.rows[0]?.phone) {
         await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
           reply_markup: {
@@ -156,33 +156,33 @@ export function startBot() {
   return bot;
 }
 
-// Глобальная переменная для хранения экземпляра бота
+
 let botInstance = null;
 
-// Функция для установки экземпляра бота
+
 export function setBotInstance(bot) {
   botInstance = bot;
 }
 
-// Функция для получения экземпляра бота
+
 export function getBotInstance() {
   return botInstance;
 }
 
-// Функция для рассылки сообщений всем участникам
+
 export async function broadcastMessage(message) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     throw new Error('TELEGRAM_BOT_TOKEN не задан');
   }
 
-  // Используем существующий экземпляр бота или создаем новый
+
   const bot = botInstance || new TelegramBot(token);
   
   try {
-    // Получаем всех пользователей, у которых есть telegram_id и которые не снялись с соревнований
-    // Отправляем рассылку всем пользователям, у которых есть telegram_id
-    // (включая тех, кто имеет решения, и тех, кто никогда не отправлял)
+
+
+
     const result = await pool.query(
       `SELECT DISTINCT u.telegram_id 
        FROM users u
@@ -193,12 +193,12 @@ export async function broadcastMessage(message) {
     let successCount = 0;
     let failCount = 0;
 
-    // Рассылаем сообщения с задержкой, чтобы не превысить лимиты API
+
     for (const telegramId of telegramIds) {
       try {
         await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
         successCount++;
-        // Небольшая задержка между сообщениями
+
         await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
         logError('Ошибка отправки сообщения пользователю', error, { telegramId });

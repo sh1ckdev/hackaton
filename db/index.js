@@ -20,7 +20,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'postgres',
 });
 
-// Инициализация базы данных
+
 export async function initDB() {
   const dbName = process.env.DB_NAME || 'hackathon_db';
   const dbUser = process.env.DB_USER || 'postgres';
@@ -28,7 +28,7 @@ export async function initDB() {
   const dbHost = process.env.DB_HOST || 'localhost';
   const dbPort = process.env.DB_PORT || 5432;
 
-  // Сначала подключаемся к БД postgres для создания нужной БД
+
   const adminPool = new Pool({
     host: dbHost,
     port: dbPort,
@@ -38,13 +38,13 @@ export async function initDB() {
   });
 
   try {
-    // Проверяем, существует ли БД
+
     const dbCheck = await adminPool.query(
       'SELECT 1 FROM pg_database WHERE datname = $1',
       [dbName]
     );
 
-    // Создаём БД, если её нет
+
     if (dbCheck.rows.length === 0) {
       logInfo(`Создание базы данных ${dbName}`);
       await adminPool.query(`CREATE DATABASE ${dbName}`);
@@ -56,16 +56,16 @@ export async function initDB() {
     await adminPool.end();
   } catch (error) {
     await adminPool.end();
-    // Если ошибка не связана с существованием БД, пробрасываем дальше
+
     if (error.code !== '42P04') { // 42P04 = database already exists
       logError('Ошибка при создании БД', error, { dbName });
       throw error;
     }
   }
 
-  // Теперь применяем схему к нужной БД
+
   try {
-    // Используем систему миграций для автоматического применения изменений
+
     const { runMigrations } = await import('./migrations.js');
     await runMigrations();
     logInfo('База данных инициализирована и миграции применены успешно');

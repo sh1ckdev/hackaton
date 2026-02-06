@@ -12,7 +12,7 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Настройка multer для загрузки файлов кейсов
+
 const uploadsCasesDir = path.join(__dirname, '../uploads/cases');
 if (!fs.existsSync(uploadsCasesDir)) {
   fs.mkdirSync(uploadsCasesDir, { recursive: true });
@@ -32,7 +32,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
-    // Разрешаем различные типы файлов для кейсов
+
     const allowedTypes = /pdf|doc|docx|zip|rar|txt|md|jpg|jpeg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype) || 
@@ -55,7 +55,7 @@ const upload = multer({
 
 const router = express.Router();
 
-// Получение всех активных кейсов
+
 router.get('/', async (req, res) => {
   try {
     const { status, include_future } = req.query;
@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
     const params = [];
     let paramCount = 0;
 
-    // Фильтр по статусу
+
     if (status) {
       paramCount++;
       query += ` AND status = $${paramCount}`;
@@ -74,14 +74,14 @@ router.get('/', async (req, res) => {
       params.push('active');
     }
 
-    // Показываем все кейсы, включая будущие (убрали фильтрацию по дате открытия)
-    // Кейсы с opens_at > NOW будут показаны с обратным отсчетом на фронтенде
+
+
 
     query += ' ORDER BY COALESCE(opens_at, created_at) DESC, created_at DESC';
 
     const result = await pool.query(query, params);
     
-    // Преобразуем JSONB в массивы для всех кейсов
+
     const cases = result.rows.map(caseItem => {
       if (caseItem.links && typeof caseItem.links === 'object') {
         caseItem.links = Array.isArray(caseItem.links) ? caseItem.links : [];
@@ -99,7 +99,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Получение кейса по ID
+
 router.get('/:id', validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,7 +110,7 @@ router.get('/:id', validateIdParam, async (req, res) => {
     }
 
     const caseItem = result.rows[0];
-    // Преобразуем JSONB в массивы, если они есть
+
     if (caseItem.links && typeof caseItem.links === 'object') {
       caseItem.links = Array.isArray(caseItem.links) ? caseItem.links : [];
     }
@@ -125,7 +125,7 @@ router.get('/:id', validateIdParam, async (req, res) => {
   }
 });
 
-// Создание кейса (админ или модератор)
+
 router.post('/', 
   authenticateToken, 
   requireModerator, 
@@ -140,7 +140,7 @@ router.post('/',
       return res.status(400).json({ error: 'Название и описание обязательны' });
     }
 
-    // Парсим links из JSON строки, если пришла строка
+
     let linksArray = [];
     if (links) {
       try {
@@ -153,7 +153,7 @@ router.post('/',
       }
     }
 
-    // Валидация даты открытия
+
     let opensAtValue = null;
     if (opens_at) {
       opensAtValue = new Date(opens_at);
@@ -162,8 +162,8 @@ router.post('/',
       }
     }
 
-    // Обработка загруженных файлов
-    // Файлы приходят как массив в req.files (multer обрабатывает поле 'attachments')
+
+
     const attachments = [];
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
@@ -191,7 +191,7 @@ router.post('/',
     );
 
     const caseItem = result.rows[0];
-    // Преобразуем JSONB в массивы
+
     if (caseItem.links && typeof caseItem.links === 'object') {
       caseItem.links = Array.isArray(caseItem.links) ? caseItem.links : [];
     }
@@ -206,7 +206,7 @@ router.post('/',
   }
 });
 
-// Обновление кейса (админ или модератор)
+
 router.put('/:id', 
   authenticateToken, 
   requireModerator, 
@@ -219,7 +219,7 @@ router.put('/:id',
     const { id } = req.params;
     let { title, description, requirements, difficulty, max_participants, status, opens_at, links } = req.body;
 
-    // Получаем текущий кейс для сохранения существующих attachments
+
     const currentCase = await pool.query('SELECT attachments FROM cases WHERE id = $1', [id]);
     let existingAttachments = [];
     if (currentCase.rows.length > 0 && currentCase.rows[0].attachments) {
@@ -232,7 +232,7 @@ router.put('/:id',
       }
     }
 
-    // Парсим links из JSON строки, если пришла строка
+
     let linksArray = undefined;
     if (links !== undefined) {
       try {
@@ -245,7 +245,7 @@ router.put('/:id',
       }
     }
 
-    // Обработка загруженных файлов
+
     const newAttachments = [];
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
@@ -256,8 +256,8 @@ router.put('/:id',
       });
     }
 
-    // Объединяем существующие и новые attachments
-    // Если пришли attachment_url_* в body, значит это существующие файлы, которые нужно сохранить
+
+
     const preservedAttachments = [];
     const urlIndices = new Set();
     Object.keys(req.body).forEach(key => {
@@ -277,7 +277,7 @@ router.put('/:id',
 
     const allAttachments = [...preservedAttachments, ...newAttachments];
 
-    // Валидация даты открытия
+
     let opensAtValue = undefined;
     if (opens_at !== undefined) {
       if (opens_at === null || opens_at === '') {
@@ -290,7 +290,7 @@ router.put('/:id',
       }
     }
 
-    // Формируем SQL запрос динамически
+
     const updates = [];
     const params = [];
     let paramCount = 0;
@@ -359,7 +359,7 @@ router.put('/:id',
     }
 
     const caseItem = result.rows[0];
-    // Преобразуем JSONB в массивы
+
     if (caseItem.links && typeof caseItem.links === 'object') {
       caseItem.links = Array.isArray(caseItem.links) ? caseItem.links : [];
     }
@@ -374,7 +374,7 @@ router.put('/:id',
   }
 });
 
-// Удаление кейса (только админ)
+
 router.delete('/:id', authenticateToken, requireAdmin, adminOperationLimiter, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;

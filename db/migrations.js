@@ -1,22 +1,4 @@
-/**
- * Система автоматических миграций базы данных
- * 
- * Эта система автоматически применяет изменения схемы БД при деплое:
- * - Отслеживает версии схемы через таблицу schema_migrations
- * - Определяет изменения по хешу файла schema.sql (дата модификации + размер)
- * - Применяет все команды из schema.sql инкрементально
- * - Проверяет и обновляет constraints, колонки и индексы
- * 
- * Использование:
- * - Миграции запускаются автоматически при старте сервера (через initDB)
- * - Для принудительного применения: установите FORCE_DB_MIGRATE=true
- * 
- * Принцип работы:
- * 1. При каждом запуске проверяется хеш schema.sql
- * 2. Если хеш изменился или FORCE_DB_MIGRATE=true, применяются миграции
- * 3. Все команды из schema.sql выполняются с обработкой ошибок "уже существует"
- * 4. Дополнительно проверяются и обновляются constraints, колонки, индексы
- */
+
 
 import pool from './index.js';
 import fs from 'fs';
@@ -27,9 +9,7 @@ import { logInfo, logWarn, logError } from '../utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Создает таблицу для отслеживания версий схемы
- */
+
 async function ensureMigrationsTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -41,9 +21,7 @@ async function ensureMigrationsTable() {
   `);
 }
 
-/**
- * Получает текущую версию схемы из БД
- */
+
 async function getCurrentSchemaVersion() {
   try {
     const result = await pool.query(
@@ -55,9 +33,7 @@ async function getCurrentSchemaVersion() {
   }
 }
 
-/**
- * Сохраняет версию примененной миграции
- */
+
 async function saveMigrationVersion(version, description) {
   await pool.query(
     'INSERT INTO schema_migrations (version, description) VALUES ($1, $2) ON CONFLICT (version) DO NOTHING',
@@ -65,19 +41,15 @@ async function saveMigrationVersion(version, description) {
   );
 }
 
-/**
- * Вычисляет хеш схемы для отслеживания изменений
- */
+
 function getSchemaHash(schemaContent) {
-  // Простой способ отслеживания изменений - используем дату модификации файла и размер
+
   const schemaPath = path.join(__dirname, 'schema.sql');
   const stats = fs.statSync(schemaPath);
   return `${stats.mtime.getTime()}-${stats.size}`;
 }
 
-/**
- * Парсит SQL файл на отдельные команды, учитывая DO блоки и другие сложные конструкции
- */
+
 function parseSQLStatements(sqlContent) {
   const statements = [];
   let currentStatement = '';
@@ -89,18 +61,18 @@ function parseSQLStatements(sqlContent) {
     const char = sqlContent[pos];
     const nextChar = pos + 1 < sqlContent.length ? sqlContent[pos + 1] : '';
 
-    // Пропускаем комментарии
+
     if (char === '-' && nextChar === '-') {
-      // Пропускаем до конца строки
+
       while (pos < sqlContent.length && sqlContent[pos] !== '\n') {
         pos++;
       }
       continue;
     }
 
-    // Обработка dollar quoting ($$ ... $$)
+
     if (char === '$' && !inDollarQuote) {
-      // Ищем закрывающий $
+
       let tagEnd = pos + 1;
       while (tagEnd < sqlContent.length && sqlContent[tagEnd] !== '$') {
         tagEnd++;
@@ -113,7 +85,7 @@ function parseSQLStatements(sqlContent) {
         continue;
       }
     } else if (inDollarQuote && sqlContent.substring(pos).startsWith(dollarQuoteTag)) {
-      // Закрывающий тег
+
       currentStatement += dollarQuoteTag;
       pos += dollarQuoteTag.length;
       inDollarQuote = false;
@@ -121,10 +93,10 @@ function parseSQLStatements(sqlContent) {
       continue;
     }
 
-    // Добавляем символ к текущей команде
+
     currentStatement += char;
 
-    // Если мы не в dollar quote блоке и встретили ;, это конец команды
+
     if (!inDollarQuote && char === ';') {
       const stmt = currentStatement.trim();
       if (stmt && stmt.length > 0 && !stmt.match(/^\s*$/)) {
@@ -136,7 +108,7 @@ function parseSQLStatements(sqlContent) {
     pos++;
   }
 
-  // Добавляем последнюю команду, если она есть
+
   const lastStmt = currentStatement.trim();
   if (lastStmt && lastStmt.length > 0) {
     statements.push(lastStmt);
@@ -145,9 +117,7 @@ function parseSQLStatements(sqlContent) {
   return statements.filter(s => s.length > 0 && !s.match(/^\s*--/));
 }
 
-/**
- * Применяет изменения схемы инкрементально
- */
+
 async function applySchemaChanges() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   
@@ -160,10 +130,10 @@ async function applySchemaChanges() {
   const schemaHash = getSchemaHash(schemaContent);
   const currentVersion = await getCurrentSchemaVersion();
 
-  // Принудительное применение миграций (для деплоя)
+
   const forceMigrate = process.env.FORCE_DB_MIGRATE === 'true';
 
-  // Если схема не изменилась и не требуется принудительное применение, пропускаем
+
   if (currentVersion === schemaHash && !forceMigrate) {
     logInfo('Схема БД актуальна, миграции не требуются');
     return;
@@ -175,10 +145,10 @@ async function applySchemaChanges() {
     logInfo('Обнаружены изменения в схеме БД, применяю миграции');
   }
 
-  // Парсим SQL на отдельные команды
+
   const statements = parseSQLStatements(schemaContent);
 
-  // Применяем каждую команду
+
   for (let i = 0; i < statements.length; i++) {
     const statement = statements[i];
     if (!statement || statement.trim().length === 0) {
@@ -189,7 +159,7 @@ async function applySchemaChanges() {
       await pool.query(statement);
       logInfo(`Применена команда ${i + 1}/${statements.length}`, { total: statements.length, current: i + 1 });
     } catch (error) {
-      // Игнорируем ошибки "уже существует" и подобные
+
       if (
         error.code === '42P07' || // relation already exists
         error.code === '42710' || // duplicate object
@@ -200,28 +170,26 @@ async function applySchemaChanges() {
         error.message.includes('duplicate') ||
         error.message.includes('уже существует')
       ) {
-        // Это нормально, объект уже существует
+
         logInfo(`Команда ${i + 1}/${statements.length} пропущена (объект уже существует)`, { total: statements.length, current: i + 1 });
         continue;
       }
-      // Для других ошибок логируем, но продолжаем
+
       logWarn(`Предупреждение при применении команды ${i + 1}/${statements.length}`, { error: error.message, code: error.code, total: statements.length, current: i + 1 });
     }
   }
 
-  // Применяем дополнительные проверки и обновления
+
   await applyAdditionalMigrations();
 
-  // Сохраняем версию
+
   await saveMigrationVersion(schemaHash, `Схема обновлена: ${new Date().toISOString()}`);
   logInfo('Миграции схемы применены успешно');
 }
 
-/**
- * Применяет дополнительные проверки и обновления структуры
- */
+
 async function applyAdditionalMigrations() {
-  // Обновление CHECK constraint для роли пользователя
+
   try {
     const constraintCheck = await pool.query(`
       SELECT conname, pg_get_constraintdef(oid) as definition
@@ -242,15 +210,15 @@ async function applyAdditionalMigrations() {
 
     if (!hasCorrectConstraint) {
       logInfo('Обновление CHECK constraint для роли пользователя');
-      // Удаляем старые constraints
+
       for (const row of constraintCheck.rows) {
         try {
           await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS ${row.conname}`);
         } catch (e) {
-          // Игнорируем ошибки удаления
+
         }
       }
-      // Создаем новый правильный constraint
+
       await pool.query(`
         ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
         ALTER TABLE users ADD CONSTRAINT users_role_check 
@@ -262,19 +230,17 @@ async function applyAdditionalMigrations() {
     logWarn('Предупреждение при проверке constraint для роли', { error: error.message });
   }
 
-  // Проверка и добавление недостающих колонок
+
   await ensureColumnsExist();
   
-  // Проверка и добавление новых полей для кейсов и решений
+
   await ensureNewFieldsExist();
 
-  // Проверка и создание недостающих индексов
+
   await ensureIndexesExist();
 }
 
-/**
- * Проверяет и добавляет недостающие колонки
- */
+
 async function ensureColumnsExist() {
   const requiredColumns = {
     users: [
@@ -286,7 +252,7 @@ async function ensureColumnsExist() {
   };
 
   for (const [tableName, columns] of Object.entries(requiredColumns)) {
-    // Проверяем существование таблицы
+
     const tableExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -306,7 +272,7 @@ async function ensureColumnsExist() {
           ADD COLUMN IF NOT EXISTS ${column.name} ${column.type}
         `);
       } catch (error) {
-        // Игнорируем ошибки, если колонка уже существует
+
         if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
           logWarn(`Предупреждение при добавлении колонки ${tableName}.${column.name}`, { error: error.message, table: tableName, column: column.name });
         }
@@ -315,12 +281,10 @@ async function ensureColumnsExist() {
   }
 }
 
-/**
- * Проверяет и добавляет новые поля для кейсов и решений
- */
+
 async function ensureNewFieldsExist() {
   try {
-    // Проверяем наличие поля opens_at в таблице cases
+
     const casesOpensAtExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -335,7 +299,21 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле opens_at в таблицу cases');
     }
 
-    // Проверяем наличие поля github_url в таблице solutions
+    const casesNotificationSentExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cases' 
+        AND column_name = 'notification_sent'
+      )
+    `);
+
+    if (!casesNotificationSentExists.rows[0].exists) {
+      await pool.query('ALTER TABLE cases ADD COLUMN notification_sent BOOLEAN DEFAULT FALSE');
+      logInfo('Добавлено поле notification_sent в таблицу cases');
+    }
+
+
     const solutionsGithubExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -350,7 +328,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле github_url в таблицу solutions');
     }
 
-    // Проверяем наличие поля presentation_file_path в таблице solutions
+
     const solutionsPresentationExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -364,14 +342,70 @@ async function ensureNewFieldsExist() {
       await pool.query('ALTER TABLE solutions ADD COLUMN presentation_file_path TEXT');
       logInfo('Добавлено поле presentation_file_path в таблицу solutions');
     }
+
+    // Проверка существования таблицы broadcast_settings
+    const broadcastSettingsExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'broadcast_settings'
+      )
+    `);
+
+    if (!broadcastSettingsExists.rows[0].exists) {
+      await pool.query(`
+        CREATE TABLE broadcast_settings (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          type VARCHAR(50) NOT NULL CHECK (type IN ('case_opening', 'general', 'scheduled', 'event')),
+          enabled BOOLEAN DEFAULT TRUE,
+          target_audience JSONB DEFAULT '{"all": true}'::jsonb,
+          message_template TEXT NOT NULL,
+          schedule_cron VARCHAR(100),
+          schedule_time TIMESTAMP,
+          conditions JSONB DEFAULT '{}'::jsonb,
+          case_id INTEGER REFERENCES cases(id) ON DELETE CASCADE,
+          last_sent_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      logInfo('Создана таблица broadcast_settings');
+    }
+
+    // Создание индексов для broadcast_settings
+    const indexes = [
+      { name: 'idx_broadcast_settings_type', table: 'broadcast_settings', column: 'type' },
+      { name: 'idx_broadcast_settings_enabled', table: 'broadcast_settings', column: 'enabled' },
+      { name: 'idx_broadcast_settings_case_id', table: 'broadcast_settings', column: 'case_id' }
+    ];
+
+    for (const index of indexes) {
+      try {
+        const indexExists = await pool.query(`
+          SELECT EXISTS (
+            SELECT FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = $1
+          )
+        `, [index.name]);
+
+        if (!indexExists.rows[0].exists) {
+          await pool.query(`CREATE INDEX ${index.name} ON ${index.table}(${index.column})`);
+          logInfo(`Создан индекс ${index.name}`);
+        }
+      } catch (error) {
+        if (!error.message.includes('already exists')) {
+          logWarn(`Предупреждение при создании индекса ${index.name}`, { error: error.message });
+        }
+      }
+    }
   } catch (error) {
     logWarn('Предупреждение при проверке новых полей', { error: error.message });
   }
 }
 
-/**
- * Проверяет и создает недостающие индексы
- */
+
 async function ensureIndexesExist() {
   const requiredIndexes = [
     { name: 'idx_users_telegram_id', table: 'users', column: 'telegram_id', unique: false },
@@ -388,7 +422,7 @@ async function ensureIndexesExist() {
 
   for (const index of requiredIndexes) {
     try {
-      // Проверяем существование таблицы
+
       const tableExists = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
@@ -401,7 +435,7 @@ async function ensureIndexesExist() {
         continue;
       }
 
-      // Проверяем существование колонки
+
       const columnExists = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.columns 
@@ -415,7 +449,7 @@ async function ensureIndexesExist() {
         continue;
       }
 
-      // Создаем индекс
+
       const uniqueClause = index.unique ? 'UNIQUE' : '';
       const partialClause = index.partial ? `WHERE ${index.column} IS NOT NULL` : '';
       await pool.query(`
@@ -423,7 +457,7 @@ async function ensureIndexesExist() {
         ON ${index.table}(${index.column}) ${partialClause}
       `);
     } catch (error) {
-      // Игнорируем ошибки создания индекса, если он уже существует
+
       if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
         logWarn(`Предупреждение при создании индекса ${index.name}`, { error: error.message, index: index.name, table: index.table });
       }
@@ -431,9 +465,7 @@ async function ensureIndexesExist() {
   }
 }
 
-/**
- * Инициализирует систему миграций и применяет изменения
- */
+
 export async function runMigrations() {
   try {
     await ensureMigrationsTable();

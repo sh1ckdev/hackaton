@@ -1,18 +1,14 @@
-/**
- * Дополнительные middleware для безопасности
- */
+
 
 import rateLimit from 'express-rate-limit';
 import pool from '../db/index.js';
 import { logSecurity, logError } from '../utils/logger.js';
 
-/**
- * Валидация и санитизация входных данных
- */
+
 export const sanitizeInput = (req, res, next) => {
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
-      // Удаляем потенциально опасные символы
+
       return obj
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/javascript:/gi, '')
@@ -45,18 +41,16 @@ export const sanitizeInput = (req, res, next) => {
   next();
 };
 
-/**
- * Валидация URL
- */
+
 export const validateUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   try {
     const parsed = new URL(url);
-    // Разрешаем только http и https
+
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return false;
     }
-    // Проверяем длину URL
+
     if (url.length > 2048) {
       return false;
     }
@@ -66,9 +60,7 @@ export const validateUrl = (url) => {
   }
 };
 
-/**
- * Валидация GitHub URL
- */
+
 export const validateGitHubUrl = (url) => {
   if (!validateUrl(url)) return false;
   try {
@@ -79,18 +71,14 @@ export const validateGitHubUrl = (url) => {
   }
 };
 
-/**
- * Проверка длины текстовых полей
- */
+
 export const validateFieldLength = (field, maxLength, fieldName) => {
   if (field && typeof field === 'string' && field.length > maxLength) {
     throw new Error(`${fieldName} превышает максимальную длину ${maxLength} символов`);
   }
 };
 
-/**
- * Rate limiter для создания решений
- */
+
 export const solutionCreationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
   max: 5, // максимум 5 решений за 15 минут
@@ -98,14 +86,12 @@ export const solutionCreationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Пропускаем для админов и модераторов
+
     return req.user && (req.user.role === 'admin' || req.user.role === 'moderator');
   }
 });
 
-/**
- * Rate limiter для создания команд
- */
+
 export const teamCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 час
   max: 3, // максимум 3 команды в час
@@ -114,9 +100,7 @@ export const teamCreationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-/**
- * Rate limiter для вступления в команды
- */
+
 export const teamJoinLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 минут
   max: 10, // максимум 10 попыток вступления в 10 минут
@@ -125,9 +109,7 @@ export const teamJoinLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-/**
- * Rate limiter для админских операций
- */
+
 export const adminOperationLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 минута
   max: 20, // максимум 20 операций в минуту
@@ -136,25 +118,21 @@ export const adminOperationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-/**
- * Логирование подозрительной активности
- */
+
 export const logSuspiciousActivity = async (req, activity, details = {}) => {
   try {
     logSecurity(`Подозрительная активность: ${activity}`, req, details);
-    // Можно добавить сохранение в БД для анализа
-    // await pool.query(
-    //   'INSERT INTO security_logs (ip, user_id, activity, details, created_at) VALUES ($1, $2, $3, $4, NOW())',
-    //   [req.ip, req.user?.id, activity, JSON.stringify(details)]
-    // );
+
+
+
+
+
   } catch (error) {
     logError('Ошибка логирования подозрительной активности', error);
   }
 };
 
-/**
- * Проверка на массовые операции
- */
+
 export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
   try {
     const userId = req.user?.id;
@@ -162,8 +140,8 @@ export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     
-    // Проверяем количество операций за последний час
-    // Это пример для решений, можно адаптировать для других операций
+
+
     const result = await pool.query(
       `SELECT COUNT(*) as count FROM solutions 
        WHERE user_id = $1 AND created_at > $2`,
@@ -187,34 +165,28 @@ export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
   }
 };
 
-/**
- * Защита от path traversal
- */
+
 export const preventPathTraversal = (path) => {
   if (!path || typeof path !== 'string') return false;
-  // Проверяем на наличие .. в пути
+
   if (path.includes('..') || path.includes('//')) {
     return false;
   }
-  // Проверяем на абсолютные пути
+
   if (path.startsWith('/') && !path.startsWith('/uploads/')) {
     return false;
   }
   return true;
 };
 
-/**
- * Валидация ID (только числа)
- */
+
 export const validateId = (id) => {
   if (!id) return false;
   const numId = typeof id === 'string' ? parseInt(id, 10) : id;
   return !isNaN(numId) && numId > 0 && numId <= Number.MAX_SAFE_INTEGER;
 };
 
-/**
- * Проверка на дубликаты (защита от спама)
- */
+
 export const checkDuplicate = async (req, table, field, value, timeWindow = 60000) => {
   try {
     const userId = req.user?.id;
@@ -235,9 +207,7 @@ export const checkDuplicate = async (req, table, field, value, timeWindow = 6000
   }
 };
 
-/**
- * Middleware для проверки размера тела запроса
- */
+
 export const validateRequestSize = (maxSize = 1024 * 1024) => {
   return (req, res, next) => {
     const contentLength = parseInt(req.get('content-length') || '0');
@@ -250,15 +220,13 @@ export const validateRequestSize = (maxSize = 1024 * 1024) => {
   };
 };
 
-/**
- * Защита от enumeration attacks (скрытие информации о существовании ресурсов)
- */
+
 export const preventEnumeration = (req, res, next) => {
-  // Сохраняем оригинальный метод send
+
   const originalSend = res.send;
   
   res.send = function(data) {
-    // Для 404 ошибок не раскрываем детали
+
     if (res.statusCode === 404) {
       return originalSend.call(this, { error: 'Ресурс не найден' });
     }

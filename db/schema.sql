@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS cases (
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS opens_at TIMESTAMP;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FALSE;
 
 -- Создание таблицы решений
 CREATE TABLE IF NOT EXISTS solutions (
@@ -142,3 +143,24 @@ CREATE INDEX IF NOT EXISTS idx_auth_tokens_token ON auth_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON auth_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_cases_opens_at ON cases(opens_at) WHERE opens_at IS NOT NULL;
+
+-- Таблица настроек рассылок
+CREATE TABLE IF NOT EXISTS broadcast_settings (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL, -- Название настройки рассылки
+    type VARCHAR(50) NOT NULL CHECK (type IN ('case_opening', 'general', 'scheduled', 'event')), -- Тип рассылки
+    enabled BOOLEAN DEFAULT TRUE, -- Включена ли рассылка
+    target_audience JSONB DEFAULT '{"all": true}'::jsonb, -- Целевая аудитория: {all: true} или {roles: [], teams: [], users: []}
+    message_template TEXT NOT NULL, -- Шаблон сообщения (поддерживает переменные типа {{case_title}})
+    schedule_cron VARCHAR(100), -- Cron выражение для запланированных рассылок
+    schedule_time TIMESTAMP, -- Конкретное время для одноразовой рассылки
+    conditions JSONB DEFAULT '{}'::jsonb, -- Условия отправки (например, для кейсов: {case_status: 'active'})
+    case_id INTEGER REFERENCES cases(id) ON DELETE CASCADE, -- Связь с конкретным кейсом (если применимо)
+    last_sent_at TIMESTAMP, -- Когда последний раз отправлялась
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_settings_type ON broadcast_settings(type);
+CREATE INDEX IF NOT EXISTS idx_broadcast_settings_enabled ON broadcast_settings(enabled);
+CREATE INDEX IF NOT EXISTS idx_broadcast_settings_case_id ON broadcast_settings(case_id);

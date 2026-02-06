@@ -32,13 +32,13 @@ app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY)
 app.disable('x-powered-by');
 const PORT = process.env.PORT || 3001;
 
-// Создание папки для загрузок
+
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Middleware
+
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(
   compression({
@@ -78,26 +78,26 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// Санитизация входных данных
+
 app.use(sanitizeInput);
 
-// Статические файлы для загрузок
+
 app.use('/uploads', express.static(uploadsDir));
 
-// Routes
+
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/cases', casesRoutes);
 app.use('/api/solutions', solutionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teams', teamsRoutes);
 
-// Health check
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Frontend (SPA) в production: раздаём статические файлы и делаем fallback на index.html
-// Это устраняет 404 на прямых переходах вида /cases, /profile и т.п.
+
+
 const clientDistPath = process.env.CLIENT_DIST_PATH
   ? path.resolve(process.env.CLIENT_DIST_PATH)
   : path.join(__dirname, 'public');
@@ -106,7 +106,7 @@ const clientIndexHtml = path.join(clientDistPath, 'index.html');
 if (fs.existsSync(clientIndexHtml)) {
   app.use(express.static(clientDistPath));
 
-  // SPA fallback: все не-API запросы ведём в index.html
+
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
@@ -120,7 +120,7 @@ if (fs.existsSync(clientIndexHtml)) {
   });
 }
 
-// Автоматическое создание главного админа
+
 async function ensureMainAdmin() {
   const mainAdminTelegramId = process.env.MAIN_ADMIN_TELEGRAM_ID;
   
@@ -136,7 +136,7 @@ async function ensureMainAdmin() {
     );
 
     if (result.rows.length === 0) {
-      // Создаем пользователя-админа если его нет
+
       await pool.query(
         `INSERT INTO users (telegram_id, username, first_name, role)
          VALUES ($1, $2, $3, $4)
@@ -145,7 +145,7 @@ async function ensureMainAdmin() {
       );
       logInfo('Главный админ создан/обновлен', { telegramId: mainAdminTelegramId });
     } else {
-      // Обновляем роль если пользователь существует
+
       if (result.rows[0].role !== 'admin') {
         await pool.query(
           'UPDATE users SET role = $1 WHERE telegram_id = $2',
@@ -161,7 +161,7 @@ async function ensureMainAdmin() {
   }
 }
 
-// Инициализация БД и запуск сервера
+
 async function startServer() {
   try {
     await initDB();
@@ -169,7 +169,7 @@ async function startServer() {
     const bot = startBot();
     setBotInstance(bot);
     
-    // Запускаем планировщик открытия кейсов
+
     startCaseOpenerScheduler();
     
     app.listen(PORT, () => {

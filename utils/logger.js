@@ -1,6 +1,4 @@
-/**
- * Утилита для структурированного логирования на сервере
- */
+
 
 const LOG_LEVELS = {
   ERROR: 'ERROR',
@@ -9,9 +7,7 @@ const LOG_LEVELS = {
   DEBUG: 'DEBUG'
 };
 
-/**
- * Форматирует лог в структурированном виде
- */
+
 function formatLog(level, message, data = {}) {
   const timestamp = new Date().toISOString();
   const logEntry = {
@@ -21,7 +17,7 @@ function formatLog(level, message, data = {}) {
     ...data
   };
 
-  // В production используем JSON формат, в development - читаемый формат
+
   if (process.env.NODE_ENV === 'production') {
     return JSON.stringify(logEntry);
   } else {
@@ -29,9 +25,7 @@ function formatLog(level, message, data = {}) {
   }
 }
 
-/**
- * Логирование ошибок
- */
+
 export function logError(message, error = null, context = {}) {
   const errorData = {
     ...context,
@@ -45,32 +39,24 @@ export function logError(message, error = null, context = {}) {
   console.error(formatLog(LOG_LEVELS.ERROR, message, errorData));
 }
 
-/**
- * Логирование предупреждений
- */
+
 export function logWarn(message, data = {}) {
   console.warn(formatLog(LOG_LEVELS.WARN, message, data));
 }
 
-/**
- * Логирование информации
- */
+
 export function logInfo(message, data = {}) {
   console.log(formatLog(LOG_LEVELS.INFO, message, data));
 }
 
-/**
- * Логирование отладки (только в development)
- */
+
 export function logDebug(message, data = {}) {
   if (process.env.NODE_ENV !== 'production') {
     console.log(formatLog(LOG_LEVELS.DEBUG, message, data));
   }
 }
 
-/**
- * Логирование HTTP запросов
- */
+
 export function logRequest(req, res, responseTime = null) {
   const data = {
     method: req.method,
@@ -94,9 +80,7 @@ export function logRequest(req, res, responseTime = null) {
   console.log(formatLog(level, message, data));
 }
 
-/**
- * Логирование безопасности
- */
+
 export function logSecurity(activity, req, details = {}) {
   const data = {
     activity,
@@ -110,9 +94,7 @@ export function logSecurity(activity, req, details = {}) {
   console.warn(formatLog(LOG_LEVELS.WARN, `[SECURITY] ${activity}`, data));
 }
 
-/**
- * Логирование операций с БД
- */
+
 export function logDatabase(operation, table, details = {}) {
   const data = {
     operation,

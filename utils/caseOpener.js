@@ -1,24 +1,21 @@
-/**
- * Система автоматического открытия кейсов и отправки уведомлений
- */
+
 
 import pool from '../db/index.js';
 import { getBotInstance } from '../bot.js';
 import { logInfo, logError, logWarn } from './logger.js';
+import cron from 'node-cron';
 
-/**
- * Проверяет и открывает кейсы, которые должны быть открыты
- * Отправляет уведомления всем пользователям через Telegram бота
- */
+
 export async function checkAndOpenCases() {
   try {
-    // Находим кейсы, которые должны быть открыты (opens_at <= NOW и status = 'active')
+
     const result = await pool.query(`
-      SELECT id, title, opens_at, status
+      SELECT id, title, opens_at, status, notification_sent
       FROM cases
       WHERE opens_at IS NOT NULL
         AND opens_at <= CURRENT_TIMESTAMP
         AND status = 'active'
+        AND (notification_sent IS NULL OR notification_sent = FALSE)
         AND (opens_at::date = CURRENT_DATE OR opens_at::date = CURRENT_DATE - INTERVAL '1 day')
       ORDER BY opens_at ASC
     `);
@@ -31,12 +28,18 @@ export async function checkAndOpenCases() {
 
     let notifiedCount = 0;
 
-    // Открываем каждый кейс и отправляем уведомления
+
     for (const caseItem of casesToOpen) {
       try {
-        // Отправляем уведомления через бота
+
         const notified = await notifyUsersAboutCase(caseItem);
         notifiedCount += notified;
+        
+        // Помечаем, что уведомление отправлено
+        await pool.query(
+          'UPDATE cases SET notification_sent = TRUE WHERE id = $1',
+          [caseItem.id]
+        );
         
         logInfo('Кейс открыт, уведомления отправлены', { caseId: caseItem.id, caseTitle: caseItem.title, notified });
       } catch (error) {
@@ -51,9 +54,7 @@ export async function checkAndOpenCases() {
   }
 }
 
-/**
- * Отправляет уведомление всем пользователям о новом открытом кейсе
- */
+
 async function notifyUsersAboutCase(caseItem) {
   const bot = getBotInstance();
   
@@ -63,7 +64,7 @@ async function notifyUsersAboutCase(caseItem) {
   }
 
   try {
-    // Получаем всех пользователей с telegram_id
+
     const usersResult = await pool.query(`
       SELECT DISTINCT telegram_id 
       FROM users
@@ -77,15 +78,15 @@ async function notifyUsersAboutCase(caseItem) {
                    `📋 <b>${caseItem.title}</b>\n\n` +
                    `Кейс теперь доступен для решения. Переходите на сайт, чтобы принять участие!`;
 
-    // Отправляем сообщения с задержкой
+
     for (const telegramId of telegramIds) {
       try {
         await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
         successCount++;
-        // Небольшая задержка между сообщениями
+
         await new Promise(resolve => setTimeout(resolve, 50));
       } catch (error) {
-        // Игнорируем ошибки отправки отдельным пользователям
+
         if (!error.message.includes('blocked') && !error.message.includes('chat not found')) {
           logWarn('Ошибка отправки уведомления пользователю', { telegramId, error: error.message });
         }
@@ -99,22 +100,24 @@ async function notifyUsersAboutCase(caseItem) {
   }
 }
 
-/**
- * Запускает периодическую проверку кейсов для открытия
- * Проверяет каждую минуту
- */
+
 export function startCaseOpenerScheduler() {
-  // Проверяем сразу при запуске
+
   checkAndOpenCases().catch(err => {
       logError('Ошибка при первоначальной проверке кейсов', err);
   });
 
-  // Затем проверяем каждую минуту
-  setInterval(() => {
+
+  // Используем node-cron для более надежного планирования
+  // Проверяем каждую минуту
+  cron.schedule('* * * * *', () => {
     checkAndOpenCases().catch(err => {
       logError('Ошибка при периодической проверке кейсов', err);
     });
-  }, 60 * 1000); // Каждую минуту
+  }, {
+    scheduled: true,
+    timezone: "Europe/Moscow"
+  });
 
-  logInfo('Планировщик открытия кейсов запущен');
+  logInfo('Планировщик открытия кейсов запущен (node-cron)');
 }

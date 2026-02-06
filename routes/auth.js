@@ -37,7 +37,7 @@ const verifyCaptcha = async (captchaToken) => {
   const data = await response.json();
   return !!data.success;
 };
-// Верификация Telegram Web App данных
+
 router.post('/telegram', async (req, res) => {
   try {
     const { initData, captcha_token } = req.body;
@@ -50,8 +50,8 @@ router.post('/telegram', async (req, res) => {
       return res.status(400).json({ error: 'Данные Telegram отсутствуют' });
     }
 
-    // В реальном приложении здесь должна быть проверка подписи Telegram
-    // Для упрощения парсим данные напрямую
+
+
     const params = new URLSearchParams(initData);
     const userStr = params.get('user');
     
@@ -62,7 +62,7 @@ router.post('/telegram', async (req, res) => {
     const telegramUser = JSON.parse(userStr);
     const telegramId = telegramUser.id;
 
-    // Поиск или создание пользователя
+
     let result = await pool.query(
       'SELECT * FROM users WHERE telegram_id = $1',
       [telegramId]
@@ -70,7 +70,7 @@ router.post('/telegram', async (req, res) => {
 
     let user;
     if (result.rows.length === 0) {
-      // Создание нового пользователя
+
       result = await pool.query(
         `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
          VALUES ($1, $2, $3, $4, $5)
@@ -85,7 +85,7 @@ router.post('/telegram', async (req, res) => {
       );
       user = result.rows[0];
     } else {
-      // Обновление существующего пользователя
+
       result = await pool.query(
         `UPDATE users 
          SET username = $1, first_name = $2, last_name = $3, photo_url = $4, updated_at = CURRENT_TIMESTAMP
@@ -112,7 +112,7 @@ router.post('/telegram', async (req, res) => {
   }
 });
 
-// Вход через бота: обмен одноразового токена на JWT
+
 router.post('/bot', async (req, res) => {
   try {
     const { token, captcha_token } = req.body;
@@ -174,7 +174,7 @@ router.post('/bot', async (req, res) => {
   }
 });
 
-// Обновление access токена по refresh
+
 router.post('/refresh', async (req, res) => {
   try {
     const { refresh_token } = req.body;
@@ -219,7 +219,7 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// Выход: отзыв refresh токена
+
 router.post('/logout', async (req, res) => {
   try {
     const { refresh_token } = req.body;
@@ -235,7 +235,7 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-// Получение текущего пользователя
+
 router.get('/me', async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

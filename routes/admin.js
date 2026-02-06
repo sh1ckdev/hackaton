@@ -8,10 +8,10 @@ import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Все маршруты требуют аутентификации
+
 router.use(authenticateToken);
 
-// Получение статистики (только админ)
+
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
     const [usersCount, casesCount, solutionsCount, solutionsByStatus] = await Promise.all([
@@ -40,7 +40,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
   }
 });
 
-// Получение всех пользователей (только админ)
+
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -57,8 +57,8 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-// Изменение роли пользователя (только админ)
-// Использует telegram_id вместо id из БД
+
+
 router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const telegramIdParam = req.params.telegramId;
@@ -67,18 +67,18 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
 
     logInfo('[Admin] Изменение роли', { telegramId: telegramIdParam, role, adminId: req.user?.id });
 
-    // Преобразуем telegram_id в число для сравнения (используем BigInt для больших чисел)
+
     let telegramId;
     try {
       if (typeof telegramIdParam === 'string') {
-        // Проверяем, что это целое число без десятичной точки
+
         if (telegramIdParam.includes('.') || !/^\d+$/.test(telegramIdParam)) {
           throw new Error('Некорректный формат');
         }
-        // Используем Number для чисел, которые помещаются в Number.MAX_SAFE_INTEGER
+
         const parsed = Number(telegramIdParam);
         if (parsed > Number.MAX_SAFE_INTEGER) {
-          // Для очень больших чисел используем строку (PostgreSQL BIGINT примет строку)
+
           telegramId = telegramIdParam;
         } else {
           telegramId = parsed;
@@ -87,7 +87,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
         telegramId = Number(telegramIdParam);
       }
       
-      // Проверяем валидность значения
+
       if (typeof telegramId === 'number' && (isNaN(telegramId) || telegramId <= 0)) {
         throw new Error('Некорректное значение');
       }
@@ -99,7 +99,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
 
-    // Нормализуем роль (приводим к нижнему регистру и убираем пробелы)
+
     const normalizedRole = role ? String(role).toLowerCase().trim() : null;
     
     if (!normalizedRole || !['user', 'moderator', 'admin'].includes(normalizedRole)) {
@@ -111,10 +111,10 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       return res.status(400).json({ error: 'Некорректная роль. Допустимые значения: user, moderator, admin' });
     }
     
-    // Используем нормализованную роль дальше
+
     const roleToSet = normalizedRole;
 
-    // Проверяем, существует ли пользователь по telegram_id
+
     const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
     if (userCheck.rows.length === 0) {
       logError('[Admin] Пользователь не найден по Telegram ID', null, { telegramId, adminId: req.user?.id });
@@ -128,10 +128,10 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       currentRole: currentUser.role 
     });
 
-    // Защита главного админа от снятия роли
+
     const userTelegramId = currentUser.telegram_id;
     if (userTelegramId != null) {
-      // Преобразуем telegram_id в строку для надежного сравнения
+
       const telegramIdStr = String(userTelegramId);
       const mainAdminIdStr = String(MAIN_ADMIN_ID);
       if (telegramIdStr === mainAdminIdStr && roleToSet !== 'admin') {
@@ -140,7 +140,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       }
     }
 
-    // Обновляем роль по telegram_id
+
     logInfo('[Admin] Обновление роли', { 
       telegramId, 
       telegramIdType: typeof telegramId,
@@ -184,7 +184,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
         telegramId: telegramId
       });
       
-      // Если ошибка связана с constraint, даем более понятное сообщение
+
       if (dbError.code === '23514' || dbError.constraint) {
         logError('[Admin] Ошибка constraint в БД', dbError, { telegramId, role });
         return res.status(400).json({ 
@@ -210,7 +210,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
   }
 });
 
-// Рассылка сообщений всем участникам (админ или модератор)
+
 router.post('/broadcast', requireModerator, async (req, res) => {
   try {
     const { message } = req.body;
@@ -229,6 +229,216 @@ router.post('/broadcast', requireModerator, async (req, res) => {
   } catch (error) {
     logError('Ошибка рассылки сообщений', error);
     res.status(500).json({ error: 'Ошибка сервера при рассылке сообщений' });
+  }
+});
+
+// Получить все настройки рассылок
+router.get('/broadcast-settings', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT bs.*, c.title as case_title
+      FROM broadcast_settings bs
+      LEFT JOIN cases c ON bs.case_id = c.id
+      ORDER BY bs.created_at DESC
+    `);
+    res.json({ settings: result.rows });
+  } catch (error) {
+    logError('Ошибка получения настроек рассылок', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получить настройку рассылки по ID
+router.get('/broadcast-settings/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(`
+      SELECT bs.*, c.title as case_title
+      FROM broadcast_settings bs
+      LEFT JOIN cases c ON bs.case_id = c.id
+      WHERE bs.id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Настройка не найдена' });
+    }
+    
+    res.json({ setting: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка получения настройки рассылки', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Создать новую настройку рассылки
+router.post('/broadcast-settings', requireModerator, async (req, res) => {
+  try {
+    const {
+      name,
+      type,
+      enabled = true,
+      target_audience = { all: true },
+      message_template,
+      schedule_cron,
+      schedule_time,
+      conditions = {},
+      case_id
+    } = req.body;
+
+    if (!name || !type || !message_template) {
+      return res.status(400).json({ error: 'Название, тип и шаблон сообщения обязательны' });
+    }
+
+    if (!['case_opening', 'general', 'scheduled', 'event'].includes(type)) {
+      return res.status(400).json({ error: 'Некорректный тип рассылки' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO broadcast_settings (
+        name, type, enabled, target_audience, message_template,
+        schedule_cron, schedule_time, conditions, case_id
+      )
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8::jsonb, $9)
+      RETURNING *
+    `, [
+      name,
+      type,
+      enabled,
+      JSON.stringify(target_audience),
+      message_template,
+      schedule_cron || null,
+      schedule_time || null,
+      JSON.stringify(conditions),
+      case_id || null
+    ]);
+
+    logInfo('Создана настройка рассылки', { id: result.rows[0].id, name, type });
+    res.json({ setting: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка создания настройки рассылки', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновить настройку рассылки
+router.put('/broadcast-settings/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      type,
+      enabled,
+      target_audience,
+      message_template,
+      schedule_cron,
+      schedule_time,
+      conditions,
+      case_id
+    } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (type !== undefined) {
+      if (!['case_opening', 'general', 'scheduled', 'event'].includes(type)) {
+        return res.status(400).json({ error: 'Некорректный тип рассылки' });
+      }
+      updates.push(`type = $${paramIndex++}`);
+      values.push(type);
+    }
+    if (enabled !== undefined) {
+      updates.push(`enabled = $${paramIndex++}`);
+      values.push(enabled);
+    }
+    if (target_audience !== undefined) {
+      updates.push(`target_audience = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(target_audience));
+    }
+    if (message_template !== undefined) {
+      updates.push(`message_template = $${paramIndex++}`);
+      values.push(message_template);
+    }
+    if (schedule_cron !== undefined) {
+      updates.push(`schedule_cron = $${paramIndex++}`);
+      values.push(schedule_cron || null);
+    }
+    if (schedule_time !== undefined) {
+      updates.push(`schedule_time = $${paramIndex++}`);
+      values.push(schedule_time || null);
+    }
+    if (conditions !== undefined) {
+      updates.push(`conditions = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(conditions));
+    }
+    if (case_id !== undefined) {
+      updates.push(`case_id = $${paramIndex++}`);
+      values.push(case_id || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Нет полей для обновления' });
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await pool.query(`
+      UPDATE broadcast_settings
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Настройка не найдена' });
+    }
+
+    logInfo('Обновлена настройка рассылки', { id, updates: updates.length });
+    res.json({ setting: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка обновления настройки рассылки', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Удалить настройку рассылки
+router.delete('/broadcast-settings/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM broadcast_settings WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Настройка не найдена' });
+    }
+
+    logInfo('Удалена настройка рассылки', { id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления настройки рассылки', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получить список кейсов для выбора
+router.get('/cases/list', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, title, opens_at, status
+      FROM cases
+      ORDER BY created_at DESC
+    `);
+    res.json({ cases: result.rows });
+  } catch (error) {
+    logError('Ошибка получения списка кейсов', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 

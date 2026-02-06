@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Настройка multer для загрузки файлов
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads/'));
@@ -28,7 +28,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB для презентаций
   fileFilter: (req, file, cb) => {
-    // Разрешаем презентации: PDF, PPT, PPTX, ODP
+
     const allowedTypes = /pdf|ppt|pptx|odp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype) || 
@@ -45,7 +45,7 @@ const upload = multer({
   }
 });
 
-// Получение решений пользователя
+
 router.get('/my', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -63,7 +63,7 @@ router.get('/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Получение всех решений (для админа)
+
 router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status, case_id } = req.query;
@@ -101,7 +101,7 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Получение решения по ID
+
 router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -122,7 +122,7 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     const solution = result.rows[0];
     
-    // Проверка прав доступа
+
     if (solution.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Нет доступа' });
     }
@@ -134,7 +134,7 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
   }
 });
 
-// Создание/обновление решения
+
 router.post('/', 
   authenticateToken, 
   solutionCreationLimiter,
@@ -148,7 +148,7 @@ router.post('/',
       return res.status(400).json({ error: 'ID кейса и название обязательны' });
     }
 
-    // Проверка на массовые операции
+
     const canProceed = await checkMassOperation(req, 'solution_creation', 5);
     if (!canProceed) {
       await logSuspiciousActivity(req, 'too_many_solutions', {
@@ -157,19 +157,19 @@ router.post('/',
       return res.status(429).json({ error: 'Слишком много решений за короткое время. Попробуйте позже.' });
     }
 
-    // Проверка существования кейса
+
     const caseResult = await pool.query('SELECT * FROM cases WHERE id = $1', [case_id]);
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Кейс не найден' });
     }
 
-    // Проверка, открыт ли кейс
+
     const caseData = caseResult.rows[0];
     if (caseData.opens_at && new Date(caseData.opens_at) > new Date()) {
       return res.status(403).json({ error: 'Кейс еще не открыт' });
     }
 
-    // Проверка, не отправил ли пользователь уже решение
+
     const existingSolution = await pool.query(
       'SELECT * FROM solutions WHERE user_id = $1 AND case_id = $2',
       [req.user.id, case_id]
@@ -177,7 +177,7 @@ router.post('/',
 
     let solution;
     if (existingSolution.rows.length > 0) {
-      // Обновление существующего решения
+
       const presentationPath = req.file ? req.file.path : existingSolution.rows[0].presentation_file_path;
       const result = await pool.query(
         `UPDATE solutions 
@@ -189,7 +189,7 @@ router.post('/',
       );
       solution = result.rows[0];
     } else {
-      // Создание нового решения
+
       const result = await pool.query(
         `INSERT INTO solutions (user_id, case_id, title, description, github_url, demo_url, presentation_file_path)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -206,7 +206,7 @@ router.post('/',
       );
       solution = result.rows[0];
 
-      // Увеличение счетчика участников кейса
+
       await pool.query(
         'UPDATE cases SET current_participants = current_participants + 1 WHERE id = $1',
         [case_id]
@@ -220,7 +220,7 @@ router.post('/',
   }
 });
 
-// Модерация решения (админ или модератор)
+
 router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -249,12 +249,12 @@ router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam
   }
 });
 
-// Удаление решения
+
 router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Проверка прав
+
     const solutionResult = await pool.query('SELECT * FROM solutions WHERE id = $1', [id]);
     if (solutionResult.rows.length === 0) {
       return res.status(404).json({ error: 'Решение не найдено' });
@@ -266,10 +266,10 @@ router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     const caseId = solutionResult.rows[0].case_id;
 
-    // Удаляем решение
+
     await pool.query('DELETE FROM solutions WHERE id = $1', [id]);
 
-    // Уменьшаем счетчик участников кейса
+
     await pool.query(
       'UPDATE cases SET current_participants = GREATEST(0, current_participants - 1) WHERE id = $1',
       [caseId]
