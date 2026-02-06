@@ -1,18 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { lazy, Suspense } from 'react';
 import authStore from './stores/authStore';
-import Login from './pages/Login';
-import Landing from './pages/Landing';
-import Cases from './pages/Cases';
-import CaseDetail from './pages/CaseDetail';
-import MySolutions from './pages/MySolutions';
-import SubmitSolution from './pages/SubmitSolution';
-import AdminPanel from './pages/AdminPanel';
-import Profile from './pages/Profile';
-import Team from './pages/Team';
-import Info from './pages/Info';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// Лениво подгружаемые страницы для уменьшения стартового бандла
+const Login = lazy(() => import('./pages/Login'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Cases = lazy(() => import('./pages/Cases'));
+const CaseDetail = lazy(() => import('./pages/CaseDetail'));
+const MySolutions = lazy(() => import('./pages/MySolutions'));
+const SubmitSolution = lazy(() => import('./pages/SubmitSolution'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Team = lazy(() => import('./pages/Team'));
+const Info = lazy(() => import('./pages/Info'));
 
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
@@ -44,35 +47,43 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Landing />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+              <div className="glass rounded-xl p-6 text-white/70">Загрузка...</div>
+            </div>
           }
         >
-          <Route path="cases" element={<Cases />} />
-          <Route path="cases/:id" element={<CaseDetail />} />
-          <Route path="solutions" element={<MySolutions />} />
-          <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="team" element={<Team />} />
-          <Route path="info" element={<Info />} />
-          <Route
-            path="admin"
-            element={
-              <AdminRoute>
-                <AdminPanel />
-              </AdminRoute>
-            }
-          />
-        </Route>
-      </Routes>
-    </Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Landing />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="cases" element={<Cases />} />
+              <Route path="cases/:id" element={<CaseDetail />} />
+              <Route path="solutions" element={<MySolutions />} />
+              <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="team" element={<Team />} />
+              <Route path="info" element={<Info />} />
+              <Route
+                path="admin"
+                element={
+                  <AdminRoute>
+                    <AdminPanel />
+                  </AdminRoute>
+                }
+              />
+            </Route>
+          </Routes>
+        </Suspense>
+      </Router>
     </ErrorBoundary>
   );
 }
