@@ -23,10 +23,10 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen bg-terminal-bg flex">
-      {/* Боковая панель навигации */}
+      {}
       <aside className="w-64 border-r border-terminal-gray/30 bg-terminal-dark/40 backdrop-blur-sm shrink-0 sticky top-0 h-screen">
         <div className="flex flex-col h-full">
-          {/* Логотип */}
+          {}
           <div className="p-6 border-b border-terminal-gray/30">
             <Link 
               to="/" 
@@ -36,7 +36,7 @@ const Layout = () => {
             </Link>
           </div>
 
-          {/* Навигация */}
+          {}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -72,7 +72,7 @@ const Layout = () => {
             )}
           </nav>
 
-          {/* Профиль и выход */}
+          {}
           <div className="p-4 border-t border-terminal-gray/30 space-y-2">
             <Link
               to="/profile"
@@ -95,7 +95,7 @@ const Layout = () => {
         </div>
       </aside>
 
-      {/* Основной контент */}
+      {}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-8 py-8">
           <Outlet />

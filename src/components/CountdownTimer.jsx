@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 
-/**
- * Компонент обратного отсчета до открытия кейса
- */
+
 const CountdownTimer = ({ targetDate }) => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,

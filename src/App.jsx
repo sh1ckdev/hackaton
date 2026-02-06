@@ -5,7 +5,7 @@ import authStore from './stores/authStore';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Лениво подгружаемые страницы для уменьшения стартового бандла
+
 const Login = lazy(() => import('./pages/Login'));
 const Landing = lazy(() => import('./pages/Landing'));
 const Cases = lazy(() => import('./pages/Cases'));

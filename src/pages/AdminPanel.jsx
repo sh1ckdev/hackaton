@@ -23,6 +23,21 @@ const AdminPanel = () => {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState(null);
+  const [broadcastSettings, setBroadcastSettings] = useState([]);
+  const [editingSetting, setEditingSetting] = useState(null);
+  const [showSettingForm, setShowSettingForm] = useState(false);
+  const [settingFormData, setSettingFormData] = useState({
+    name: '',
+    type: 'general',
+    enabled: true,
+    target_audience: { all: true },
+    message_template: '',
+    schedule_cron: '',
+    schedule_time: '',
+    conditions: {},
+    case_id: null,
+  });
+  const [availableCases, setAvailableCases] = useState([]);
   const [showCaseForm, setShowCaseForm] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
   const [caseFormData, setCaseFormData] = useState({
@@ -45,7 +60,11 @@ const AdminPanel = () => {
     fetchTeams();
     solutionsStore.fetchAllSolutions();
     casesStore.fetchCases();
-  }, []);
+    if (activeTab === 'broadcast-settings') {
+      fetchBroadcastSettings();
+      fetchAvailableCases();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'teams') {
@@ -105,6 +124,76 @@ const AdminPanel = () => {
     } finally {
       setBroadcasting(false);
     }
+  };
+
+  const fetchBroadcastSettings = async () => {
+    try {
+      const response = await api.get('/admin/broadcast-settings');
+      setBroadcastSettings(response.data.settings);
+    } catch (error) {
+      console.error('Ошибка загрузки настроек рассылок', error);
+    }
+  };
+
+  const fetchAvailableCases = async () => {
+    try {
+      const response = await api.get('/admin/cases/list');
+      setAvailableCases(response.data.cases);
+    } catch (error) {
+      console.error('Ошибка загрузки кейсов', error);
+    }
+  };
+
+  const handleSaveSetting = async () => {
+    try {
+      if (editingSetting) {
+        await api.put(`/admin/broadcast-settings/${editingSetting.id}`, settingFormData);
+      } else {
+        await api.post('/admin/broadcast-settings', settingFormData);
+      }
+      setShowSettingForm(false);
+      setEditingSetting(null);
+      setSettingFormData({
+        name: '',
+        type: 'general',
+        enabled: true,
+        target_audience: { all: true },
+        message_template: '',
+        schedule_cron: '',
+        schedule_time: '',
+        conditions: {},
+        case_id: null,
+      });
+      fetchBroadcastSettings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка сохранения настройки');
+    }
+  };
+
+  const handleDeleteSetting = async (id) => {
+    if (!confirm('Удалить эту настройку рассылки?')) return;
+    try {
+      await api.delete(`/admin/broadcast-settings/${id}`);
+      fetchBroadcastSettings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления настройки');
+    }
+  };
+
+  const handleEditSetting = (setting) => {
+    setEditingSetting(setting);
+    setSettingFormData({
+      name: setting.name,
+      type: setting.type,
+      enabled: setting.enabled,
+      target_audience: setting.target_audience || { all: true },
+      message_template: setting.message_template,
+      schedule_cron: setting.schedule_cron || '',
+      schedule_time: setting.schedule_time ? new Date(setting.schedule_time).toISOString().slice(0, 16) : '',
+      conditions: setting.conditions || {},
+      case_id: setting.case_id || null,
+    });
+    setShowSettingForm(true);
   };
 
   const handleModerate = async () => {
@@ -223,6 +312,16 @@ const AdminPanel = () => {
               }`}
             >
               Рассылка
+            </button>
+            <button
+              onClick={() => setActiveTab('broadcast-settings')}
+              className={`px-6 py-3 text-sm font-medium ${
+                activeTab === 'broadcast-settings'
+                  ? 'border-b-2 border-terminal-green text-white'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Настройки рассылок
             </button>
           </nav>
         </div>
@@ -642,6 +741,103 @@ const AdminPanel = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'broadcast-settings' && (
+          <div className="p-6">
+            <div className="mb-6 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">Настройки рассылок</h2>
+              <button
+                onClick={() => {
+                  setEditingSetting(null);
+                  setSettingFormData({
+                    name: '',
+                    type: 'general',
+                    enabled: true,
+                    target_audience: { all: true },
+                    message_template: '',
+                    schedule_cron: '',
+                    schedule_time: '',
+                    conditions: {},
+                    case_id: null,
+                  });
+                  setShowSettingForm(true);
+                }}
+                className="px-4 py-2 bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-all font-medium rounded"
+              >
+                + Создать настройку
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {broadcastSettings.map((setting) => (
+                <div
+                  key={setting.id}
+                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 bg-terminal-dark rounded"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-white">{setting.name}</h3>
+                        <span className={`px-2 py-1 text-xs rounded ${
+                          setting.enabled 
+                            ? 'bg-terminal-green/20 text-terminal-green border border-terminal-green' 
+                            : 'bg-terminal-gray/20 text-terminal-gray border border-terminal-gray'
+                        }`}>
+                          {setting.enabled ? 'Включено' : 'Выключено'}
+                        </span>
+                        <span className="px-2 py-1 text-xs rounded bg-terminal-cyan/20 text-terminal-cyan border border-terminal-cyan">
+                          {setting.type === 'case_opening' ? 'Открытие кейса' :
+                           setting.type === 'general' ? 'Общая' :
+                           setting.type === 'scheduled' ? 'По расписанию' : 'Событие'}
+                        </span>
+                      </div>
+                      {setting.case_title && (
+                        <p className="text-sm text-white/70 mb-2">
+                          Кейс: {setting.case_title}
+                        </p>
+                      )}
+                      <p className="text-sm text-white/60 mb-2">
+                        Шаблон: {setting.message_template.substring(0, 100)}
+                        {setting.message_template.length > 100 ? '...' : ''}
+                      </p>
+                      {setting.target_audience && (
+                        <p className="text-xs text-white/50">
+                          Аудитория: {setting.target_audience.all 
+                            ? 'Все пользователи' 
+                            : JSON.stringify(setting.target_audience)}
+                        </p>
+                      )}
+                      {setting.last_sent_at && (
+                        <p className="text-xs text-white/50 mt-1">
+                          Последняя отправка: {new Date(setting.last_sent_at).toLocaleString('ru-RU')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditSetting(setting)}
+                        className="px-3 py-1 text-sm bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all rounded"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSetting(setting.id)}
+                        className="px-3 py-1 text-sm bg-terminal-dark/40 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {broadcastSettings.length === 0 && (
+                <div className="text-center py-12 text-white/60">
+                  Нет настроек рассылок. Создайте первую настройку.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {showCaseForm && (
@@ -664,15 +860,15 @@ const AdminPanel = () => {
                   formData.append('opens_at', caseFormData.opens_at || '');
                   formData.append('links', JSON.stringify(caseFormData.links));
                   
-                  // Добавляем файлы - только новые файлы для загрузки
-                  // Существующие файлы (с URL) обрабатываются отдельно
+
+
                   let preservedIndex = 0;
                   caseFormData.attachments.forEach((att) => {
                     if (att.file) {
-                      // Новые файлы добавляем как attachments (multer обработает массив)
+
                       formData.append('attachments', att.file);
                     } else if (att.url) {
-                      // Если это уже загруженный файл, сохраняем URL через attachment_url_*
+
                       formData.append(`attachment_url_${preservedIndex}`, att.url);
                       formData.append(`attachment_name_${preservedIndex}`, att.name || '');
                       preservedIndex++;
@@ -788,7 +984,7 @@ const AdminPanel = () => {
                 </select>
               </div>
 
-              {/* Ссылки */}
+              {}
               <div className="border-t border-terminal-gray/30 pt-4">
                 <label className="block text-sm font-medium text-white/80 mb-3">
                   Ссылки (дополнительные материалы)
@@ -846,7 +1042,7 @@ const AdminPanel = () => {
                 </div>
               </div>
 
-              {/* Файлы */}
+              {}
               <div className="border-t border-terminal-gray/30 pt-4">
                 <label className="block text-sm font-medium text-white/80 mb-3">
                   Файлы (дополнительные материалы)
@@ -987,6 +1183,225 @@ const AdminPanel = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSettingForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="glass rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4 text-white border-b border-terminal-gray/60 pb-2">
+              {editingSetting ? 'Редактировать настройку рассылки' : 'Создать настройку рассылки'}
+            </h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveSetting();
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Название <span className="text-terminal-red">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={settingFormData.name}
+                  onChange={(e) => setSettingFormData({ ...settingFormData, name: e.target.value })}
+                  required
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  placeholder="Например: Уведомление об открытии кейса"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Тип рассылки <span className="text-terminal-red">*</span>
+                  </label>
+                  <select
+                    value={settingFormData.type}
+                    onChange={(e) => setSettingFormData({ ...settingFormData, type: e.target.value })}
+                    required
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  >
+                    <option value="case_opening">Открытие кейса</option>
+                    <option value="general">Общая рассылка</option>
+                    <option value="scheduled">По расписанию</option>
+                    <option value="event">Событие</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Статус
+                  </label>
+                  <select
+                    value={settingFormData.enabled ? 'true' : 'false'}
+                    onChange={(e) => setSettingFormData({ ...settingFormData, enabled: e.target.value === 'true' })}
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  >
+                    <option value="true">Включено</option>
+                    <option value="false">Выключено</option>
+                  </select>
+                </div>
+              </div>
+
+              {settingFormData.type === 'case_opening' && (
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Связанный кейс (опционально)
+                  </label>
+                  <select
+                    value={settingFormData.case_id || ''}
+                    onChange={(e) => setSettingFormData({ ...settingFormData, case_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  >
+                    <option value="">Все кейсы</option>
+                    {availableCases.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Шаблон сообщения <span className="text-terminal-red">*</span>
+                </label>
+                <textarea
+                  value={settingFormData.message_template}
+                  onChange={(e) => setSettingFormData({ ...settingFormData, message_template: e.target.value })}
+                  required
+                  rows={6}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  placeholder="Введите шаблон сообщения. Для кейсов можно использовать переменные: {{case_title}}, {{case_description}}"
+                />
+                <p className="text-xs text-white/60 mt-1">
+                  Поддерживается HTML разметка. Для кейсов доступны переменные: {'{{case_title}}'}, {'{{case_description}}'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Целевая аудитория
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-white/80">
+                    <input
+                      type="checkbox"
+                      checked={settingFormData.target_audience?.all === true}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSettingFormData({ ...settingFormData, target_audience: { all: true } });
+                        } else {
+                          setSettingFormData({ ...settingFormData, target_audience: { all: false, roles: [], teams: [], users: [] } });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <span>Все пользователи</span>
+                  </label>
+                  {!settingFormData.target_audience?.all && (
+                    <div className="ml-6 space-y-2 text-sm text-white/70">
+                      <p className="text-xs text-white/60">Выберите роли, команды или конкретных пользователей</p>
+                      <div>
+                        <label className="block mb-1">Роли:</label>
+                        <div className="space-y-1">
+                          {['user', 'moderator', 'admin'].map((role) => (
+                            <label key={role} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={(settingFormData.target_audience?.roles || []).includes(role)}
+                                onChange={(e) => {
+                                  const roles = settingFormData.target_audience?.roles || [];
+                                  if (e.target.checked) {
+                                    setSettingFormData({
+                                      ...settingFormData,
+                                      target_audience: { ...settingFormData.target_audience, roles: [...roles, role] }
+                                    });
+                                  } else {
+                                    setSettingFormData({
+                                      ...settingFormData,
+                                      target_audience: { ...settingFormData.target_audience, roles: roles.filter(r => r !== role) }
+                                    });
+                                  }
+                                }}
+                                className="w-4 h-4"
+                              />
+                              <span>{role}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {settingFormData.type === 'scheduled' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Cron выражение (например: "0 9 * * *" для ежедневно в 9:00)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingFormData.schedule_cron}
+                      onChange={(e) => setSettingFormData({ ...settingFormData, schedule_cron: e.target.value })}
+                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                      placeholder="0 9 * * *"
+                    />
+                    <p className="text-xs text-white/60 mt-1">
+                      Формат: минута час день месяц день_недели
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Или конкретное время отправки
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={settingFormData.schedule_time}
+                      onChange={(e) => setSettingFormData({ ...settingFormData, schedule_time: e.target.value })}
+                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-4 border-t border-terminal-gray/30 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                >
+                  {editingSetting ? 'Сохранить изменения' : 'Создать настройку'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettingForm(false);
+                    setEditingSetting(null);
+                    setSettingFormData({
+                      name: '',
+                      type: 'general',
+                      enabled: true,
+                      target_audience: { all: true },
+                      message_template: '',
+                      schedule_cron: '',
+                      schedule_time: '',
+                      conditions: {},
+                      case_id: null,
+                    });
+                  }}
+                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-green transition-all font-medium rounded"
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

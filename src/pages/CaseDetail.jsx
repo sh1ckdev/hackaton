@@ -24,7 +24,7 @@ const CaseDetail = () => {
 
   const mySolution = solutionsStore.solutions.find(s => s.case_id === parseInt(id));
 
-  // Проверяем, открыт ли кейс для обычных пользователей
+
   const isCaseOpen = !caseItem?.opens_at || new Date(caseItem.opens_at) <= new Date();
   const canViewDetails = authStore.isModerator || isCaseOpen;
 
@@ -47,7 +47,7 @@ const CaseDetail = () => {
     );
   }
 
-  // Если кейс не открыт и пользователь не модератор - показываем сообщение
+
   if (!canViewDetails) {
     return (
       <div>
@@ -80,7 +80,7 @@ const CaseDetail = () => {
 
   return (
     <div>
-      {/* Кнопка назад */}
+      {}
       <Link
         to="/cases"
         className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 transition-colors group"
@@ -90,9 +90,9 @@ const CaseDetail = () => {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Основной контент - 2 колонки */}
+        {}
         <div className="lg:col-span-2 space-y-6">
-          {/* Заголовок и сложность */}
+          {}
           <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
             <div className="flex items-start justify-between mb-4">
               <h1 className="text-3xl font-bold text-white pr-4">
@@ -110,7 +110,7 @@ const CaseDetail = () => {
           </div>
 
 
-          {/* Описание */}
+          {}
           <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <CaseIcon size={20} className="text-terminal-green" />
@@ -121,7 +121,7 @@ const CaseDetail = () => {
             </div>
           </div>
 
-          {/* Требования */}
+          {}
           {caseItem.requirements && (
             <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
               <h2 className="text-lg font-semibold text-white mb-4">Требования</h2>
@@ -131,7 +131,7 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Файлы и ссылки (если есть) */}
+          {}
           {(caseItem.attachments || caseItem.links) && (
             <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
               <h2 className="text-lg font-semibold text-white mb-4">Дополнительные материалы</h2>
@@ -177,7 +177,7 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {/* Мое решение или кнопка отправки */}
+          {}
           {mySolution ? (
             <div className="border border-terminal-green/30 rounded-xl p-6 bg-terminal-green/5 backdrop-blur-sm">
               <h2 className="text-xl font-semibold text-white mb-5 flex items-center gap-2">
@@ -297,10 +297,10 @@ const CaseDetail = () => {
           )}
         </div>
 
-        {/* Боковая панель - 1 колонка */}
+        {}
         <div className="lg:col-span-1">
           <div className="sticky top-8 space-y-4">
-            {/* Информация о кейсе */}
+            {}
             <div className="border border-terminal-gray/30 rounded-xl p-5 bg-terminal-dark/30 backdrop-blur-sm">
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Информация</h3>
               <div className="space-y-3">
@@ -327,7 +327,7 @@ const CaseDetail = () => {
               </div>
             </div>
 
-            {/* Быстрые действия */}
+            {}
             {!mySolution && (!caseItem.opens_at || new Date(caseItem.opens_at) <= new Date()) && (
               <div className="border border-terminal-green/30 rounded-xl p-5 bg-terminal-green/5 backdrop-blur-sm">
                 <h3 className="text-sm font-semibold text-terminal-green mb-3">Готовы начать?</h3>

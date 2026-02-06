@@ -1,7 +1,4 @@
-/**
- * Компоненты иконок в стиле Badass Icons
- * Созданы на основе стиля из Figma: https://www.figma.com/design/ff8A2VIC8QVWuRFsJD2nYf/Badass-Icons--Community-
- */
+
 
 export const Icon = ({ children, className = '', size = 24, ...props }) => (
   <svg
@@ -17,7 +14,7 @@ export const Icon = ({ children, className = '', size = 24, ...props }) => (
   </svg>
 );
 
-// Иконка кейса/задачи
+
 export const CaseIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -47,7 +44,7 @@ export const CaseIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка решения
+
 export const SolutionIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -69,7 +66,7 @@ export const SolutionIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка команды
+
 export const TeamIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -109,7 +106,7 @@ export const TeamIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка профиля
+
 export const ProfileIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -133,7 +130,7 @@ export const ProfileIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка админа
+
 export const AdminIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -155,7 +152,7 @@ export const AdminIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка GitHub
+
 export const GitHubIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -177,7 +174,7 @@ export const GitHubIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка времени/таймера
+
 export const TimeIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <circle
@@ -201,7 +198,7 @@ export const TimeIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка уведомления
+
 export const NotificationIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -223,7 +220,7 @@ export const NotificationIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка загрузки/отправки
+
 export const UploadIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -253,7 +250,7 @@ export const UploadIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка звезды/рейтинга
+
 export const StarIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -267,7 +264,7 @@ export const StarIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка настроек
+
 export const SettingsIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <circle
@@ -291,7 +288,7 @@ export const SettingsIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка закрытия
+
 export const CloseIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -305,7 +302,7 @@ export const CloseIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка стрелки вправо
+
 export const ArrowRightIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -319,7 +316,7 @@ export const ArrowRightIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка стрелки влево
+
 export const ArrowLeftIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -333,7 +330,7 @@ export const ArrowLeftIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка поиска
+
 export const SearchIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <circle
@@ -357,7 +354,7 @@ export const SearchIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка фильтра
+
 export const FilterIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -371,7 +368,7 @@ export const FilterIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка статистики/графика
+
 export const StatsIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -401,7 +398,7 @@ export const StatsIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка пользователей
+
 export const UsersIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -439,7 +436,7 @@ export const UsersIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка самолетика (Paper Plane)
+
 export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -461,7 +458,7 @@ export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-// Иконка Telegram
+
 export const TelegramIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path

@@ -73,7 +73,7 @@ const Login = () => {
     }
   }, [location.search, captchaToken, navigate]);
 
-  // Автоматический вход после прохождения капчи, если есть токен в URL
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
@@ -115,7 +115,7 @@ const Login = () => {
 
       <div className="max-w-lg w-full mx-4 relative z-10">
         <div className="border border-terminal-gray/30 rounded-2xl p-8 md:p-12 bg-terminal-dark/40 backdrop-blur-xl shadow-2xl animate-fade-in-up">
-          {/* Логотип и заголовок */}
+          {}
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-3 mb-6">
               <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-terminal-green/20 to-terminal-cyan/20 border-2 border-terminal-green/30 flex items-center justify-center">

@@ -25,7 +25,7 @@ const SubmitSolution = () => {
     casesStore.fetchCase(caseId);
     solutionsStore.fetchMySolutions();
     
-    // Загрузка существующего решения
+
     const existingSolution = solutionsStore.solutions.find(
       s => s.case_id === parseInt(caseId)
     );
@@ -78,7 +78,7 @@ const SubmitSolution = () => {
 
   return (
     <div className="max-w-3xl">
-      {/* Кнопка назад */}
+      {}
       <button
         onClick={() => navigate(`/cases/${caseId}`)}
         className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 transition-colors group"
@@ -87,7 +87,7 @@ const SubmitSolution = () => {
         <span>Назад к кейсу</span>
       </button>
 
-      {/* Заголовок */}
+      {}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
           <SolutionIcon size={28} className="text-terminal-green" />
@@ -101,10 +101,10 @@ const SubmitSolution = () => {
         )}
       </div>
 
-      {/* Форма */}
+      {}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm space-y-6">
-          {/* Основная информация */}
+          {}
           <div>
             <label htmlFor="title" className="block text-sm font-semibold text-white mb-2">
               Название решения <span className="text-terminal-red">*</span>
@@ -137,7 +137,7 @@ const SubmitSolution = () => {
           </div>
         </div>
 
-        {/* Ссылки */}
+        {}
         <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm space-y-6">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Ссылки</h3>
           
@@ -179,7 +179,7 @@ const SubmitSolution = () => {
           </div>
         </div>
 
-        {/* Файлы */}
+        {}
         <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
           <label htmlFor="presentation" className="flex items-center gap-2 text-sm font-semibold text-white mb-2">
             <UploadIcon size={16} className="text-gray-400" />
@@ -199,14 +199,14 @@ const SubmitSolution = () => {
           </p>
         </div>
 
-        {/* Ошибки */}
+        {}
         {(error || solutionsStore.error) && (
           <div className="p-4 border border-terminal-red/50 rounded-xl text-terminal-red text-sm bg-terminal-red/10 backdrop-blur-sm">
             {error || solutionsStore.error}
           </div>
         )}
 
-        {/* Кнопки действий */}
+        {}
         <div className="flex items-center justify-between pt-4 border-t border-terminal-gray/30">
           <button
             type="button"

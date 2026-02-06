@@ -38,7 +38,7 @@ const Team = () => {
     }
     try {
       const response = await api.post('/teams/join', { team_code: teamCode.trim().toUpperCase() });
-      // Получаем полную информацию о команде с участниками
+
       const teamResponse = await api.get('/teams/me');
       setTeam(teamResponse.data.team);
       setShowJoin(false);
@@ -60,7 +60,7 @@ const Team = () => {
       await api.post('/teams/create', {
         name: trimmedName
       });
-      // Получаем полную информацию о команде с участниками
+
       const teamResponse = await api.get('/teams/me');
       setTeam(teamResponse.data.team);
       setTeamName('');
@@ -83,7 +83,7 @@ const Team = () => {
         </div>
       ) : hasTeam ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Информация о команде */}
+          {}
           <div className="lg:col-span-1">
             <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm sticky top-8">
               <h2 className="text-lg font-semibold text-white mb-6">Информация о команде</h2>
@@ -134,7 +134,7 @@ const Team = () => {
             </div>
           </div>
 
-          {/* Участники */}
+          {}
           <div className="lg:col-span-2">
             <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
               <h2 className="text-lg font-semibold text-white mb-6">Участники</h2>
@@ -186,7 +186,7 @@ const Team = () => {
             <p className="text-gray-400 text-sm mb-6">Объединитесь с другими участниками для совместной работы</p>
             
             <div className="space-y-6">
-              {/* Создание команды */}
+              {}
               <div className="border border-terminal-gray/20 rounded-lg p-5 bg-terminal-dark/20">
                 <h3 className="text-lg font-medium text-white mb-4">Создать новую команду</h3>
                 <div className="space-y-4">
@@ -221,7 +221,7 @@ const Team = () => {
                 </div>
               </div>
 
-              {/* Вступление в команду */}
+              {}
               <div className="border border-terminal-gray/20 rounded-lg p-5 bg-terminal-dark/20">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-white">Вступить в существующую команду</h3>

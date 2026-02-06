@@ -17,37 +17,37 @@ const Cases = () => {
     casesStore.fetchCases('active');
   }, []);
 
-  // Находим общую дату открытия всех кейсов (берем самую раннюю, если есть)
+
   const globalOpenDate = useMemo(() => {
     const now = new Date();
     const futureCases = casesStore.cases
       .filter(c => c.opens_at && new Date(c.opens_at) > now)
       .map(c => new Date(c.opens_at))
       .sort((a, b) => a - b);
-    // Если все кейсы имеют одну дату открытия или все открыты - показываем общий таймер
+
     return futureCases.length > 0 ? futureCases[0].toISOString() : null;
   }, [casesStore.cases]);
 
-  // Проверяем, открыты ли кейсы для обычных пользователей
+
   const areCasesOpen = useMemo(() => {
     const now = new Date();
-    // Если пользователь админ/модератор - всегда видит все
+
     if (authStore.isModerator) return true;
-    // Для обычных пользователей проверяем дату открытия
+
     return !globalOpenDate || new Date(globalOpenDate) <= now;
   }, [globalOpenDate]);
 
-  // Фильтрация и сортировка кейсов
+
   const filteredAndSortedCases = useMemo(() => {
     let filtered = [...casesStore.cases];
 
-    // Для обычных пользователей показываем только открытые кейсы
+
     if (!authStore.isModerator) {
       const now = new Date();
       filtered = filtered.filter(c => !c.opens_at || new Date(c.opens_at) <= now);
     }
 
-    // Поиск
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(c => 
@@ -56,12 +56,12 @@ const Cases = () => {
       );
     }
 
-    // Фильтр по сложности
+
     if (difficultyFilter !== 'all') {
       filtered = filtered.filter(c => c.difficulty === difficultyFilter);
     }
 
-    // Сортировка
+
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
@@ -81,14 +81,14 @@ const Cases = () => {
     return filtered;
   }, [casesStore.cases, searchQuery, difficultyFilter, sortBy]);
 
-  // Статистика
+
   const stats = useMemo(() => {
     const total = casesStore.cases.length;
     const easy = casesStore.cases.filter(c => c.difficulty === 'easy').length;
     const medium = casesStore.cases.filter(c => c.difficulty === 'medium').length;
     const hard = casesStore.cases.filter(c => c.difficulty === 'hard').length;
     const totalParticipants = casesStore.cases.reduce((sum, c) => sum + (c.current_participants || 0), 0);
-    // Все кейсы открываются вместе, поэтому проверяем общую дату
+
     const areCasesOpen = !globalOpenDate || new Date(globalOpenDate) <= new Date();
     
     return { total, easy, medium, hard, totalParticipants, areCasesOpen };
@@ -114,7 +114,7 @@ const Cases = () => {
 
   return (
     <div>
-      {/* Заголовок и общий таймер */}
+      {}
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-6">
           <div>
@@ -136,7 +136,7 @@ const Cases = () => {
           )}
         </div>
 
-        {/* Статистика */}
+        {}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
           <div className="border border-terminal-gray/30 rounded-lg p-4 bg-terminal-dark/30 backdrop-blur-sm">
             <div className="text-2xl font-bold text-white mb-1">{stats.total}</div>
@@ -174,9 +174,9 @@ const Cases = () => {
           </div>
         </div>
 
-        {/* Поиск и фильтры */}
+        {}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          {/* Поиск */}
+          {}
           <div className="flex-1 relative">
             <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -188,7 +188,7 @@ const Cases = () => {
             />
           </div>
 
-          {/* Фильтр по сложности */}
+          {}
           <div className="relative">
             <FilterIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <select
@@ -203,7 +203,7 @@ const Cases = () => {
             </select>
           </div>
 
-          {/* Сортировка */}
+          {}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -277,24 +277,24 @@ const Cases = () => {
                 className="group relative border border-terminal-gray/30 rounded-xl p-6 hover:border-terminal-green/50 transition-all hover:shadow-lg hover:shadow-terminal-green/10 bg-terminal-dark/30 backdrop-blur-sm flex flex-col animate-fade-in-up"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
-                {/* Бейдж сложности в правом верхнем углу */}
+                {}
                 <div className="absolute top-4 right-4 z-10">
                   {getDifficultyBadge(caseItem.difficulty)}
                 </div>
 
-                {/* Иконка кейса */}
+                {}
                 <div className="mb-4">
                   <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-terminal-green/20 to-terminal-green/5 border border-terminal-green/30 flex items-center justify-center group-hover:bg-terminal-green/20 transition-all group-hover:scale-110 group-hover:rotate-3">
                     <CaseIcon size={28} className="text-terminal-green" />
                   </div>
                 </div>
 
-                {/* Заголовок */}
+                {}
                 <h2 className="text-xl font-semibold text-white mb-3 pr-20 group-hover:text-terminal-green transition-colors leading-tight">
                   {caseItem.title}
                 </h2>
 
-                {/* Описание - скрыто для обычных пользователей до открытия */}
+                {}
                 {(!caseItem.opens_at || new Date(caseItem.opens_at) <= new Date() || authStore.isModerator) ? (
                   <p className="text-sm text-gray-400 line-clamp-3 mb-5 flex-1 leading-relaxed">
                     {caseItem.description || 'Описание отсутствует'}
@@ -305,9 +305,9 @@ const Cases = () => {
                   </p>
                 )}
 
-                {/* Футер с информацией */}
+                {}
                 <div className="pt-4 border-t border-terminal-gray/20 space-y-3 mt-auto">
-                  {/* Участники с прогресс-баром */}
+                  {}
                   <div>
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-gray-500 flex items-center gap-1.5">
@@ -329,7 +329,7 @@ const Cases = () => {
                     )}
                   </div>
 
-                  {/* Кнопка перехода */}
+                  {}
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-xs text-gray-500">Подробнее</span>
                     <div className="flex items-center gap-1 text-terminal-green">

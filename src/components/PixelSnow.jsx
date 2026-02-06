@@ -35,7 +35,7 @@ uniform float uDensity;
 uniform float uVariant;
 uniform float uDirection;
 
-// Precomputed constants
+
 #define PI 3.14159265
 #define PI_OVER_6 0.5235988
 #define PI_OVER_3 1.0471976
@@ -45,16 +45,16 @@ uniform float uDirection;
 #define M3 3299493293U
 #define F0 2.3283064e-10
 
-// Optimized hash - inline multiplication
+
 #define hash(n) (n * (n ^ (n >> 15)))
 #define coord3(p) (uvec3(p).x * M1 ^ uvec3(p).y * M2 ^ uvec3(p).z * M3)
 
-// Precomputed camera basis vectors (normalized vec3(1,1,1), vec3(1,0,-1))
+
 const vec3 camK = vec3(0.57735027, 0.57735027, 0.57735027);
 const vec3 camI = vec3(0.70710678, 0.0, -0.70710678);
 const vec3 camJ = vec3(-0.40824829, 0.81649658, -0.40824829);
 
-// Precomputed branch direction
+
 const vec2 b1d = vec2(0.574, 0.819);
 
 vec3 hash3(uint n) {
@@ -76,7 +76,7 @@ float snowflakeDist(vec2 p) {
 }
 
 void main() {
-  // Precompute reciprocals to avoid division
+
   float invPixelRes = 1.0 / uPixelResolution;
   float pixelSize = max(1.0, floor(0.5 + uResolution.x * invPixelRes));
   float invPixelSize = 1.0 / pixelSize;
@@ -88,21 +88,21 @@ void main() {
   vec3 ray = normalize(vec3((fragCoord - res * 0.5) * invResX, 1.0));
   ray = ray.x * camI + ray.y * camJ + ray.z * camK;
 
-  // Precompute time-based values
+
   float timeSpeed = uTime * uSpeed;
   float windX = cos(uDirection) * 0.4;
   float windY = sin(uDirection) * 0.4;
   vec3 camPos = (windX * camI + windY * camJ + 0.1 * camK) * timeSpeed;
   vec3 pos = camPos;
 
-  // Precompute ray reciprocal for strides
+
   vec3 absRay = max(abs(ray), vec3(0.001));
   vec3 strides = 1.0 / absRay;
   vec3 raySign = step(ray, vec3(0.0));
   vec3 phase = fract(pos) * strides;
   phase = mix(strides - phase, phase, raySign);
 
-  // Precompute for intersection test
+
   float rayDotCamK = dot(ray, camK);
   float invRayDotCamK = 1.0 / rayDotCamK;
   float invDepthFade = 1.0 / uDepthFade;
@@ -120,7 +120,7 @@ void main() {
     if (cellHash < uDensity) {
       vec3 h = hash3(cellCoord);
       
-      // Optimized flake position calculation
+
       vec3 sinArg1 = fpos.yzx * 0.073;
       vec3 sinArg2 = fpos.zxy * 0.27;
       vec3 flakePos = 0.5 - 0.5 * cos(4.0 * sin(sinArg1) + 4.0 * sin(sinArg2) + 2.0 * h + timeAnim);
@@ -137,7 +137,7 @@ void main() {
         float depth = dot(flakePos - camPos, camK);
         float flakeSize = max(uFlakeSize, uMinFlakeSize * depth * halfInvResX);
         
-        // Avoid branching with step functions where possible
+
         float dist;
         if (uVariant < 0.5) {
           dist = max(testUV.x, testUV.y);
@@ -192,18 +192,18 @@ export default function PixelSnow({
   const materialRef = useRef(null);
   const resizeTimeoutRef = useRef(null);
 
-  // Memoize shader variant value
+
   const variantValue = useMemo(() => {
     return variant === 'round' ? 1.0 : variant === 'snowflake' ? 2.0 : 0.0;
   }, [variant]);
 
-  // Memoize color conversion
+
   const colorVector = useMemo(() => {
     const threeColor = new Color(color);
     return new Vector3(threeColor.r, threeColor.g, threeColor.b);
   }, [color]);
 
-  // Debounced resize handler
+
   const handleResize = useCallback(() => {
     if (resizeTimeoutRef.current) {
       clearTimeout(resizeTimeoutRef.current);
@@ -221,7 +221,7 @@ export default function PixelSnow({
     }, 100);
   }, []);
 
-  // Visibility observer
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -237,7 +237,7 @@ export default function PixelSnow({
     return () => observer.disconnect();
   }, []);
 
-  // Main Three.js setup - only runs once
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -291,7 +291,7 @@ export default function PixelSnow({
     const animate = () => {
       animationRef.current = requestAnimationFrame(animate);
 
-      // Only render if visible
+
       if (isVisibleRef.current) {
         material.uniforms.uTime.value = (performance.now() - startTime) * 0.001;
         renderer.render(scene, camera);
@@ -314,10 +314,10 @@ export default function PixelSnow({
       rendererRef.current = null;
       materialRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [handleResize]); // Only recreate scene when handleResize changes
 
-  // Update material uniforms when props change
+
   useEffect(() => {
     const material = materialRef.current;
     if (!material) return;

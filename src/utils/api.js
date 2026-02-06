@@ -1,13 +1,13 @@
 import axios from 'axios';
 import authStore from '../stores/authStore';
 
-// Используем переменную окружения или fallback на /api (для proxy в dev режиме)
-// В production обязательно должен быть указан VITE_API_URL
+
+
 const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
 
-// В production проверяем наличие VITE_API_URL
+
 if (import.meta.env.MODE === 'production' && !import.meta.env.VITE_API_URL) {
-  // Тихо игнорируем, чтобы не раскрывать информацию в консоли
+
 }
 
 const api = axios.create({
@@ -17,7 +17,7 @@ const api = axios.create({
   },
 });
 
-// Добавление токена к каждому запросу
+
 api.interceptors.request.use(
   (config) => {
     const token = authStore.token;
@@ -31,7 +31,7 @@ api.interceptors.request.use(
   }
 );
 
-// Обработка ошибок авторизации
+
 api.interceptors.response.use(
   (response) => {
     return response;
