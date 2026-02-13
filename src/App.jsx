@@ -21,7 +21,23 @@ const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-        <div className="glass rounded-xl p-6 text-white/70">Загрузка...</div>
+        <div className="terminal-loading">
+          <div className="terminal-loading-container">
+            <div>
+              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-command">auth_check</span>
+            </div>
+            <div className="terminal-loading-status">
+              &gt; Verifying credentials
+              <span className="terminal-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </div>
+            <div className="terminal-loading-bar"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -50,7 +66,23 @@ function App() {
         <Suspense
           fallback={
             <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-              <div className="glass rounded-xl p-6 text-white/70">Загрузка...</div>
+              <div className="terminal-loading">
+                <div className="terminal-loading-container">
+                  <div>
+                    <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+                    <span className="terminal-loading-command">load_module</span>
+                  </div>
+                  <div className="terminal-loading-status">
+                    &gt; Initializing system
+                    <span className="terminal-loading-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </span>
+                  </div>
+                  <div className="terminal-loading-bar"></div>
+                </div>
+              </div>
             </div>
           }
         >

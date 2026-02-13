@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import solutionsStore from '../stores/solutionsStore';
 import casesStore from '../stores/casesStore';
+import authStore from '../stores/authStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PaperPlaneIcon } from '../components/Icons';
@@ -13,6 +14,7 @@ const AdminPanel = () => {
   const [teams, setTeams] = useState([]);
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [activeTab, setActiveTab] = useState('solutions');
+  const [settingsSubTab, setSettingsSubTab] = useState('timeline');
   const [filters, setFilters] = useState({ status: '', case_id: '' });
   const [moderatingSolution, setModeratingSolution] = useState(null);
   const [moderationData, setModerationData] = useState({
@@ -53,6 +55,18 @@ const AdminPanel = () => {
   });
   const [newLink, setNewLink] = useState({ label: '', url: '' });
   const [attachmentFiles, setAttachmentFiles] = useState([]);
+  const [randomizingTeams, setRandomizingTeams] = useState(false);
+  const currentTelegramId = authStore.user?.telegram_id;
+  
+  // Настройки хакатона
+  const [hackathonSettings, setHackathonSettings] = useState({
+    timeline: [],
+    prizes: [],
+    tracks: []
+  });
+  const [editingTimelineItem, setEditingTimelineItem] = useState(null);
+  const [editingPrize, setEditingPrize] = useState(null);
+  const [editingTrack, setEditingTrack] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -63,6 +77,9 @@ const AdminPanel = () => {
     if (activeTab === 'broadcast-settings') {
       fetchBroadcastSettings();
       fetchAvailableCases();
+    }
+    if (activeTab === 'settings') {
+      fetchHackathonSettings();
     }
   }, [activeTab]);
 
@@ -93,6 +110,20 @@ const AdminPanel = () => {
       const response = await api.get('/teams/all');
       setTeams(response.data.teams);
     } catch (error) {
+    }
+  };
+
+  const handleRandomizeTeams = async () => {
+    if (!confirm('Распределить команды по кейсам случайным образом?')) return;
+    setRandomizingTeams(true);
+    try {
+      const response = await api.post('/admin/cases/assign-random');
+      await fetchTeams();
+      alert(`Кейсы назначены. Команд распределено: ${response.data.assigned}`);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка распределения команд');
+    } finally {
+      setRandomizingTeams(false);
     }
   };
 
@@ -144,6 +175,95 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchHackathonSettings = async () => {
+    try {
+      const [timelineRes, prizesRes, tracksRes] = await Promise.all([
+        api.get('/admin/settings/timeline').catch(() => ({ data: { timeline: [] } })),
+        api.get('/admin/settings/prizes').catch(() => ({ data: { prizes: [] } })),
+        api.get('/admin/settings/tracks').catch(() => ({ data: { tracks: [] } }))
+      ]);
+      setHackathonSettings({
+        timeline: timelineRes.data.timeline || [],
+        prizes: prizesRes.data.prizes || [],
+        tracks: tracksRes.data.tracks || []
+      });
+    } catch (error) {
+      console.error('Ошибка загрузки настроек', error);
+    }
+  };
+
+  const saveTimeline = async (item) => {
+    try {
+      if (item.id) {
+        await api.put(`/admin/settings/timeline/${item.id}`, item);
+      } else {
+        await api.post('/admin/settings/timeline', item);
+      }
+      await fetchHackathonSettings();
+      setEditingTimelineItem(null);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка сохранения таймлайна');
+    }
+  };
+
+  const savePrize = async (prize) => {
+    try {
+      if (prize.id) {
+        await api.put(`/admin/settings/prizes/${prize.id}`, prize);
+      } else {
+        await api.post('/admin/settings/prizes', prize);
+      }
+      await fetchHackathonSettings();
+      setEditingPrize(null);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка сохранения приза');
+    }
+  };
+
+  const saveTrack = async (track) => {
+    try {
+      if (track.id) {
+        await api.put(`/admin/settings/tracks/${track.id}`, track);
+      } else {
+        await api.post('/admin/settings/tracks', track);
+      }
+      await fetchHackathonSettings();
+      setEditingTrack(null);
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка сохранения трека');
+    }
+  };
+
+  const deleteTimelineItem = async (id) => {
+    if (!confirm('Удалить этот пункт таймлайна?')) return;
+    try {
+      await api.delete(`/admin/settings/timeline/${id}`);
+      await fetchHackathonSettings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления');
+    }
+  };
+
+  const deletePrize = async (id) => {
+    if (!confirm('Удалить этот приз?')) return;
+    try {
+      await api.delete(`/admin/settings/prizes/${id}`);
+      await fetchHackathonSettings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления');
+    }
+  };
+
+  const deleteTrack = async (id) => {
+    if (!confirm('Удалить этот трек?')) return;
+    try {
+      await api.delete(`/admin/settings/tracks/${id}`);
+      await fetchHackathonSettings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления');
+    }
+  };
+
   const handleSaveSetting = async () => {
     try {
       if (editingSetting) {
@@ -177,6 +297,30 @@ const AdminPanel = () => {
       fetchBroadcastSettings();
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка удаления настройки');
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!confirm(`Удалить пользователя ${user.first_name || ''} ${user.last_name || ''} (@${user.username || '—'})?`)) {
+      return;
+    }
+    try {
+      await api.delete(`/admin/users/${user.telegram_id}`);
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления пользователя');
+    }
+  };
+
+  const handleDeleteCase = async (caseItem) => {
+    if (!confirm(`Удалить кейс "${caseItem.title}"? Это удалит связанные запланированные рассылки.`)) {
+      return;
+    }
+    try {
+      await casesStore.deleteCase(caseItem.id);
+      casesStore.fetchCases();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Ошибка удаления кейса');
     }
   };
 
@@ -234,94 +378,80 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="px-4 py-6">
-      <h1 className="text-3xl font-semibold text-gray-100 mb-6">Панель администратора</h1>
+    <div className="admin-page">
+      <div className="admin-header">
+        <h1>ADMIN_PANEL</h1>
+        <p>System configuration and moderation interface</p>
+      </div>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-green border border-terminal-gray/50">
-            <div className="text-3xl font-semibold text-white mb-1">{stats.users}</div>
-            <div className="text-sm text-white/70">Пользователей</div>
+        <div className="admin-stats-grid">
+          <div className="admin-stat-card">
+            <div className="admin-stat-value">{stats.users}</div>
+            <div className="admin-stat-label">USERS</div>
           </div>
-          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-cyan border border-terminal-gray/50">
-            <div className="text-3xl font-semibold text-white mb-1">{stats.cases}</div>
-            <div className="text-sm text-white/70">Кейсов</div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-value">{stats.cases}</div>
+            <div className="admin-stat-label">CASES</div>
           </div>
-          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-blue border border-terminal-gray/50">
-            <div className="text-3xl font-semibold text-white mb-1">{stats.solutions}</div>
-            <div className="text-sm text-white/70">Решений</div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-value">{stats.solutions}</div>
+            <div className="admin-stat-label">SOLUTIONS</div>
           </div>
-          <div className="glass rounded-lg p-4 transform hover:scale-105 transition-all duration-300 hover:border-terminal-purple border border-terminal-gray/50">
-            <div className="text-3xl font-semibold text-white mb-1">
-              {stats.solutionsByStatus?.pending || 0}
-            </div>
-            <div className="text-sm text-white/70">На модерации</div>
+          <div className="admin-stat-card">
+            <div className="admin-stat-value">{stats.solutionsByStatus?.pending || 0}</div>
+            <div className="admin-stat-label">PENDING</div>
           </div>
         </div>
       )}
 
-      <div className="glass rounded-xl">
-        <div className="border-b border-terminal-gray/60">
-          <nav className="flex -mb-px">
+      <div className="admin-content">
+        <div className="admin-nav">
+          <nav className="admin-nav-tabs">
             <button
               onClick={() => setActiveTab('solutions')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'solutions'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'solutions' ? 'active' : ''}`}
             >
-              Решения
+              SOLUTIONS
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'users'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'users' ? 'active' : ''}`}
             >
-              Пользователи
+              USERS
             </button>
             <button
               onClick={() => setActiveTab('teams')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'teams'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'teams' ? 'active' : ''}`}
             >
-              Команды
+              TEAMS
             </button>
             <button
               onClick={() => setActiveTab('cases')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'cases'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'cases' ? 'active' : ''}`}
             >
-              Кейсы
+              CASES
             </button>
             <button
               onClick={() => setActiveTab('broadcast')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'broadcast'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'broadcast' ? 'active' : ''}`}
             >
-              Рассылка
+              BROADCAST
             </button>
             <button
               onClick={() => setActiveTab('broadcast-settings')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'broadcast-settings'
-                  ? 'border-b-2 border-terminal-green text-white'
-                  : 'text-white/70 hover:text-white'
-              }`}
+              className={`admin-nav-tab ${activeTab === 'broadcast-settings' ? 'active' : ''}`}
             >
-              Настройки рассылок
+              BROADCAST_SETTINGS
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('settings');
+                setSettingsSubTab('timeline');
+              }}
+              className={`admin-nav-tab ${activeTab === 'settings' || activeTab.startsWith('settings-') ? 'active' : ''}`}
+            >
+              HACKATHON_CONFIG
             </button>
           </nav>
         </div>
@@ -533,6 +663,14 @@ const AdminPanel = () => {
                           Сделать админом
                         </button>
                       )}
+                      {authStore.isAdmin && !isMainAdmin && String(currentTelegramId) !== String(user.telegram_id) && (
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                        >
+                          Удалить
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -543,6 +681,16 @@ const AdminPanel = () => {
 
         {activeTab === 'teams' && (
           <div className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Команды</h2>
+              <button
+                onClick={handleRandomizeTeams}
+                disabled={randomizingTeams}
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all text-sm font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {randomizingTeams ? 'Распределение...' : 'Рандомизировать кейсы'}
+              </button>
+            </div>
             <div className="space-y-4">
               {teams.length === 0 ? (
                 <p className="text-white/70 text-center py-8">Команды не найдены</p>
@@ -561,7 +709,7 @@ const AdminPanel = () => {
                           {team.name}
                         </p>
                         <p className="text-sm text-white/70">
-                          Код: {team.code} | Участников: {team.members_count} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
+                          Код: {team.code} | Участников: {team.members_count} | Кейс: {team.assigned_case_title || 'не назначен'} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
                         </p>
                       </div>
                       <svg
@@ -680,6 +828,8 @@ const AdminPanel = () => {
                             opens_at: caseItem.opens_at
                               ? new Date(caseItem.opens_at).toISOString().slice(0, 16)
                               : '',
+                            links: Array.isArray(caseItem.links) ? caseItem.links : [],
+                            attachments: Array.isArray(caseItem.attachments) ? caseItem.attachments : [],
                           });
                           setShowCaseForm(true);
                         }}
@@ -687,6 +837,14 @@ const AdminPanel = () => {
                       >
                         Редактировать
                       </button>
+                      {authStore.isAdmin && (
+                        <button
+                          onClick={() => handleDeleteCase(caseItem)}
+                          className="px-3 py-1 text-sm bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all rounded"
+                        >
+                          Удалить
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -990,7 +1148,7 @@ const AdminPanel = () => {
                   Ссылки (дополнительные материалы)
                 </label>
                 <div className="space-y-3 mb-3">
-                  {caseFormData.links.map((link, idx) => (
+                  {(caseFormData.links || []).map((link, idx) => (
                     <div key={idx} className="flex items-center gap-2 p-3 bg-terminal-dark/20 rounded border border-terminal-gray/20">
                       <div className="flex-1">
                         <div className="text-white text-sm font-medium">{link.label || 'Без названия'}</div>
@@ -1048,7 +1206,7 @@ const AdminPanel = () => {
                   Файлы (дополнительные материалы)
                 </label>
                 <div className="space-y-3 mb-3">
-                  {caseFormData.attachments.map((att, idx) => (
+                  {(caseFormData.attachments || []).map((att, idx) => (
                     <div key={idx} className="flex items-center gap-2 p-3 bg-terminal-dark/20 rounded border border-terminal-gray/20">
                       <div className="flex-1">
                         <div className="text-white text-sm font-medium">{att.name || 'Файл'}</div>
@@ -1403,6 +1561,406 @@ const AdminPanel = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="admin-settings">
+          <div className="admin-settings-header">
+            <h2>Настройки хакатона</h2>
+            <p>Управление таймлайном, призами и треками</p>
+          </div>
+
+          <div className="admin-settings-tabs">
+            <button
+              onClick={() => setSettingsSubTab('timeline')}
+              className={`admin-settings-tab ${settingsSubTab === 'timeline' ? 'active' : ''}`}
+            >
+              Таймлайн
+            </button>
+            <button
+              onClick={() => setSettingsSubTab('prizes')}
+              className={`admin-settings-tab ${settingsSubTab === 'prizes' ? 'active' : ''}`}
+            >
+              Призы
+            </button>
+            <button
+              onClick={() => setSettingsSubTab('tracks')}
+              className={`admin-settings-tab ${settingsSubTab === 'tracks' ? 'active' : ''}`}
+            >
+              Треки
+            </button>
+          </div>
+
+          {settingsSubTab === 'timeline' && (
+            <div className="admin-settings-content">
+              <div className="admin-settings-section-header">
+                <h3>Таймлайн событий</h3>
+                <button
+                  onClick={() => {
+                    setEditingTimelineItem({
+                      type: 'registration',
+                      title: '',
+                      description: '',
+                      date: '',
+                      active: false
+                    });
+                  }}
+                  className="admin-btn-primary"
+                >
+                  + Добавить событие
+                </button>
+              </div>
+              <div className="admin-settings-list">
+                {hackathonSettings.timeline.map((item, idx) => (
+                  <div key={item.id || idx} className="admin-settings-item">
+                    <div className="admin-settings-item-content">
+                      <div className="admin-settings-item-title">{item.title}</div>
+                      <div className="admin-settings-item-desc">{item.description}</div>
+                      <div className="admin-settings-item-meta">
+                        <span>Тип: {item.type}</span>
+                        <span>Дата: {item.date ? new Date(item.date).toLocaleString('ru-RU') : 'Не указана'}</span>
+                        {item.active && <span className="admin-badge-active">Активно</span>}
+                      </div>
+                    </div>
+                    <div className="admin-settings-item-actions">
+                      <button
+                        onClick={() => setEditingTimelineItem(item)}
+                        className="admin-btn-secondary"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => deleteTimelineItem(item.id)}
+                        className="admin-btn-danger"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {editingTimelineItem && (
+                <div className="admin-modal">
+                  <div className="admin-modal-content">
+                    <h3>{editingTimelineItem.id ? 'Редактировать' : 'Создать'} событие</h3>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      saveTimeline(editingTimelineItem);
+                    }}>
+                      <div className="admin-form-group">
+                        <label>Тип события</label>
+                        <select
+                          value={editingTimelineItem.type}
+                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, type: e.target.value})}
+                          className="admin-input"
+                        >
+                          <option value="registration">Регистрация</option>
+                          <option value="hacking_begins">Начало хакатона</option>
+                          <option value="submission">Дедлайн отправки</option>
+                          <option value="other">Другое</option>
+                        </select>
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Название</label>
+                        <input
+                          type="text"
+                          value={editingTimelineItem.title}
+                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, title: e.target.value})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Описание</label>
+                        <textarea
+                          value={editingTimelineItem.description}
+                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, description: e.target.value})}
+                          className="admin-input"
+                          rows={3}
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Дата и время</label>
+                        <input
+                          type="datetime-local"
+                          value={editingTimelineItem.date ? new Date(editingTimelineItem.date).toISOString().slice(0, 16) : ''}
+                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, date: e.target.value})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={editingTimelineItem.active}
+                            onChange={(e) => setEditingTimelineItem({...editingTimelineItem, active: e.target.checked})}
+                          />
+                          Активное событие
+                        </label>
+                      </div>
+                      <div className="admin-form-actions">
+                        <button type="submit" className="admin-btn-primary">Сохранить</button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingTimelineItem(null)}
+                          className="admin-btn-secondary"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {settingsSubTab === 'prizes' && (
+            <div className="admin-settings-content">
+              <div className="admin-settings-section-header">
+                <h3>Призы и награды</h3>
+                <button
+                  onClick={() => {
+                    setEditingPrize({
+                      rank: 1,
+                      name: '',
+                      amount: 0,
+                      benefits: [],
+                      featured: false
+                    });
+                  }}
+                  className="admin-btn-primary"
+                >
+                  + Добавить приз
+                </button>
+              </div>
+              <div className="admin-settings-list">
+                {hackathonSettings.prizes.map((prize, idx) => (
+                  <div key={prize.id || idx} className="admin-settings-item">
+                    <div className="admin-settings-item-content">
+                      <div className="admin-settings-item-title">
+                        #{prize.rank} - {prize.name}
+                        {prize.featured && <span className="admin-badge-featured">TOP PRIZE</span>}
+                      </div>
+                      <div className="admin-settings-item-meta">
+                        <span>Сумма: ${prize.amount.toLocaleString()}</span>
+                        <span>Бонусов: {prize.benefits?.length || 0}</span>
+                      </div>
+                      {prize.benefits && prize.benefits.length > 0 && (
+                        <div className="admin-settings-item-benefits">
+                          {prize.benefits.map((b, i) => (
+                            <span key={i} className="admin-benefit-tag">{b}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="admin-settings-item-actions">
+                      <button
+                        onClick={() => setEditingPrize(prize)}
+                        className="admin-btn-secondary"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => deletePrize(prize.id)}
+                        className="admin-btn-danger"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {editingPrize && (
+                <div className="admin-modal">
+                  <div className="admin-modal-content">
+                    <h3>{editingPrize.id ? 'Редактировать' : 'Создать'} приз</h3>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      savePrize(editingPrize);
+                    }}>
+                      <div className="admin-form-group">
+                        <label>Место (ранг)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editingPrize.rank}
+                          onChange={(e) => setEditingPrize({...editingPrize, rank: parseInt(e.target.value)})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Название</label>
+                        <input
+                          type="text"
+                          value={editingPrize.name}
+                          onChange={(e) => setEditingPrize({...editingPrize, name: e.target.value})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Сумма ($)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingPrize.amount}
+                          onChange={(e) => setEditingPrize({...editingPrize, amount: parseInt(e.target.value)})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Бонусы (через запятую)</label>
+                        <input
+                          type="text"
+                          value={editingPrize.benefits?.join(', ') || ''}
+                          onChange={(e) => setEditingPrize({
+                            ...editingPrize,
+                            benefits: e.target.value.split(',').map(b => b.trim()).filter(b => b)
+                          })}
+                          className="admin-input"
+                          placeholder="VC Introduction, Audit Credits, Premium Hardware"
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={editingPrize.featured}
+                            onChange={(e) => setEditingPrize({...editingPrize, featured: e.target.checked})}
+                          />
+                          Главный приз (TOP PRIZE)
+                        </label>
+                      </div>
+                      <div className="admin-form-actions">
+                        <button type="submit" className="admin-btn-primary">Сохранить</button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPrize(null)}
+                          className="admin-btn-secondary"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {settingsSubTab === 'tracks' && (
+            <div className="admin-settings-content">
+              <div className="admin-settings-section-header">
+                <h3>Треки событий</h3>
+                <button
+                  onClick={() => {
+                    setEditingTrack({
+                      name: '',
+                      description: '',
+                      tags: []
+                    });
+                  }}
+                  className="admin-btn-primary"
+                >
+                  + Добавить трек
+                </button>
+              </div>
+              <div className="admin-settings-list">
+                {hackathonSettings.tracks.map((track, idx) => (
+                  <div key={track.id || idx} className="admin-settings-item">
+                    <div className="admin-settings-item-content">
+                      <div className="admin-settings-item-title">
+                        {String(idx + 1).padStart(2, '0')}. {track.name}
+                      </div>
+                      <div className="admin-settings-item-desc">{track.description}</div>
+                      {track.tags && track.tags.length > 0 && (
+                        <div className="admin-settings-item-tags">
+                          {track.tags.map((tag, i) => (
+                            <span key={i} className="admin-tag">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="admin-settings-item-actions">
+                      <button
+                        onClick={() => setEditingTrack(track)}
+                        className="admin-btn-secondary"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={() => deleteTrack(track.id)}
+                        className="admin-btn-danger"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {editingTrack && (
+                <div className="admin-modal">
+                  <div className="admin-modal-content">
+                    <h3>{editingTrack.id ? 'Редактировать' : 'Создать'} трек</h3>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      saveTrack(editingTrack);
+                    }}>
+                      <div className="admin-form-group">
+                        <label>Название</label>
+                        <input
+                          type="text"
+                          value={editingTrack.name}
+                          onChange={(e) => setEditingTrack({...editingTrack, name: e.target.value})}
+                          className="admin-input"
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Описание</label>
+                        <textarea
+                          value={editingTrack.description}
+                          onChange={(e) => setEditingTrack({...editingTrack, description: e.target.value})}
+                          className="admin-input"
+                          rows={3}
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Теги (через запятую)</label>
+                        <input
+                          type="text"
+                          value={editingTrack.tags?.join(', ') || ''}
+                          onChange={(e) => setEditingTrack({
+                            ...editingTrack,
+                            tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
+                          })}
+                          className="admin-input"
+                          placeholder="Python, TensorFlow"
+                        />
+                      </div>
+                      <div className="admin-form-actions">
+                        <button type="submit" className="admin-btn-primary">Сохранить</button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingTrack(null)}
+                          className="admin-btn-secondary"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

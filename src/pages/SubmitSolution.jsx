@@ -70,8 +70,22 @@ const SubmitSolution = () => {
 
   if (casesStore.loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-400">Загрузка...</div>
+      <div className="terminal-loading">
+        <div className="terminal-loading-container">
+          <div>
+            <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+            <span className="terminal-loading-command">load_case_data</span>
+          </div>
+          <div className="terminal-loading-status">
+            &gt; Loading case information
+            <span className="terminal-loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div className="terminal-loading-bar"></div>
+        </div>
       </div>
     );
   }

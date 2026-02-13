@@ -8,6 +8,7 @@ class AuthStore {
   loading = false;
   error = null;
   initializing = true;
+  loginInProgress = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -39,6 +40,12 @@ class AuthStore {
   }
 
   async loginWithToken(token, captchaToken) {
+    // Предотвращаем одновременные вызовы
+    if (this.loginInProgress) {
+      return false;
+    }
+    
+    this.loginInProgress = true;
     this.loading = true;
     this.error = null;
     try {
@@ -55,6 +62,7 @@ class AuthStore {
     } finally {
       this.loading = false;
       this.initializing = false;
+      this.loginInProgress = false;
     }
   }
 

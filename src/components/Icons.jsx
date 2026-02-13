@@ -471,3 +471,151 @@ export const TelegramIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
+
+export const FolderPlusIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M12 11V17M9 14H15"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+export const LinkIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M10 13C10.4295 13.5741 10.9774 14.0491 11.6066 14.3929C12.2357 14.7367 12.9315 14.9411 13.6467 14.9923C14.3618 15.0435 15.0796 14.9403 15.7513 14.6897C16.4231 14.4392 17.0331 14.047 17.54 13.54L20.54 10.54C21.4508 9.59695 21.9548 8.33394 21.9434 7.02296C21.932 5.71198 21.4061 4.45791 20.4791 3.53087C19.5521 2.60383 18.298 2.07799 16.987 2.0666C15.676 2.05521 14.413 2.55918 13.47 3.47L11.75 5.18"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M14 11C13.5705 10.4259 13.0226 9.95087 12.3934 9.60708C11.7643 9.26329 11.0685 9.05886 10.3533 9.00766C9.63816 8.95645 8.92037 9.05972 8.24863 9.31028C7.57689 9.56083 6.96688 9.95304 6.46 10.46L3.46 13.46C2.54918 14.403 2.04521 15.6661 2.0566 16.977C2.06799 18.288 2.59383 19.5421 3.52087 20.4691C4.44791 21.3962 5.70198 21.922 7.01296 21.9334C8.32394 21.9448 9.58695 21.4408 10.53 20.53L12.24 18.82"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+export const PlusIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M12 5V19M5 12H19"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+export const EditIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+export const RefreshIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M1 4V10H7"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M23 20V14H17"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M20.49 9C19.7968 7.09029 18.5461 5.41047 16.8821 4.16369C15.2181 2.91691 13.2136 2.15729 11.1066 1.98578C9.00006 1.81428 6.86384 2.23716 4.9708 3.20381C3.07775 4.17046 1.50389 5.63809 0.411872 7.43699"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M3.51 15C4.20316 16.9097 5.45388 18.5895 7.11787 19.8363C8.78186 21.0831 10.7864 21.8427 12.8934 22.0142C14.9999 22.1857 17.1362 21.7628 19.0292 20.7962C20.9223 19.8295 22.4961 18.3619 23.5881 16.563"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
+export const WifiIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M5 12.55C6.97656 10.5703 9.46875 9.375 12 9.375C14.5312 9.375 17.0234 10.5703 19 12.55"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M2 8.5C5.28125 5.21875 9.75 3.5 12 3.5C14.25 3.5 18.7188 5.21875 22 8.5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path
+      d="M8.5 16.5C9.625 15.375 10.8125 14.75 12 14.75C13.1875 14.75 14.375 15.375 15.5 16.5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <circle
+      cx="12"
+      cy="20"
+      r="1.5"
+      fill="currentColor"
+    />
+  </Icon>
+);

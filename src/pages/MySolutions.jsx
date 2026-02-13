@@ -39,12 +39,21 @@ const MySolutions = () => {
       </div>
 
       {solutionsStore.loading ? (
-        <div className="text-center py-12">
-          <div className="inline-flex items-center gap-2 text-terminal-green">
-            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-1"></div>
-            <div className="w-2 h-2 bg-terminal-green rounded-full animate-bounce-delay-2"></div>
-            <span className="ml-2 text-gray-400">Загрузка...</span>
+        <div className="terminal-loading">
+          <div className="terminal-loading-container">
+            <div>
+              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-command">list_solutions --user</span>
+            </div>
+            <div className="terminal-loading-status">
+              &gt; Fetching solutions
+              <span className="terminal-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </div>
+            <div className="terminal-loading-bar"></div>
           </div>
         </div>
       ) : solutionsStore.solutions.length === 0 ? (

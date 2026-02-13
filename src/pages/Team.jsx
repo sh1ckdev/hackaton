@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon } from '../components/Icons';
 
 const Team = () => {
   useDocumentTitle('Команда');
@@ -10,8 +11,9 @@ const Team = () => {
   const [teamError, setTeamError] = useState(null);
   const [teamName, setTeamName] = useState('');
   const [teamNameError, setTeamNameError] = useState(false);
-  const [showJoin, setShowJoin] = useState(false);
-  const [teamCode, setTeamCode] = useState('');
+  const [teamCode, setTeamCode] = useState(['', '', '', '', '', '']);
+  const codeInputRefs = useRef([]);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -20,6 +22,9 @@ const Team = () => {
       try {
         const response = await api.get('/teams/me');
         setTeam(response.data.team);
+        if (response.data.team) {
+          generateLogs(response.data.team);
+        }
       } catch (error) {
         setTeamError(error.response?.data?.error || 'Ошибка загрузки команды');
       } finally {
@@ -29,21 +34,111 @@ const Team = () => {
     fetchTeam();
   }, []);
 
-  const hasTeam = !!team;
+  const generateLogs = (teamData) => {
+    const newLogs = [];
+    if (teamData.members && teamData.members.length > 0) {
+      const captain = teamData.members.find(m => m.role === 'captain');
+      if (captain && teamData.created_at) {
+        const createdDate = new Date(teamData.created_at);
+        const timeStr = `${createdDate.getHours().toString().padStart(2, '0')}:${createdDate.getMinutes().toString().padStart(2, '0')}:${createdDate.getSeconds().toString().padStart(2, '0')}`;
+        newLogs.push({
+          time: timeStr,
+          level: 'INFO',
+          message: `User @${captain.username} initialized team repository '${teamData.name}'.`
+        });
+      }
+      teamData.members.filter(m => m.role !== 'captain').forEach((member, idx) => {
+        if (member.joined_at) {
+          const joinedDate = new Date(member.joined_at);
+          const timeStr = `${joinedDate.getHours().toString().padStart(2, '0')}:${joinedDate.getMinutes().toString().padStart(2, '0')}:${joinedDate.getSeconds().toString().padStart(2, '0')}`;
+          newLogs.push({
+            time: timeStr,
+            level: 'SUCCESS',
+            message: `User @${member.username} joined via hash key.`
+          });
+        } else {
+          // Fallback если нет даты присоединения
+          const now = new Date();
+          const timeStr = `${now.getHours().toString().padStart(2, '0')}:${(now.getMinutes() - idx * 3).toString().padStart(2, '0')}:${(now.getSeconds() - idx).toString().padStart(2, '0')}`;
+          newLogs.push({
+            time: timeStr,
+            level: 'SUCCESS',
+            message: `User @${member.username} joined via hash key.`
+          });
+        }
+      });
+    }
+    if (teamData.members && teamData.members.length < 4) {
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+      newLogs.push({
+        time: timeStr,
+        level: 'SYSTEM',
+        message: 'Waiting for final member configuration...'
+      });
+    }
+    // Сортируем логи по времени
+    newLogs.sort((a, b) => a.time.localeCompare(b.time));
+    setLogs(newLogs);
+  };
+
+  const handleCodeChange = (index, value) => {
+    // Если вставлен длинный код (например, через Ctrl+V)
+    if (value.length > 1) {
+      const cleanValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+      const newCode = ['', '', '', '', '', ''];
+      for (let i = 0; i < cleanValue.length && i < 6; i++) {
+        newCode[i] = cleanValue[i];
+      }
+      setTeamCode(newCode);
+      // Фокус на последний заполненный или следующий пустой
+      const nextEmptyIndex = cleanValue.length < 6 ? cleanValue.length : 5;
+      codeInputRefs.current[nextEmptyIndex]?.focus();
+      return;
+    }
+
+    // Обычный ввод одного символа
+    const newCode = [...teamCode];
+    newCode[index] = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    setTeamCode(newCode);
+
+    if (value && index < 5) {
+      codeInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodeKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !teamCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleCodePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    const newCode = ['', '', '', '', '', ''];
+    for (let i = 0; i < pastedData.length; i++) {
+      newCode[i] = pastedData[i];
+    }
+    setTeamCode(newCode);
+    const nextEmptyIndex = pastedData.length < 6 ? pastedData.length : 5;
+    codeInputRefs.current[nextEmptyIndex]?.focus();
+  };
 
   const handleJoin = async (e) => {
     e.preventDefault();
-    if (!teamCode.trim()) {
+    const code = teamCode.join('').trim();
+    if (code.length !== 6) {
+      setTeamError('Код должен состоять из 6 символов');
       return;
     }
     try {
-      const response = await api.post('/teams/join', { team_code: teamCode.trim().toUpperCase() });
-
+      await api.post('/teams/join', { team_code: code });
       const teamResponse = await api.get('/teams/me');
       setTeam(teamResponse.data.team);
-      setShowJoin(false);
-      setTeamCode('');
+      setTeamCode(['', '', '', '', '', '']);
       setTeamError(null);
+      generateLogs(teamResponse.data.team);
     } catch (error) {
       setTeamError(error.response?.data?.error || 'Ошибка вступления в команду');
     }
@@ -57,214 +152,179 @@ const Team = () => {
     }
     setTeamNameError(false);
     try {
-      await api.post('/teams/create', {
-        name: trimmedName
-      });
-
+      await api.post('/teams/create', { name: trimmedName });
       const teamResponse = await api.get('/teams/me');
       setTeam(teamResponse.data.team);
       setTeamName('');
       setTeamError(null);
+      generateLogs(teamResponse.data.team);
     } catch (error) {
       setTeamError(error.response?.data?.error || 'Ошибка создания команды');
     }
   };
 
+  const maxMembers = 4;
+  const currentMembers = team?.members || [];
+  const emptySlots = Array(maxMembers - currentMembers.length).fill(null);
+
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">Команда</h1>
-        <p className="text-gray-400 text-sm">Управляйте своей командой и участниками</p>
+    <div className="team-page">
+      <div className="team-header">
+        <div>
+          <h1>Team Management</h1>
+          <p>Manage your squad, invite collaborators, or join an existing repository. Success requires optimal configuration.</p>
+        </div>
+        <div className="team-deadline">
+          <TimeIcon size={16} />
+          <span>DEADLINE: 48:00:00</span>
+        </div>
       </div>
 
       {loadingTeam ? (
-        <div className="text-center py-20">
-          <div className="text-gray-400">Загрузка...</div>
-        </div>
-      ) : hasTeam ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {}
-          <div className="lg:col-span-1">
-            <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm sticky top-8">
-              <h2 className="text-lg font-semibold text-white mb-6">Информация о команде</h2>
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wide block mb-2">Код команды</label>
-                  <div className="p-4 bg-terminal-dark/40 border border-terminal-green/30 rounded-lg">
-                    <div className="text-2xl font-bold text-terminal-green font-mono text-center mb-2">
-                      {team.code}
-                    </div>
-                    <p className="text-xs text-gray-500 text-center">
-                      Поделитесь этим кодом, чтобы пригласить участников
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wide block mb-2">Название</label>
-                  <div className="text-white font-medium text-lg">{team.name}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wide block mb-2">Ваша роль</label>
-                  <span className={`inline-block px-3 py-1.5 text-xs font-semibold rounded-lg border ${
-                    team.role === 'captain' 
-                      ? 'border-terminal-green text-terminal-green bg-terminal-green/10' 
-                      : 'border-terminal-cyan text-terminal-cyan bg-terminal-cyan/10'
-                  }`}>
-                    {team.role === 'captain' ? 'Капитан' : 'Участник'}
-                  </span>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Вы уверены, что хотите покинуть команду?')) {
-                      return;
-                    }
-                    try {
-                      await api.post('/teams/leave');
-                      setTeam(null);
-                      alert('Вы покинули команду');
-                    } catch (error) {
-                      alert(error.response?.data?.error || 'Ошибка при выходе из команды');
-                    }
-                  }}
-                  className="w-full px-4 py-2.5 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all rounded-lg text-sm font-medium"
-                >
-                  Покинуть команду
-                </button>
-              </div>
+        <div className="terminal-loading">
+          <div className="terminal-loading-container">
+            <div>
+              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-command">team_status --current</span>
             </div>
-          </div>
-
-          {}
-          <div className="lg:col-span-2">
-            <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
-              <h2 className="text-lg font-semibold text-white mb-6">Участники</h2>
-              <div className="space-y-3">
-                {team.members?.map((member) => (
-                  <div 
-                    key={member.id} 
-                    className="flex items-center gap-4 p-4 border border-terminal-gray/20 rounded-lg bg-terminal-dark/20 hover:border-terminal-green/30 transition-colors"
-                  >
-                    <div className="h-14 w-14 rounded-full overflow-hidden bg-terminal-dark border-2 border-terminal-gray/30 shrink-0 flex items-center justify-center">
-                      {member.photo_url ? (
-                        <img
-                          src={member.photo_url}
-                          alt="avatar"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-white/70 text-xl font-bold bg-gradient-to-br from-terminal-green/20 to-terminal-cyan/20">
-                          {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-white font-semibold">
-                          {member.first_name || ''} {member.last_name || ''}
-                          {(!member.first_name && !member.last_name) && (member.username || 'Участник')}
-                        </div>
-                        {member.role === 'captain' && (
-                          <span className="px-2 py-0.5 text-xs font-semibold rounded border border-terminal-green text-terminal-green bg-terminal-green/10">
-                            Капитан
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-gray-400 text-sm">
-                        @{member.username || '—'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="terminal-loading-status">
+              &gt; Fetching team data
+              <span className="terminal-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
             </div>
+            <div className="terminal-loading-bar"></div>
           </div>
         </div>
-      ) : (
-        <div className="max-w-2xl mx-auto">
-          <div className="border border-terminal-gray/30 rounded-xl p-8 bg-terminal-dark/30 backdrop-blur-sm">
-            <h2 className="text-2xl font-semibold text-white mb-2">Создать или вступить в команду</h2>
-            <p className="text-gray-400 text-sm mb-6">Объединитесь с другими участниками для совместной работы</p>
-            
-            <div className="space-y-6">
-              {}
-              <div className="border border-terminal-gray/20 rounded-lg p-5 bg-terminal-dark/20">
-                <h3 className="text-lg font-medium text-white mb-4">Создать новую команду</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Название команды
-                    </label>
-                    <input
-                      value={teamName}
-                      onChange={(e) => {
-                        setTeamName(e.target.value);
-                        setTeamNameError(false);
-                      }}
-                      placeholder="Введите название команды"
-                      className={`w-full px-4 py-3 rounded-lg border bg-terminal-dark/40 text-white focus:outline-none transition-all ${
-                        teamNameError
-                          ? 'border-terminal-red focus:border-terminal-red'
-                          : 'border-terminal-gray/30 focus:border-terminal-green'
-                      }`}
-                    />
-                    {teamNameError && (
-                      <p className="mt-1 text-sm text-terminal-red">Название команды обязательно</p>
+      ) : team ? (
+        <>
+          <div className="team-members-section">
+            <h2>Current_Members [{currentMembers.length}/{maxMembers}]</h2>
+            <div className="team-members-grid">
+              {currentMembers.map((member) => (
+                <div key={member.id} className="team-member-card">
+                  <div className="team-member-avatar">
+                    {member.photo_url ? (
+                      <img src={member.photo_url} alt={member.username} />
+                    ) : (
+                      <div className="team-member-avatar-placeholder">
+                        {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
+                      </div>
                     )}
+                    <div className="team-member-status"></div>
                   </div>
-                  <button
-                    onClick={handleCreate}
-                    disabled={!teamName.trim()}
-                    className="w-full px-4 py-3 rounded-lg border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    Создать команду
-                  </button>
+                  <div className="team-member-name">
+                    {member.first_name && member.last_name
+                      ? `${member.first_name} ${member.last_name}`
+                      : member.username || 'Участник'}
+                  </div>
+                  <div className="team-member-handle">@{member.username || 'user'}</div>
+                  <div className="team-member-roles">
+                    {member.role === 'captain' && (
+                      <span className="team-role-badge">TEAM LEAD</span>
+                    )}
+                    <span className="team-role-badge">FULL STACK</span>
+                  </div>
                 </div>
-              </div>
-
-              {}
-              <div className="border border-terminal-gray/20 rounded-lg p-5 bg-terminal-dark/20">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-white">Вступить в существующую команду</h3>
-                  <button
-                    onClick={() => setShowJoin((prev) => !prev)}
-                    className="px-4 py-2 rounded-lg border border-terminal-gray/30 text-white/80 hover:text-white hover:border-terminal-cyan transition-all text-sm"
-                  >
-                    {showJoin ? 'Скрыть' : 'Показать'}
-                  </button>
+              ))}
+              {emptySlots.map((_, idx) => (
+                <div key={`empty-${idx}`} className="team-member-card team-member-empty">
+                  <div className="team-member-empty-icon">
+                    <PlusIcon size={32} />
+                  </div>
+                  <div className="team-member-empty-title">Open Slot</div>
+                  <div className="team-member-empty-desc">Invite a member or leave open for matchmaking.</div>
+                  <button className="team-invite-btn">INVITE_USER()</button>
                 </div>
-                {showJoin && (
-                  <form onSubmit={handleJoin} className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-white/80 mb-2">
-                        Код команды
-                      </label>
-                      <input
-                        value={teamCode}
-                        onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
-                        placeholder="Введите код команды (6 букв)"
-                        maxLength={6}
-                        className="w-full px-4 py-3 rounded-lg border border-terminal-gray/30 bg-terminal-dark/40 text-white focus:border-terminal-cyan focus:outline-none uppercase font-mono text-center text-xl tracking-widest"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={!teamCode.trim()}
-                      className="w-full px-4 py-3 rounded-lg border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Вступить в команду
-                    </button>
-                  </form>
-                )}
-              </div>
-
-              {teamError && (
-                <div className="p-4 border border-terminal-red/50 rounded-lg text-terminal-red text-sm bg-terminal-red/10">
-                  {teamError}
-                </div>
-              )}
+              ))}
             </div>
           </div>
-        </div>
+
+          <div className="team-logs">
+            <h3>SYSTEM_LOGS</h3>
+            <div className="team-logs-list">
+              {logs.map((log, idx) => (
+                <div key={idx} className="team-log-entry">
+                  <span className="team-log-time">{log.time}</span>
+                  <span className={`team-log-level team-log-${log.level.toLowerCase()}`}>{log.level}</span>
+                  <span className="team-log-message">{log.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="team-actions-grid">
+            <div className="team-action-card">
+              <div className="team-action-icon">
+                <FolderPlusIcon size={32} />
+              </div>
+              <h3>Initialize New Team</h3>
+              <p>Start a fresh repository for your squad. You'll be assigned as the Team Lead automatically.</p>
+              <div className="team-input-group">
+                <label>TEAM NAME</label>
+                <input
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => {
+                    setTeamName(e.target.value);
+                    setTeamNameError(false);
+                  }}
+                  placeholder="e.g. NullPointers"
+                  className={teamNameError ? 'error' : ''}
+                />
+              </div>
+              <button onClick={handleCreate} className="team-primary-btn">
+                <FolderPlusIcon size={16} />
+                Create_Team()
+              </button>
+            </div>
+
+            <div className="team-action-card">
+              <div className="team-action-icon">
+                <LinkIcon size={32} />
+              </div>
+              <h3>Join Existing Team</h3>
+              <p>Enter the unique 6-digit hash key provided by your team lead to join the roster.</p>
+              <div className="team-input-group">
+                <label>ENTER ACCESS CODE</label>
+                <div className="team-code-inputs">
+                  {teamCode.map((char, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (codeInputRefs.current[index] = el)}
+                      type="text"
+                      maxLength={1}
+                      value={char}
+                      onChange={(e) => handleCodeChange(index, e.target.value)}
+                      onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                      onPaste={handleCodePaste}
+                      className="team-code-input"
+                    />
+                  ))}
+                </div>
+              </div>
+              <button onClick={handleJoin} className="team-secondary-btn">
+                <LinkIcon size={16} />
+                Connect_To_Squad
+              </button>
+              <div className="team-status-badge">
+                <span>STATUS:</span>
+                <span className="team-status-value">READY_TO_DEPLOY</span>
+              </div>
+            </div>
+          </div>
+
+          {teamError && (
+            <div className="team-error">
+              <strong>Ошибка</strong>
+              <span>{teamError}</span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

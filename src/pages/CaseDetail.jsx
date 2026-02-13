@@ -30,8 +30,22 @@ const CaseDetail = () => {
 
   if (casesStore.loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-400">Загрузка...</div>
+      <div className="terminal-loading">
+        <div className="terminal-loading-container">
+          <div>
+            <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+            <span className="terminal-loading-command">read_case --id {id}</span>
+          </div>
+          <div className="terminal-loading-status">
+            &gt; Loading case details
+            <span className="terminal-loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div className="terminal-loading-bar"></div>
+        </div>
       </div>
     );
   }
@@ -284,13 +298,6 @@ const CaseDetail = () => {
                 <div>
                   <SolutionIcon size={32} className="text-terminal-green mx-auto mb-3 opacity-50" />
                   <p className="text-gray-400 mb-4">У вас еще нет решения для этого кейса</p>
-                  <Link
-                    to={`/solutions/submit/${caseItem.id}`}
-                    className="group inline-flex items-center gap-2 px-6 py-3 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-all hover:scale-105"
-                  >
-                    <PaperPlaneIcon size={18} />
-                    <span>Отправить решение</span>
-                  </Link>
                 </div>
               )}
             </div>
