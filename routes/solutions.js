@@ -163,8 +163,47 @@ router.post('/',
       return res.status(404).json({ error: 'Кейс не найден' });
     }
 
+    if (!['admin', 'moderator'].includes(req.user.role)) {
+      const teamResult = await pool.query(
+        `SELECT t.assigned_case_id
+         FROM team_members tm
+         JOIN teams t ON tm.team_id = t.id
+         WHERE tm.user_id = $1`,
+        [req.user.id]
+      );
+
+      if (teamResult.rows.length === 0) {
+        return res.status(403).json({ error: 'Для отправки решения нужна команда' });
+      }
+
+      const assignedCaseId = teamResult.rows[0].assigned_case_id;
+      if (!assignedCaseId) {
+        return res.status(403).json({ error: 'Кейс вашей команде еще не назначен' });
+      }
+
+      if (parseInt(case_id, 10) !== assignedCaseId) {
+        return res.status(403).json({ error: 'Вы можете отправлять решения только по назначенному кейсу' });
+      }
+    }
+
 
     const caseData = caseResult.rows[0];
+
+    const globalOpenResult = await pool.query(`
+      SELECT schedule_time
+      FROM broadcast_settings
+      WHERE type = 'case_opening'
+        AND enabled = TRUE
+        AND schedule_time IS NOT NULL
+        AND case_id IS NULL
+      ORDER BY schedule_time DESC
+      LIMIT 1
+    `);
+    const globalOpenTime = globalOpenResult.rows[0]?.schedule_time || null;
+    if (globalOpenTime && new Date(globalOpenTime) > new Date()) {
+      return res.status(403).json({ error: 'Кейсы еще не открыты' });
+    }
+
     if (caseData.opens_at && new Date(caseData.opens_at) > new Date()) {
       return res.status(403).json({ error: 'Кейс еще не открыт' });
     }

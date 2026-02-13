@@ -95,10 +95,12 @@ CREATE TABLE IF NOT EXISTS teams (
     team_code VARCHAR(6) UNIQUE,
     name VARCHAR(255) NOT NULL,
     created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assigned_case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE teams ADD COLUMN IF NOT EXISTS team_code VARCHAR(6);
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS assigned_case_id INTEGER REFERENCES cases(id) ON DELETE SET NULL;
 
 -- Участники команд (один пользователь в одной команде)
 CREATE TABLE IF NOT EXISTS team_members (

@@ -99,6 +99,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/opening-time', async (req, res) => {
+  try {
+    let result = await pool.query(`
+      SELECT schedule_time
+      FROM broadcast_settings
+      WHERE type = 'case_opening'
+        AND enabled = TRUE
+        AND schedule_time IS NOT NULL
+        AND case_id IS NULL
+      ORDER BY schedule_time DESC
+      LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      result = await pool.query(`
+        SELECT schedule_time
+        FROM broadcast_settings
+        WHERE type = 'case_opening'
+          AND enabled = TRUE
+          AND schedule_time IS NOT NULL
+        ORDER BY schedule_time DESC
+        LIMIT 1
+      `);
+    }
+
+    res.json({ open_time: result.rows[0]?.schedule_time || null });
+  } catch (error) {
+    logError('Ошибка получения времени открытия кейсов', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 
 router.get('/:id', validateIdParam, async (req, res) => {
   try {
@@ -130,8 +162,8 @@ router.post('/',
   authenticateToken, 
   requireModerator, 
   adminOperationLimiter, 
-  validateCaseCreation,
   upload.array('attachments', 10), // До 10 файлов
+  validateCaseCreation,
   async (req, res) => {
   try {
     let { title, description, requirements, difficulty, max_participants, opens_at, links } = req.body;
@@ -212,8 +244,8 @@ router.put('/:id',
   requireModerator, 
   adminOperationLimiter, 
   validateIdParam, 
-  validateCaseCreation,
   upload.array('attachments', 10),
+  validateCaseCreation,
   async (req, res) => {
   try {
     const { id } = req.params;

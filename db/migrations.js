@@ -248,6 +248,7 @@ async function ensureColumnsExist() {
     ],
     teams: [
       { name: 'team_code', type: 'VARCHAR(6)' },
+      { name: 'assigned_case_id', type: 'INTEGER REFERENCES cases(id) ON DELETE SET NULL' },
     ],
   };
 
@@ -414,6 +415,7 @@ async function ensureIndexesExist() {
     { name: 'idx_solutions_status', table: 'solutions', column: 'status', unique: false },
     { name: 'idx_team_members_team_id', table: 'team_members', column: 'team_id', unique: false },
     { name: 'idx_teams_team_code', table: 'teams', column: 'team_code', unique: true },
+    { name: 'idx_teams_assigned_case_id', table: 'teams', column: 'assigned_case_id', unique: false },
     { name: 'idx_auth_tokens_token', table: 'auth_tokens', column: 'token', unique: false },
     { name: 'idx_auth_tokens_user_id', table: 'auth_tokens', column: 'user_id', unique: false },
     { name: 'idx_refresh_tokens_user_id', table: 'refresh_tokens', column: 'user_id', unique: false },

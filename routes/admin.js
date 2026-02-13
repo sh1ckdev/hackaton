@@ -7,6 +7,27 @@ import { validateIdParam } from '../middleware/validation.js';
 import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
 
 const router = express.Router();
+const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
+
+const normalizeTelegramId = (telegramIdParam) => {
+  if (typeof telegramIdParam === 'string') {
+    if (telegramIdParam.includes('.') || !/^\d+$/.test(telegramIdParam)) {
+      return null;
+    }
+    const parsed = Number(telegramIdParam);
+    if (parsed > Number.MAX_SAFE_INTEGER) {
+      return telegramIdParam;
+    }
+    return parsed;
+  }
+  if (typeof telegramIdParam === 'number') {
+    if (!Number.isFinite(telegramIdParam) || telegramIdParam <= 0) {
+      return null;
+    }
+    return telegramIdParam;
+  }
+  return null;
+};
 
 
 router.use(authenticateToken);
@@ -63,7 +84,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
   try {
     const telegramIdParam = req.params.telegramId;
     const { role } = req.body;
-    const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
 
     logInfo('[Admin] Изменение роли', { telegramId: telegramIdParam, role, adminId: req.user?.id });
 
@@ -244,6 +264,40 @@ router.get('/broadcast-settings', requireModerator, async (req, res) => {
     res.json({ settings: result.rows });
   } catch (error) {
     logError('Ошибка получения настроек рассылок', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.delete('/users/:telegramId', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const telegramIdParam = req.params.telegramId;
+    const telegramId = normalizeTelegramId(telegramIdParam);
+
+    if (!telegramId) {
+      return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
+    }
+
+    if (String(telegramId) === String(MAIN_ADMIN_ID)) {
+      return res.status(403).json({ error: 'Нельзя удалить главного администратора' });
+    }
+
+    if (req.user?.telegram_id && String(req.user.telegram_id) === String(telegramId)) {
+      return res.status(403).json({ error: 'Нельзя удалить самого себя' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM users WHERE telegram_id = $1 RETURNING id, telegram_id',
+      [telegramId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    logInfo('[Admin] Пользователь удален', { telegramId, adminId: req.user?.id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('[Admin] Ошибка удаления пользователя', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
@@ -438,6 +492,88 @@ router.get('/cases/list', requireModerator, async (req, res) => {
     res.json({ cases: result.rows });
   } catch (error) {
     logError('Ошибка получения списка кейсов', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Рандомное распределение команд по кейсам
+router.post('/cases/assign-random', requireModerator, adminOperationLimiter, async (req, res) => {
+  let transactionStarted = false;
+  try {
+    const casesResult = await pool.query(`
+      SELECT id
+      FROM cases
+      WHERE status = 'active'
+      ORDER BY id ASC
+    `);
+    const teamsResult = await pool.query(`
+      SELECT t.id, COUNT(tm.user_id) as members_count
+      FROM teams t
+      LEFT JOIN team_members tm ON t.id = tm.team_id
+      GROUP BY t.id
+      ORDER BY t.id ASC
+    `);
+
+    if (casesResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Нет активных кейсов для распределения' });
+    }
+
+    if (teamsResult.rows.length === 0) {
+      return res.json({ assigned: 0, assignments: [] });
+    }
+
+    const cases = casesResult.rows;
+    const teams = teamsResult.rows.map((team) => ({
+      ...team,
+      members_count: parseInt(team.members_count, 10) || 0
+    }));
+
+    for (let i = teams.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [teams[i], teams[j]] = [teams[j], teams[i]];
+    }
+
+    const caseLoads = new Map(cases.map((c) => [c.id, 0]));
+    const assignments = [];
+
+    for (const team of teams) {
+      const minLoad = Math.min(...cases.map((c) => caseLoads.get(c.id)));
+      const candidateCases = cases.filter((c) => caseLoads.get(c.id) === minLoad);
+      const selected = candidateCases[Math.floor(Math.random() * candidateCases.length)];
+
+      assignments.push({ team_id: team.id, case_id: selected.id });
+      caseLoads.set(selected.id, caseLoads.get(selected.id) + team.members_count);
+    }
+
+    await pool.query('BEGIN');
+    transactionStarted = true;
+    await pool.query('UPDATE teams SET assigned_case_id = NULL');
+
+    for (const assignment of assignments) {
+      await pool.query(
+        'UPDATE teams SET assigned_case_id = $1 WHERE id = $2',
+        [assignment.case_id, assignment.team_id]
+      );
+    }
+
+    await pool.query('COMMIT');
+    transactionStarted = false;
+
+    logInfo('Рандомное распределение команд по кейсам', {
+      teamsAssigned: assignments.length,
+      casesCount: cases.length
+    });
+
+    res.json({ assigned: assignments.length, assignments });
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await pool.query('ROLLBACK');
+      } catch (rollbackError) {
+        logError('Ошибка отката транзакции', rollbackError);
+      }
+    }
+    logError('Ошибка распределения команд по кейсам', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

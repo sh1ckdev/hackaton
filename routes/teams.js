@@ -26,9 +26,10 @@ const generateTeamCode = async () => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const memberResult = await pool.query(
-      `SELECT tm.team_id, tm.role, t.name
+      `SELECT tm.team_id, tm.role, t.name, t.assigned_case_id, c.title as assigned_case_title
        FROM team_members tm
        JOIN teams t ON tm.team_id = t.id
+       LEFT JOIN cases c ON t.assigned_case_id = c.id
        WHERE tm.user_id = $1`,
       [req.user.id]
     );
@@ -60,6 +61,8 @@ router.get('/me', authenticateToken, async (req, res) => {
         code: teamCode,
         name: team.name,
         role: team.role,
+        assigned_case_id: team.assigned_case_id || null,
+        assigned_case_title: team.assigned_case_title || null,
         members: membersResult.rows
       }
     });
@@ -214,10 +217,13 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
   try {
     const teamsResult = await pool.query(
       `SELECT t.id, t.team_code, t.name, t.created_at, 
-              COUNT(tm.user_id) as members_count
+              COUNT(tm.user_id) as members_count,
+              t.assigned_case_id,
+              c.title as assigned_case_title
        FROM teams t
        LEFT JOIN team_members tm ON t.id = tm.team_id
-       GROUP BY t.id, t.team_code, t.name, t.created_at
+       LEFT JOIN cases c ON t.assigned_case_id = c.id
+       GROUP BY t.id, t.team_code, t.name, t.created_at, t.assigned_case_id, c.title
        ORDER BY t.created_at DESC`
     );
 
