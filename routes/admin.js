@@ -496,6 +496,345 @@ router.get('/cases/list', requireModerator, async (req, res) => {
   }
 });
 
+// ========== НАСТРОЙКИ ХАКАТОНА ==========
+
+// Получить таймлайн
+router.get('/settings/timeline', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM hackathon_timeline
+      ORDER BY date ASC, created_at ASC
+    `);
+    res.json({ timeline: result.rows });
+  } catch (error) {
+    logError('Ошибка получения таймлайна', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Создать пункт таймлайна
+router.post('/settings/timeline', requireModerator, async (req, res) => {
+  try {
+    const { type, title, description, date, active } = req.body;
+    
+    if (!type || !title || !description || !date) {
+      return res.status(400).json({ error: 'Все поля обязательны' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO hackathon_timeline (type, title, description, date, active)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [type, title, description, date, active || false]);
+
+    logInfo('Создан пункт таймлайна', { id: result.rows[0].id, title });
+    res.json({ timeline_item: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка создания пункта таймлайна', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновить пункт таймлайна
+router.put('/settings/timeline/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, title, description, date, active } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (type !== undefined) {
+      updates.push(`type = $${paramIndex++}`);
+      values.push(type);
+    }
+    if (title !== undefined) {
+      updates.push(`title = $${paramIndex++}`);
+      values.push(title);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description);
+    }
+    if (date !== undefined) {
+      updates.push(`date = $${paramIndex++}`);
+      values.push(date);
+    }
+    if (active !== undefined) {
+      updates.push(`active = $${paramIndex++}`);
+      values.push(active);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Нет полей для обновления' });
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await pool.query(`
+      UPDATE hackathon_timeline
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Пункт таймлайна не найден' });
+    }
+
+    logInfo('Обновлен пункт таймлайна', { id });
+    res.json({ timeline_item: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка обновления пункта таймлайна', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Удалить пункт таймлайна
+router.delete('/settings/timeline/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM hackathon_timeline WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Пункт таймлайна не найден' });
+    }
+
+    logInfo('Удален пункт таймлайна', { id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления пункта таймлайна', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получить призы
+router.get('/settings/prizes', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM hackathon_prizes
+      ORDER BY rank ASC
+    `);
+    res.json({ prizes: result.rows });
+  } catch (error) {
+    logError('Ошибка получения призов', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Создать приз
+router.post('/settings/prizes', requireModerator, async (req, res) => {
+  try {
+    const { rank, name, amount, benefits, featured } = req.body;
+    
+    if (!rank || !name || amount === undefined) {
+      return res.status(400).json({ error: 'Ранг, название и сумма обязательны' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO hackathon_prizes (rank, name, amount, benefits, featured)
+      VALUES ($1, $2, $3, $4::jsonb, $5)
+      RETURNING *
+    `, [rank, name, amount, JSON.stringify(benefits || []), featured || false]);
+
+    logInfo('Создан приз', { id: result.rows[0].id, name });
+    res.json({ prize: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка создания приза', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновить приз
+router.put('/settings/prizes/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rank, name, amount, benefits, featured } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (rank !== undefined) {
+      updates.push(`rank = $${paramIndex++}`);
+      values.push(rank);
+    }
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (amount !== undefined) {
+      updates.push(`amount = $${paramIndex++}`);
+      values.push(amount);
+    }
+    if (benefits !== undefined) {
+      updates.push(`benefits = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(benefits));
+    }
+    if (featured !== undefined) {
+      updates.push(`featured = $${paramIndex++}`);
+      values.push(featured);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Нет полей для обновления' });
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await pool.query(`
+      UPDATE hackathon_prizes
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Приз не найден' });
+    }
+
+    logInfo('Обновлен приз', { id });
+    res.json({ prize: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка обновления приза', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Удалить приз
+router.delete('/settings/prizes/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM hackathon_prizes WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Приз не найден' });
+    }
+
+    logInfo('Удален приз', { id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления приза', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получить треки
+router.get('/settings/tracks', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM hackathon_tracks
+      ORDER BY created_at ASC
+    `);
+    res.json({ tracks: result.rows });
+  } catch (error) {
+    logError('Ошибка получения треков', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Создать трек
+router.post('/settings/tracks', requireModerator, async (req, res) => {
+  try {
+    const { name, description, tags } = req.body;
+    
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Название и описание обязательны' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO hackathon_tracks (name, description, tags)
+      VALUES ($1, $2, $3::jsonb)
+      RETURNING *
+    `, [name, description, JSON.stringify(tags || [])]);
+
+    logInfo('Создан трек', { id: result.rows[0].id, name });
+    res.json({ track: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка создания трека', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Обновить трек
+router.put('/settings/tracks/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, tags } = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description);
+    }
+    if (tags !== undefined) {
+      updates.push(`tags = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(tags));
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Нет полей для обновления' });
+    }
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const result = await pool.query(`
+      UPDATE hackathon_tracks
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Трек не найден' });
+    }
+
+    logInfo('Обновлен трек', { id });
+    res.json({ track: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка обновления трека', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Удалить трек
+router.delete('/settings/tracks/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM hackathon_tracks WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Трек не найден' });
+    }
+
+    logInfo('Удален трек', { id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления трека', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Рандомное распределение команд по кейсам
 router.post('/cases/assign-random', requireModerator, adminOperationLimiter, async (req, res) => {
   let transactionStarted = false;

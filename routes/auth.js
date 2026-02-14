@@ -102,6 +102,17 @@ router.post('/telegram', async (req, res) => {
       user = result.rows[0];
     }
 
+    // Парсим JSON поля если они есть
+    if (user.skills && typeof user.skills === 'string') {
+      try {
+        user.skills = JSON.parse(user.skills);
+      } catch (e) {
+        user.skills = [];
+      }
+    } else if (!user.skills) {
+      user.skills = [];
+    }
+
     const accessToken = signAccessToken(user);
     const refresh = await createRefreshToken(user.id);
 
@@ -154,6 +165,16 @@ router.post('/bot', async (req, res) => {
     const jwtToken = signAccessToken(row);
     const refresh = await createRefreshToken(row.user_id);
 
+    // Парсим JSON поля если они есть
+    let skills = [];
+    if (row.skills) {
+      try {
+        skills = typeof row.skills === 'string' ? JSON.parse(row.skills) : row.skills;
+      } catch (e) {
+        skills = [];
+      }
+    }
+
     const user = {
       id: row.user_id,
       telegram_id: row.telegram_id,
@@ -163,6 +184,8 @@ router.post('/bot', async (req, res) => {
       photo_url: row.photo_url,
       phone: row.phone,
       role: row.role,
+      bio: row.bio || null,
+      skills: skills,
       created_at: row.created_at,
       updated_at: row.updated_at
     };
@@ -257,7 +280,20 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
-    res.json({ user: result.rows[0] });
+    const user = result.rows[0];
+    
+    // Парсим JSON поля если они есть
+    if (user.skills && typeof user.skills === 'string') {
+      try {
+        user.skills = JSON.parse(user.skills);
+      } catch (e) {
+        user.skills = [];
+      }
+    } else if (!user.skills) {
+      user.skills = [];
+    }
+
+    res.json({ user });
   } catch (error) {
     res.status(401).json({ error: 'Недействительный токен' });
   }

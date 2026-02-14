@@ -374,11 +374,116 @@ async function ensureNewFieldsExist() {
       logInfo('Создана таблица broadcast_settings');
     }
 
+    // Проверка полей bio и skills в таблице users
+    const usersBioExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'bio'
+      )
+    `);
+
+    if (!usersBioExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN bio TEXT');
+      logInfo('Добавлено поле bio в таблицу users');
+    }
+
+    const usersSkillsExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'skills'
+      )
+    `);
+
+    if (!usersSkillsExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN skills JSONB DEFAULT \'[]\'::jsonb');
+      logInfo('Добавлено поле skills в таблицу users');
+    }
+
+    // Проверка существования таблицы hackathon_timeline
+    const timelineExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_timeline'
+      )
+    `);
+
+    if (!timelineExists.rows[0].exists) {
+      await pool.query(`
+        CREATE TABLE hackathon_timeline (
+          id SERIAL PRIMARY KEY,
+          type VARCHAR(50) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          date TIMESTAMP NOT NULL,
+          active BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      logInfo('Создана таблица hackathon_timeline');
+    }
+
+    // Проверка существования таблицы hackathon_prizes
+    const prizesExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_prizes'
+      )
+    `);
+
+    if (!prizesExists.rows[0].exists) {
+      await pool.query(`
+        CREATE TABLE hackathon_prizes (
+          id SERIAL PRIMARY KEY,
+          rank INTEGER NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          amount INTEGER NOT NULL DEFAULT 0,
+          benefits JSONB DEFAULT '[]'::jsonb,
+          featured BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      logInfo('Создана таблица hackathon_prizes');
+    }
+
+    // Проверка существования таблицы hackathon_tracks
+    const tracksExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_tracks'
+      )
+    `);
+
+    if (!tracksExists.rows[0].exists) {
+      await pool.query(`
+        CREATE TABLE hackathon_tracks (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT NOT NULL,
+          tags JSONB DEFAULT '[]'::jsonb,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      logInfo('Создана таблица hackathon_tracks');
+    }
+
     // Создание индексов для broadcast_settings
     const indexes = [
       { name: 'idx_broadcast_settings_type', table: 'broadcast_settings', column: 'type' },
       { name: 'idx_broadcast_settings_enabled', table: 'broadcast_settings', column: 'enabled' },
-      { name: 'idx_broadcast_settings_case_id', table: 'broadcast_settings', column: 'case_id' }
+      { name: 'idx_broadcast_settings_case_id', table: 'broadcast_settings', column: 'case_id' },
+      { name: 'idx_hackathon_timeline_date', table: 'hackathon_timeline', column: 'date' },
+      { name: 'idx_hackathon_timeline_active', table: 'hackathon_timeline', column: 'active' },
+      { name: 'idx_hackathon_prizes_rank', table: 'hackathon_prizes', column: 'rank' }
     ];
 
     for (const index of indexes) {
