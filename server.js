@@ -16,6 +16,7 @@ import solutionsRoutes from './routes/solutions.js';
 import adminRoutes from './routes/admin.js';
 import teamsRoutes from './routes/teams.js';
 import profileRoutes from './routes/profile.js';
+import landingRoutes from './routes/landing.js';
 import { startBot, setBotInstance } from './bot.js';
 import { startCaseOpenerScheduler } from './utils/caseOpener.js';
 import path from 'path';
@@ -92,6 +93,7 @@ app.use('/api/solutions', solutionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/landing', landingRoutes);
 
 
 app.get('/api/health', (req, res) => {
