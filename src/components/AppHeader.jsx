@@ -37,10 +37,6 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
       </nav>
 
       <div className="app-actions">
-        <div className="app-status-pill">
-          <span className="app-status-dot"></span>
-          SYSTEM_ONLINE
-        </div>
         {isAuthenticated ? (
           <>
             <Link to="/profile" className="app-user">

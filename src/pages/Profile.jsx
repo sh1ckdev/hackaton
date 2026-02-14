@@ -24,11 +24,9 @@ const Profile = () => {
   }, []);
 
   useEffect(() => {
-    if (user?.bio) {
-      setBioText(user.bio);
-    }
-    if (user?.skills) {
-      setSkillsList(user.skills);
+    if (user) {
+      setBioText(user.bio || '');
+      setSkillsList(user.skills || []);
     }
   }, [user]);
 
@@ -50,16 +48,24 @@ const Profile = () => {
 
   const handleEditBio = () => {
     setEditingBio(true);
+    setBioText(user?.bio || '');
   };
 
   const handleSaveBio = async () => {
     try {
-      await api.put('/profile/bio', { bio: bioText });
+      const response = await api.put('/profile/bio', { bio: bioText });
+      // Обновляем пользователя через fetchUser для правильной работы с MobX
       await authStore.fetchUser();
       setEditingBio(false);
     } catch (error) {
+      console.error('Ошибка сохранения био:', error);
       alert(error.response?.data?.error || 'Ошибка сохранения био');
     }
+  };
+
+  const handleCancelBio = () => {
+    setEditingBio(false);
+    setBioText(user?.bio || '');
   };
 
   const handleResync = async () => {
@@ -74,7 +80,14 @@ const Profile = () => {
 
   const handleEditSkills = () => {
     setEditingSkills(true);
+    setSkillsList(user?.skills ? [...user.skills] : []);
+  };
+
+  const handleCancelSkills = () => {
+    setEditingSkills(false);
     setSkillsList(user?.skills || []);
+    setNewSkillName('');
+    setNewSkillExtension('');
   };
 
   const handleAddSkill = () => {
@@ -95,10 +108,12 @@ const Profile = () => {
 
   const handleSaveSkills = async () => {
     try {
-      await api.put('/profile/skills', { skills: skillsList });
+      const response = await api.put('/profile/skills', { skills: skillsList });
+      // Обновляем пользователя через fetchUser для правильной работы с MobX
       await authStore.fetchUser();
       setEditingSkills(false);
     } catch (error) {
+      console.error('Ошибка сохранения навыков:', error);
       alert(error.response?.data?.error || 'Ошибка сохранения навыков');
     }
   };
@@ -107,7 +122,7 @@ const Profile = () => {
     ? `${user.first_name} "${user.username}" ${user.last_name}`
     : user?.first_name || user?.username || 'User';
 
-  const bio = bioText || user?.bio || 'Full-stack developer obsessed with clean architecture and caffeine. Currently building decentralized solutions for better tomorrow.';
+  const bio = bioText || user?.bio || '';
   
   const reputation = stats?.reputation || 0;
   const attendance = stats?.attendance || 0;
@@ -117,7 +132,7 @@ const Profile = () => {
   const currentSession = metrics?.current_session || null;
   const rank = metrics?.rank || null;
   const rankPercentile = metrics?.rank_percentile || null;
-  const skills = user?.skills || [];
+  const skills = editingSkills ? skillsList : (user?.skills || []);
   const languages = skills.filter(s => s.type === 'language') || [];
   const frameworks = skills.filter(s => s.type === 'framework') || [];
 
@@ -155,12 +170,12 @@ const Profile = () => {
                   />
                   <div className="profile-bio-edit-actions">
                     <button onClick={handleSaveBio} className="profile-bio-save">Save</button>
-                    <button onClick={() => { setEditingBio(false); setBioText(user?.bio || ''); }} className="profile-bio-cancel">Cancel</button>
+                    <button onClick={handleCancelBio} className="profile-bio-cancel">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div className="profile-bio-content">
-                  {bio}
+                  {bio || <span style={{ opacity: 0.5 }}>Нажмите Edit, чтобы добавить описание</span>}
                   <span className="profile-bio-cursor">▍</span>
                 </div>
               )}
@@ -229,118 +244,220 @@ const Profile = () => {
           <div className="profile-skills">
             <div className="profile-skills-header">
               <span className="profile-skills-prompt">user@mainframe:~/skills</span>
-              <button onClick={handleEditSkills} className="profile-skills-edit-btn">
-                <EditIcon size={14} />
-              </button>
+              {!editingSkills ? (
+                <button onClick={handleEditSkills} className="profile-skills-edit-btn">
+                  <EditIcon size={14} />
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handleSaveSkills} className="profile-skills-edit-btn" style={{ color: '#22c55e' }}>
+                    ✓
+                  </button>
+                  <button onClick={handleCancelSkills} className="profile-skills-edit-btn" style={{ color: '#f87171' }}>
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
             <div className="profile-skills-terminal">
-              <div className="profile-skills-line">
-                <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
-                <span> ls -la ./languages</span>
-              </div>
-              <div className="profile-skills-tags">
-                {languages.length > 0 ? (
-                  languages.map((skill, idx) => (
-                    <span key={idx} className="profile-skill-tag">{skill.name}{skill.extension ? `.${skill.extension}` : ''}</span>
-                  ))
-                ) : (
-                  <>
-                    <span className="profile-skill-tag">JavaScript.js</span>
-                    <span className="profile-skill-tag">TypeScript.ts</span>
-                    <span className="profile-skill-tag">Python.py</span>
-                  </>
-                )}
-              </div>
-              <div className="profile-skills-line">
-                <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
-                <span> ./show-frameworks.sh</span>
-              </div>
-              <div className="profile-skills-tags">
-                {frameworks.length > 0 ? (
-                  frameworks.map((skill, idx) => (
-                    <span key={idx} className="profile-skill-tag">{skill.name}</span>
-                  ))
-                ) : (
-                  <>
-                    <span className="profile-skill-tag">React</span>
-                    <span className="profile-skill-tag">Next.JS</span>
-                    <span className="profile-skill-tag">TailwindCSS</span>
-                  </>
-                )}
-              </div>
+              {editingSkills ? (
+                <>
+                  <div className="profile-skills-line">
+                    <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
+                    <span> ls -la ./languages</span>
+                  </div>
+                  <div className="profile-skills-tags">
+                    {languages.length > 0 ? (
+                      languages.map((skill, idx) => {
+                        const skillIndex = skillsList.findIndex(s => 
+                          s.name === skill.name && 
+                          s.type === skill.type && 
+                          s.extension === skill.extension
+                        );
+                        return (
+                          <span key={idx} className="profile-skill-tag" style={{ position: 'relative', paddingRight: '20px' }}>
+                            {skill.name}{skill.extension ? `.${skill.extension}` : ''}
+                            <button
+                              onClick={() => handleRemoveSkill(skillIndex)}
+                              style={{
+                                position: 'absolute',
+                                right: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(248, 113, 113, 0.2)',
+                                border: '1px solid rgba(248, 113, 113, 0.4)',
+                                borderRadius: '4px',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                width: '16px',
+                                height: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span style={{ opacity: 0.5, fontSize: '12px' }}>Нет языков программирования</span>
+                    )}
+                  </div>
+                  <div className="profile-skills-line">
+                    <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
+                    <span> ./show-frameworks.sh</span>
+                  </div>
+                  <div className="profile-skills-tags">
+                    {frameworks.length > 0 ? (
+                      frameworks.map((skill, idx) => {
+                        const skillIndex = skillsList.findIndex(s => 
+                          s.name === skill.name && 
+                          s.type === skill.type && 
+                          s.extension === skill.extension
+                        );
+                        return (
+                          <span key={idx} className="profile-skill-tag" style={{ position: 'relative', paddingRight: '20px' }}>
+                            {skill.name}
+                            <button
+                              onClick={() => handleRemoveSkill(skillIndex)}
+                              style={{
+                                position: 'absolute',
+                                right: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(248, 113, 113, 0.2)',
+                                border: '1px solid rgba(248, 113, 113, 0.4)',
+                                borderRadius: '4px',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                width: '16px',
+                                height: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span style={{ opacity: 0.5, fontSize: '12px' }}>Нет фреймворков</span>
+                    )}
+                  </div>
+                  <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(30, 41, 59, 0.5)', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+                    <div style={{ marginBottom: '8px', fontSize: '12px', color: 'rgba(226, 232, 240, 0.7)' }}>Добавить новый навык:</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Название навыка"
+                        value={newSkillName}
+                        onChange={(e) => setNewSkillName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                        style={{
+                          flex: '1',
+                          minWidth: '150px',
+                          padding: '6px 10px',
+                          background: 'rgba(15, 23, 42, 0.6)',
+                          border: '1px solid rgba(148, 163, 184, 0.3)',
+                          borderRadius: '6px',
+                          color: '#e2e8f0',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <select
+                        value={newSkillType}
+                        onChange={(e) => setNewSkillType(e.target.value)}
+                        style={{
+                          padding: '6px 10px',
+                          background: 'rgba(15, 23, 42, 0.6)',
+                          border: '1px solid rgba(148, 163, 184, 0.3)',
+                          borderRadius: '6px',
+                          color: '#e2e8f0',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <option value="language">Язык</option>
+                        <option value="framework">Фреймворк</option>
+                      </select>
+                      {newSkillType === 'language' && (
+                        <input
+                          type="text"
+                          placeholder="Расширение (js, ts, py)"
+                          value={newSkillExtension}
+                          onChange={(e) => setNewSkillExtension(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                          style={{
+                            width: '120px',
+                            padding: '6px 10px',
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            border: '1px solid rgba(148, 163, 184, 0.3)',
+                            borderRadius: '6px',
+                            color: '#e2e8f0',
+                            fontSize: '12px'
+                          }}
+                        />
+                      )}
+                      <button
+                        onClick={handleAddSkill}
+                        style={{
+                          padding: '6px 12px',
+                          background: '#22c55e',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        + Добавить
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="profile-skills-line">
+                    <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
+                    <span> ls -la ./languages</span>
+                  </div>
+                  <div className="profile-skills-tags">
+                    {languages.length > 0 ? (
+                      languages.map((skill, idx) => (
+                        <span key={idx} className="profile-skill-tag">{skill.name}{skill.extension ? `.${skill.extension}` : ''}</span>
+                      ))
+                    ) : (
+                      <span style={{ opacity: 0.5, fontSize: '12px' }}>Нет языков программирования</span>
+                    )}
+                  </div>
+                  <div className="profile-skills-line">
+                    <span className="profile-skills-command">root@{user?.username || 'user'}:~$</span>
+                    <span> ./show-frameworks.sh</span>
+                  </div>
+                  <div className="profile-skills-tags">
+                    {frameworks.length > 0 ? (
+                      frameworks.map((skill, idx) => (
+                        <span key={idx} className="profile-skill-tag">{skill.name}</span>
+                      ))
+                    ) : (
+                      <span style={{ opacity: 0.5, fontSize: '12px' }}>Нет фреймворков</span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {editingSkills && (
-        <div className="profile-skills-modal">
-          <div className="profile-skills-modal-content">
-            <h3>Edit Skills</h3>
-            <div className="profile-skills-edit-list">
-              {skillsList.map((skill, idx) => (
-                <div key={idx} className="profile-skills-edit-item">
-                  <span className="profile-skills-edit-item-name">
-                    {skill.name}{skill.extension ? `.${skill.extension}` : ''}
-                  </span>
-                  <span className="profile-skills-edit-item-type">{skill.type}</span>
-                  <button
-                    onClick={() => handleRemoveSkill(idx)}
-                    className="profile-skills-edit-item-remove"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="profile-skills-edit-add">
-              <input
-                type="text"
-                placeholder="Skill name"
-                value={newSkillName}
-                onChange={(e) => setNewSkillName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                className="profile-skills-edit-input"
-              />
-              <select
-                value={newSkillType}
-                onChange={(e) => setNewSkillType(e.target.value)}
-                className="profile-skills-edit-select"
-              >
-                <option value="language">Language</option>
-                <option value="framework">Framework</option>
-              </select>
-              {newSkillType === 'language' && (
-                <input
-                  type="text"
-                  placeholder="Extension (e.g., js, ts, py)"
-                  value={newSkillExtension}
-                  onChange={(e) => setNewSkillExtension(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                  className="profile-skills-edit-input"
-                />
-              )}
-              <button onClick={handleAddSkill} className="profile-skills-edit-add-btn">
-                +
-              </button>
-            </div>
-            <div className="profile-skills-edit-actions">
-              <button onClick={handleSaveSkills} className="profile-btn profile-btn-primary">
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setEditingSkills(false);
-                  setSkillsList(user?.skills || []);
-                }}
-                className="profile-btn profile-btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 
-export const Icon = ({ children, className = '', size = 24, ...props }) => (
+export const Icon = ({ children, className = '', size = 24, strokeWidth = 2, ...props }) => (
   <svg
     width={size}
     height={size}
@@ -460,16 +460,21 @@ export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
 
 
 export const TelegramIcon = ({ size = 24, className = '' }) => (
-  <Icon size={size} className={className}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 40 40"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
-      d="M22 2L2 10L8 13L18 6L10 14L14 18L22 2Z"
+      d="M18 22L22.0019 29.4855C23.0895 31.008 23.6332 31.7699 24.2215 31.9352C24.7331 32.079 25.2822 31.9805 25.7122 31.6683C26.2068 31.3092 26.4533 30.4062 26.9456 28.601L31.4957 11.9175C31.9152 10.3795 32.1244 9.6106 31.9221 9.08088C31.7457 8.6189 31.3809 8.25406 30.9189 8.07767C30.3892 7.87541 29.6202 8.08576 28.0823 8.50519L11.3985 13.0553C9.59328 13.5476 8.69077 13.7935 8.33169 14.2881C8.01948 14.718 7.92097 15.2672 8.06477 15.7787C8.23015 16.3671 8.99141 16.9102 10.514 17.9978L18 22ZM18 22L22.948 17.0522"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
     />
-  </Icon>
+  </svg>
 );
 
 export const FolderPlusIcon = ({ size = 24, className = '' }) => (

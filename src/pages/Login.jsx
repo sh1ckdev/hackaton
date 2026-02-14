@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { TelegramIcon } from '../components/Icons';
+import Logo from '../components/Logo';
 
 const Login = () => {
   useDocumentTitle('Вход');
@@ -142,7 +143,11 @@ const Login = () => {
 
   return (
     <section className="login-surface">
-      <div className="login-noise" aria-hidden="true"></div>
+      <div className="login-logo">
+        <span className="login-logo-icon">{'>'}</span>
+        <Logo showVersion={false} asLink={false} />
+      </div>
+
       <div className="login-terminal">
         <div className="login-terminal-header">
           <div className="login-terminal-dots" aria-hidden="true">
@@ -160,24 +165,24 @@ const Login = () => {
               <span> init_sequence --force</span>
             </div>
             <div className="login-line login-line-muted">
-              <span>&gt; Loading modules... </span>
+              <span>&gt; Загрузка модулей ... </span>
               <span className="login-status">[OK]</span>
             </div>
             <div className="login-line login-line-muted">
-              <span>&gt; Establishing secure connection... </span>
+              <span>&gt; Установка безопасного соединения ... </span>
               <span className="login-status">[OK]</span>
             </div>
-            <div className="login-line login-line-muted">&gt; Ready for user input.</div>
+            <div className="login-line login-line-muted">&gt; Готов к вводу пользователем.</div>
             <div className="login-line login-line-spacer"></div>
             <div className="login-line">
               <span className="login-prompt login-prompt-blue">user@hackathon:~$</span>
-              <span> login --provider telegram</span>
+              <span> войти в систему с помощью Telegram</span>
               <span className="login-cursor" aria-hidden="true"></span>
             </div>
           </div>
 
           <div className="login-terminal-divider"></div>
-          <div className="login-auth-title">AUTHENTICATION REQUIRED</div>
+          <div className="login-auth-title">ТРЕБУЕТСЯ АУТЕНТИФИКАЦИЯ</div>
 
           <div className="login-actions">
             {hasToken ? (
@@ -207,7 +212,7 @@ const Login = () => {
             ) : (
               <button onClick={handleTelegramRedirect} className="login-telegram-button">
                 <TelegramIcon size={22} />
-                <span>Log in with Telegram</span>
+                <span>Войти через Telegram</span>
               </button>
             )}
 
@@ -218,25 +223,10 @@ const Login = () => {
               </div>
             )}
           </div>
-
-          <div className="login-session">Session ID: {sessionId}</div>
-        </div>
-
-        <div className="login-terminal-footer">
-          <div className="login-terminal-status">
-            <span className="login-status-dot"></span>
-            <span>NO_ERRORS</span>
-            <span>RAM: 34%</span>
-          </div>
-          <div className="login-terminal-version">V2.4.0-STABLE</div>
         </div>
       </div>
 
-      <div className="login-terminal-links">
-        <span>Need help?</span>
-        <span>API Docs</span>
-      </div>
-      <div className="login-terminal-note">Access restricted to authorized hackathon personnel only.</div>
+      <div className="login-terminal-note">Доступ разрешен только авторизованным участникам хакатона.</div>
     </section>
   );
 };
