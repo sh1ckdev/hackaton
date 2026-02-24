@@ -41,6 +41,12 @@ services:
       - "traefik.http.routers.backend-api.tls=true"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
+      # HTTP to HTTPS redirect for API
+      - "traefik.http.routers.backend-api-http.rule=Host(`api.chermanx.ru`)"
+      - "traefik.http.routers.backend-api-http.entrypoints=web"
+      - "traefik.http.routers.backend-api-http.middlewares=backend-api-redirect-to-https"
+      - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.permanent=true"
 
   db:
     image: postgres:16-alpine
