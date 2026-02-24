@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { EditIcon, RefreshIcon } from '../components/Icons';
@@ -8,6 +9,7 @@ import api from '../utils/api';
 const Profile = () => {
   const user = authStore.user;
   useDocumentTitle('Профиль');
+  const { t, i18n } = useTranslation();
   const [stats, setStats] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -120,7 +122,7 @@ const Profile = () => {
 
   const displayName = user?.first_name && user?.last_name
     ? `${user.first_name} "${user.username}" ${user.last_name}`
-    : user?.first_name || user?.username || 'Пользователь';
+    : user?.first_name || user?.username || t('profile.default_user');
 
   const bio = bioText || user?.bio || '';
   
@@ -169,8 +171,12 @@ const Profile = () => {
                     rows={3}
                   />
                   <div className="profile-bio-edit-actions">
-                    <button onClick={handleSaveBio} className="profile-bio-save">Сохранить</button>
-                    <button onClick={handleCancelBio} className="profile-bio-cancel">Отмена</button>
+                    <button onClick={handleSaveBio} className="profile-bio-save">
+                      {i18n.language === 'ru' ? 'Сохранить' : 'Save'}
+                    </button>
+                    <button onClick={handleCancelBio} className="profile-bio-cancel">
+                      {i18n.language === 'ru' ? 'Отмена' : 'Cancel'}
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -184,20 +190,22 @@ const Profile = () => {
             <div className="profile-actions">
               <button onClick={handleEditBio} className="profile-btn profile-btn-primary">
                 <EditIcon size={16} />
-                Редактировать
+                {t('profile.edit')}
               </button>
               <button onClick={handleResync} className="profile-btn profile-btn-secondary">
                 <RefreshIcon size={16} />
-                Обновить данные
+                {t('profile.resync')}
               </button>
             </div>
 
             <div className="profile-stats">
-              <h3 className="profile-stats-title">СТАТИСТИКА</h3>
+              <h3 className="profile-stats-title">{t('profile.stats_title')}</h3>
               <div className="profile-stat-item">
                 <div className="profile-stat-header">
-                  <span>Репутация</span>
-                  <span className="profile-stat-value">{reputation.toLocaleString()} очков</span>
+                  <span>{t('profile.reputation')}</span>
+                  <span className="profile-stat-value">
+                    {reputation.toLocaleString()} {i18n.language === 'ru' ? 'очков' : 'pts'}
+                  </span>
                 </div>
                 <div className="profile-progress-bar">
                   <div className="profile-progress-fill profile-progress-green" style={{ width: `${Math.min((reputation / 1200) * 100, 100)}%` }}></div>
@@ -205,7 +213,7 @@ const Profile = () => {
               </div>
               <div className="profile-stat-item">
                 <div className="profile-stat-header">
-                  <span>Посещаемость</span>
+                  <span>{t('profile.attendance')}</span>
                   <span className="profile-stat-value">{attendance}%</span>
                 </div>
                 <div className="profile-progress-bar">
@@ -219,24 +227,28 @@ const Profile = () => {
         <div className="profile-right">
           <div className="profile-metrics">
             <div className="profile-metric-card">
-              <div className="profile-metric-label">КОМИТОВ СДЕЛАНО</div>
+              <div className="profile-metric-label">{t('profile.commits')}</div>
               <div className="profile-metric-value">{loading ? '...' : commits.toLocaleString()}</div>
               {commitsChange > 0 && (
                 <div className="profile-metric-change">↑ {commitsChange}% this week</div>
               )}
             </div>
             <div className="profile-metric-card">
-              <div className="profile-metric-label">ЧАСОВ В КОДЕ</div>
+              <div className="profile-metric-label">{t('profile.hours_hacked')}</div>
               <div className="profile-metric-value">{loading ? '...' : `${hours} h`}</div>
               {currentSession && (
                 <div className="profile-metric-session">Ongoing Session: {currentSession}</div>
               )}
             </div>
             <div className="profile-metric-card">
-              <div className="profile-metric-label">ГЛОБАЛЬНЫЙ РАНГ</div>
+              <div className="profile-metric-label">{t('profile.global_rank')}</div>
               <div className="profile-metric-value">{loading ? '...' : rank ? `#${rank}` : '—'}</div>
               {rankPercentile && (
-                <div className="profile-metric-session">Топ {rankPercentile}% участников</div>
+                <div className="profile-metric-session">
+                  {i18n.language === 'ru'
+                    ? `Топ ${rankPercentile}% участников`
+                    : `Top ${rankPercentile}% of hackers`}
+                </div>
               )}
             </div>
           </div>

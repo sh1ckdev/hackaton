@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CaseIcon, SolutionIcon, TeamIcon, ProfileIcon, AdminIcon } from './Icons';
 import Logo from './Logo';
 import { useLanguage } from '../i18n/LanguageContext.jsx';
@@ -6,13 +7,14 @@ import { useLanguage } from '../i18n/LanguageContext.jsx';
 const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
   const location = useLocation();
   const { lang, setLang } = useLanguage();
+  const { t } = useTranslation();
   const isActive = (path) => location.pathname.startsWith(path);
 
   const navItems = [
-    { path: '/cases', label: 'Кейсы', icon: CaseIcon },
-    { path: '/solutions', label: 'Решения', icon: SolutionIcon },
-    { path: '/team', label: 'Команда', icon: TeamIcon },
-    { path: '/info', label: 'Информация', icon: null },
+    { path: '/cases', label: t('nav.cases'), icon: CaseIcon },
+    { path: '/solutions', label: t('nav.solutions'), icon: SolutionIcon },
+    { path: '/team', label: t('nav.team'), icon: TeamIcon },
+    { path: '/info', label: t('nav.info'), icon: null },
   ];
 
   return (
@@ -55,7 +57,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
             <button onClick={onLogout} className="app-logout">Выход</button>
           </>
         ) : (
-          <Link to="/login" className="app-login">[ Вход ]</Link>
+          <Link to="/login" className="app-login">{t('nav.login')}</Link>
         )}
       </div>
     </header>

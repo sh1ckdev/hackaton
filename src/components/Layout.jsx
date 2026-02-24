@@ -1,10 +1,12 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import AppHeader from './AppHeader';
 
 const Layout = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const handleLogout = () => {
     authStore.logout();
     navigate('/login');
@@ -25,8 +27,8 @@ const Layout = () => {
         </div>
       </main>
       <footer className="app-footer">
-        <span>СТАТУС_СИСТЕМЫ: НОРМА</span>
-        <span>© 2023 HACKATHON_OS / ВСЕ ПРАВА ЗАЩИЩЕНЫ</span>
+        <span>{t('layout.status')}</span>
+        <span>{t('layout.copyright')}</span>
       </footer>
     </div>
   );

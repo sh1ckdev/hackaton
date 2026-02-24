@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import i18n from './config';
 
 const LanguageContext = createContext(null);
 
@@ -12,12 +13,16 @@ export const LanguageProvider = ({ children }) => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved === 'ru' || saved === 'en') {
       setLang(saved);
+      i18n.changeLanguage(saved);
+    } else {
+      setLang(i18n.language || DEFAULT_LANG);
     }
   }, []);
 
   const changeLang = (nextLang) => {
     setLang(nextLang);
     window.localStorage.setItem(STORAGE_KEY, nextLang);
+    i18n.changeLanguage(nextLang);
   };
 
   const value = { lang, setLang: changeLang };

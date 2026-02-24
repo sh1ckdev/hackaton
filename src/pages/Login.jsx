@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { TelegramIcon } from '../components/Icons';
@@ -10,6 +11,7 @@ const Login = () => {
   useDocumentTitle('Вход');
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [error, setError] = useState(null);
   const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
@@ -182,16 +184,16 @@ const Login = () => {
           </div>
 
           <div className="login-terminal-divider"></div>
-          <div className="login-auth-title">ТРЕБУЕТСЯ АУТЕНТИФИКАЦИЯ</div>
+          <div className="login-auth-title">{t('login.auth_required')}</div>
 
           <div className="login-actions">
             {hasToken ? (
               <div className="login-token-block">
-                <div className="login-token-title">Почти готово!</div>
+                <div className="login-token-title">{t('login.almost_done')}</div>
                 <div className="login-token-text">
                   {turnstileSiteKey
-                    ? 'Пройдите проверку безопасности для завершения входа'
-                    : 'Завершите вход'}
+                    ? t('login.need_captcha')
+                    : t('login.finish_login')}
                 </div>
 
                 {turnstileSiteKey && (
@@ -205,14 +207,14 @@ const Login = () => {
                     <span className="login-dot"></span>
                     <span className="login-dot delay-1"></span>
                     <span className="login-dot delay-2"></span>
-                    <span>Выполняется вход...</span>
+                    <span>{t('login.pending')}</span>
                   </div>
                 )}
               </div>
             ) : (
               <button onClick={handleTelegramRedirect} className="login-telegram-button">
                 <TelegramIcon size={22} />
-                <span>Войти через Telegram</span>
+                <span>{t('login.telegram_button')}</span>
               </button>
             )}
 

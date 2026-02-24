@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import casesStore from '../stores/casesStore';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -10,6 +11,7 @@ import api from '../utils/api';
 
 const Cases = () => {
   useDocumentTitle('Кейсы');
+  const { t } = useTranslation();
   const [teamLoading, setTeamLoading] = useState(true);
   const [assignedCaseId, setAssignedCaseId] = useState(null);
   const [globalOpenDate, setGlobalOpenDate] = useState(null);
@@ -154,20 +156,24 @@ const Cases = () => {
     <div className="cases-page">
       <header className="cases-header">
         <div className="cases-header-text">
-          <h1>АКТИВНЫЕ КЕЙСЫ</h1>
-          <p>
-            // Выберите кейс, чтобы начать работу. Закрытые кейсы откроются по времени или при повышенных правах доступа.
-          </p>
+          <h1>{t('cases.header')}</h1>
+          <p>{t('cases.header_sub')}</p>
         </div>
         <div className="cases-toolbar">
           <div className="cases-search">
             <span className="cases-search-icon">⌕</span>
-            <input type="text" placeholder="ПОИСК (скоро)..." disabled />
+            <input type="text" placeholder={t('cases.search_placeholder')} disabled />
           </div>
           <div className="cases-filters">
-            <button className="cases-filter is-active" type="button">ВСЕ_КЕЙСЫ</button>
-            <button className="cases-filter" type="button">ОТКРЫТЫЕ</button>
-            <button className="cases-filter" type="button">ЗАКРЫТЫЕ</button>
+            <button className="cases-filter is-active" type="button">
+              {t('cases.filter_all')}
+            </button>
+            <button className="cases-filter" type="button">
+              {t('cases.filter_open')}
+            </button>
+            <button className="cases-filter" type="button">
+              {t('cases.filter_locked')}
+            </button>
           </div>
         </div>
       </header>
@@ -180,7 +186,7 @@ const Cases = () => {
               <span className="terminal-loading-command">fetch_cases --all</span>
             </div>
             <div className="terminal-loading-status">
-              &gt; Загрузка списка кейсов
+              &gt; {t('cases.header')}
               <span className="terminal-loading-dots">
                 <span></span>
                 <span></span>
@@ -220,11 +226,11 @@ const Cases = () => {
           <div className="cases-grid">
             <div className="cases-table">
               <div className="cases-table-head">
-                <span>СТАТУС</span>
-                <span>ОРГАНИЗАТОР</span>
-                <span>КЕЙС</span>
-                <span>ПРИЗ</span>
-                <span>КОМАНДЫ</span>
+                <span>{t('cases.table_status')}</span>
+                <span>{t('cases.table_company')}</span>
+                <span>{t('cases.table_challenge')}</span>
+                <span>{t('cases.table_prize')}</span>
+                <span>{t('cases.table_teams')}</span>
               </div>
 
               {visibleCases.map((caseItem) => {
@@ -250,7 +256,7 @@ const Cases = () => {
 
               <div className="cases-table-footer">
                 <span className="cases-scan-dot"></span>
-                <span>ПОИСК НОВЫХ КЕЙСОВ В СЕТИ... [ СКАНИРОВАНИЕ ]</span>
+                <span>{t('cases.scanning')}</span>
               </div>
             </div>
 
@@ -277,11 +283,11 @@ const Cases = () => {
                     </div>
                   </div>
                   <div className="cases-preview-description">
-                    <div className="cases-preview-heading">ОПИСАНИЕ</div>
+                    <div className="cases-preview-heading">{t('cases.description')}</div>
                     <p>{activeCase.description || 'Описание будет доступно после открытия кейса.'}</p>
                   </div>
                   <Link to={`/cases/${activeCase.id}`} className="cases-preview-action">
-                    ОТКРЫТЬ_КЕЙС
+                    {t('cases.open_case')}
                   </Link>
                 </>
               ) : (

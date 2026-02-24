@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CaseIcon, TelegramIcon } from '../components/Icons';
@@ -11,6 +12,7 @@ import api from '../utils/api';
 const Landing = () => {
   useDocumentTitle('Главная');
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [timeline, setTimeline] = useState([]);
   const [prizes, setPrizes] = useState([]);
   const [tracks, setTracks] = useState([]);
@@ -106,45 +108,43 @@ const Landing = () => {
         <section className="landing-hero">
           <div className="landing-hero-left">
             <h1>
-              СОЗДАЙ<br />
-              <span>БУДУЩЕЕ_</span>
+              {t('landing.title_line1')}
+              <br />
+              <span>{t('landing.title_line2')}</span>
             </h1>
-            <p>
-              Присоединяйся к сотням разработчиков в 48‑часовом спринте: разбирайся в кейсах,
-              собирай решения и выкатывай продакшн. Доступ к инфраструктуре, наставникам и призам.
-            </p>
+            <p>{t('landing.subtitle')}</p>
             <div className="landing-hero-actions">
               {authStore.isAuthenticated ? (
                 <Link to="/cases" className="landing-primary-btn">
                   <CaseIcon size={18} />
-                  Перейти к кейсам
+                  {t('landing.primary_cases')}
                 </Link>
               ) : (
                 <Link to="/login" className="landing-primary-btn">
                   <TelegramIcon size={18} />
-                  Войти через Telegram
+                  {t('landing.primary_auth')}
                 </Link>
               )}
               <Link to="/info" className="landing-secondary-btn">
-                Подробнее о хакатоне
+                {t('landing.secondary')}
               </Link>
             </div>
             <div className="landing-timer">
               <div>
                 <span>{countdown.days.toString().padStart(2, '0')}</span>
-                  <span>ДНЕЙ</span>
+                  <span>{t('landing.timer_days')}</span>
               </div>
               <div>
                 <span>{countdown.hours.toString().padStart(2, '0')}</span>
-                  <span>ЧАС</span>
+                  <span>{t('landing.timer_hours')}</span>
               </div>
               <div>
                 <span>{countdown.minutes.toString().padStart(2, '0')}</span>
-                  <span>МИН</span>
+                  <span>{t('landing.timer_minutes')}</span>
               </div>
               <div>
                 <span>{countdown.seconds.toString().padStart(2, '0')}</span>
-                  <span>СЕК</span>
+                  <span>{t('landing.timer_seconds')}</span>
               </div>
             </div>
           </div>
@@ -170,8 +170,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-tracks">
-          <div className="landing-section-title">/ выбор трека</div>
-          <h2>Треки хакатона</h2>
+          <div className="landing-section-title">{t('landing.select_protocol')}</div>
+          <h2>{t('landing.tracks_title')}</h2>
           <div className="landing-track-grid">
             {displayTracks.map((track, idx) => (
               <div key={track.id || idx} className="landing-track-card">
@@ -188,8 +188,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-timeline">
-          <div className="landing-section-title">/ последовательность</div>
-          <h2>Таймлайн</h2>
+          <div className="landing-section-title">{t('landing.execution_sequence')}</div>
+          <h2>{t('landing.timeline_title')}</h2>
           <div className="landing-timeline-list">
             {displayTimeline.map((item, idx) => {
               const isLeft = idx % 2 === 0;
@@ -226,8 +226,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-prizes">
-          <div className="landing-section-title">/ призовой фонд</div>
-          <h2>Призы и награды</h2>
+          <div className="landing-section-title">{t('landing.bounty_board')}</div>
+          <h2>{t('landing.prizes_title')}</h2>
           <div className="landing-prize-grid">
             {displayPrizes.map((prize) => {
               const rankClass = prize.rank === 1 ? 'landing-prize-rank-gold' : 
@@ -247,7 +247,9 @@ const Landing = () => {
                     ))}
                   </ul>
                   {prize.featured && (
-                    <Link to="/cases" className="landing-prize-btn">Смотреть кейсы</Link>
+                    <Link to="/cases" className="landing-prize-btn">
+                      {t('landing.primary_cases')}
+                    </Link>
                   )}
                 </div>
               );
@@ -256,13 +258,15 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-cta">
-          <h2>Готов(а) залетать?</h2>
-          <p>Сеть уже ждёт. Займи место на одном из самых ожидаемых dev‑ивентов года.</p>
+          <h2>{t('landing.cta_title')}</h2>
+          <p>{t('landing.cta_text')}</p>
           <Link to="/login" className="landing-primary-btn">
             <TelegramIcon size={18} />
-            [ ВОЙТИ ЧЕРЕЗ TELEGRAM ]
+            {t('landing.cta_login')}
           </Link>
-          <span className="landing-cta-note">Авторизация и вход по Telegram, токены одноразовые.</span>
+          <span className="landing-cta-note">
+            Авторизация и вход по Telegram, токены одноразовые.
+          </span>
         </section>
 
         <footer className="landing-footer">

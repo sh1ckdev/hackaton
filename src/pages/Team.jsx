@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon } from '../components/Icons';
 
 const Team = () => {
   useDocumentTitle('Команда');
+  const { t } = useTranslation();
   const [team, setTeam] = useState(null);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [teamError, setTeamError] = useState(null);
@@ -171,12 +173,12 @@ const Team = () => {
     <div className="team-page">
       <div className="team-header">
         <div>
-          <h1>Team Management</h1>
-          <p>Manage your squad, invite collaborators, or join an existing repository. Success requires optimal configuration.</p>
+          <h1>{t('team.title')}</h1>
+          <p>{t('team.subtitle')}</p>
         </div>
         <div className="team-deadline">
           <TimeIcon size={16} />
-          <span>DEADLINE: 48:00:00</span>
+          <span>{t('team.deadline_label')}</span>
         </div>
       </div>
 
@@ -201,7 +203,9 @@ const Team = () => {
       ) : team ? (
         <>
           <div className="team-members-section">
-            <h2>Current_Members [{currentMembers.length}/{maxMembers}]</h2>
+            <h2>
+              {t('team.current_members')} [{currentMembers.length}/{maxMembers}]
+            </h2>
             <div className="team-members-grid">
               {currentMembers.map((member) => (
                 <div key={member.id} className="team-member-card">
@@ -235,8 +239,10 @@ const Team = () => {
                     <PlusIcon size={32} />
                   </div>
                   <div className="team-member-empty-title">Open Slot</div>
-                  <div className="team-member-empty-desc">Invite a member or leave open for matchmaking.</div>
-                  <button className="team-invite-btn">INVITE_USER()</button>
+                  <div className="team-member-empty-desc">
+                    {t('team.open_slot_desc')}
+                  </div>
+                  <button className="team-invite-btn">{t('team.invite_button')}</button>
                 </div>
               ))}
             </div>
