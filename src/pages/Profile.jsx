@@ -120,7 +120,7 @@ const Profile = () => {
 
   const displayName = user?.first_name && user?.last_name
     ? `${user.first_name} "${user.username}" ${user.last_name}`
-    : user?.first_name || user?.username || 'User';
+    : user?.first_name || user?.username || 'Пользователь';
 
   const bio = bioText || user?.bio || '';
   
@@ -169,8 +169,8 @@ const Profile = () => {
                     rows={3}
                   />
                   <div className="profile-bio-edit-actions">
-                    <button onClick={handleSaveBio} className="profile-bio-save">Save</button>
-                    <button onClick={handleCancelBio} className="profile-bio-cancel">Cancel</button>
+                    <button onClick={handleSaveBio} className="profile-bio-save">Сохранить</button>
+                    <button onClick={handleCancelBio} className="profile-bio-cancel">Отмена</button>
                   </div>
                 </div>
               ) : (
@@ -184,20 +184,20 @@ const Profile = () => {
             <div className="profile-actions">
               <button onClick={handleEditBio} className="profile-btn profile-btn-primary">
                 <EditIcon size={16} />
-                Edit
+                Редактировать
               </button>
               <button onClick={handleResync} className="profile-btn profile-btn-secondary">
                 <RefreshIcon size={16} />
-                Resync
+                Обновить данные
               </button>
             </div>
 
             <div className="profile-stats">
-              <h3 className="profile-stats-title">PLATFORM STATS</h3>
+              <h3 className="profile-stats-title">СТАТИСТИКА</h3>
               <div className="profile-stat-item">
                 <div className="profile-stat-header">
-                  <span>Reputation</span>
-                  <span className="profile-stat-value">{reputation.toLocaleString()} pts</span>
+                  <span>Репутация</span>
+                  <span className="profile-stat-value">{reputation.toLocaleString()} очков</span>
                 </div>
                 <div className="profile-progress-bar">
                   <div className="profile-progress-fill profile-progress-green" style={{ width: `${Math.min((reputation / 1200) * 100, 100)}%` }}></div>
@@ -205,7 +205,7 @@ const Profile = () => {
               </div>
               <div className="profile-stat-item">
                 <div className="profile-stat-header">
-                  <span>Attendance</span>
+                  <span>Посещаемость</span>
                   <span className="profile-stat-value">{attendance}%</span>
                 </div>
                 <div className="profile-progress-bar">
@@ -219,24 +219,24 @@ const Profile = () => {
         <div className="profile-right">
           <div className="profile-metrics">
             <div className="profile-metric-card">
-              <div className="profile-metric-label">COMMITS PUSHED</div>
+              <div className="profile-metric-label">КОМИТОВ СДЕЛАНО</div>
               <div className="profile-metric-value">{loading ? '...' : commits.toLocaleString()}</div>
               {commitsChange > 0 && (
                 <div className="profile-metric-change">↑ {commitsChange}% this week</div>
               )}
             </div>
             <div className="profile-metric-card">
-              <div className="profile-metric-label">HOURS HACKED</div>
+              <div className="profile-metric-label">ЧАСОВ В КОДЕ</div>
               <div className="profile-metric-value">{loading ? '...' : `${hours} h`}</div>
               {currentSession && (
                 <div className="profile-metric-session">Ongoing Session: {currentSession}</div>
               )}
             </div>
             <div className="profile-metric-card">
-              <div className="profile-metric-label">GLOBAL RANK</div>
+              <div className="profile-metric-label">ГЛОБАЛЬНЫЙ РАНГ</div>
               <div className="profile-metric-value">{loading ? '...' : rank ? `#${rank}` : '—'}</div>
               {rankPercentile && (
-                <div className="profile-metric-session">Top {rankPercentile}% of hackers</div>
+                <div className="profile-metric-session">Топ {rankPercentile}% участников</div>
               )}
             </div>
           </div>

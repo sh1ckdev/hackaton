@@ -154,20 +154,20 @@ const Cases = () => {
     <div className="cases-page">
       <header className="cases-header">
         <div className="cases-header-text">
-          <h1>ACTIVE OPERATIONS</h1>
+          <h1>АКТИВНЫЕ КЕЙСЫ</h1>
           <p>
-            // Select a case file to begin deployment. Locked files require higher clearance or time release.
+            // Выберите кейс, чтобы начать работу. Закрытые кейсы откроются по времени или при повышенных правах доступа.
           </p>
         </div>
         <div className="cases-toolbar">
           <div className="cases-search">
             <span className="cases-search-icon">⌕</span>
-            <input type="text" placeholder="SEARCH_QUERY..." disabled />
+            <input type="text" placeholder="ПОИСК (скоро)..." disabled />
           </div>
           <div className="cases-filters">
-            <button className="cases-filter is-active" type="button">ALL_CASES</button>
-            <button className="cases-filter" type="button">UNLOCKED</button>
-            <button className="cases-filter" type="button">ENCRYPTED</button>
+            <button className="cases-filter is-active" type="button">ВСЕ_КЕЙСЫ</button>
+            <button className="cases-filter" type="button">ОТКРЫТЫЕ</button>
+            <button className="cases-filter" type="button">ЗАКРЫТЫЕ</button>
           </div>
         </div>
       </header>
@@ -180,7 +180,7 @@ const Cases = () => {
               <span className="terminal-loading-command">fetch_cases --all</span>
             </div>
             <div className="terminal-loading-status">
-              &gt; Loading case files
+              &gt; Загрузка списка кейсов
               <span className="terminal-loading-dots">
                 <span></span>
                 <span></span>
@@ -220,11 +220,11 @@ const Cases = () => {
           <div className="cases-grid">
             <div className="cases-table">
               <div className="cases-table-head">
-                <span>STATUS</span>
-                <span>COMPANY</span>
-                <span>CHALLENGE</span>
-                <span>PRIZE</span>
-                <span>TEAMS</span>
+                <span>СТАТУС</span>
+                <span>ОРГАНИЗАТОР</span>
+                <span>КЕЙС</span>
+                <span>ПРИЗ</span>
+                <span>КОМАНДЫ</span>
               </div>
 
               {visibleCases.map((caseItem) => {
@@ -250,7 +250,7 @@ const Cases = () => {
 
               <div className="cases-table-footer">
                 <span className="cases-scan-dot"></span>
-                <span>SCANNING NETWORK FOR NEW STREAMS... [ SCANNING ]</span>
+                <span>ПОИСК НОВЫХ КЕЙСОВ В СЕТИ... [ СКАНИРОВАНИЕ ]</span>
               </div>
             </div>
 
@@ -268,20 +268,20 @@ const Cases = () => {
                     <div>
                       <span>$</span>
                       <span>{formatPrize(activeCase)}</span>
-                      <span className="cases-preview-label">PRIZE</span>
+                      <span className="cases-preview-label">ПРИЗ</span>
                     </div>
                     <div>
                       <span>⚑</span>
                       <span>{activeCase.current_participants ?? '—'}</span>
-                      <span className="cases-preview-label">TEAMS</span>
+                      <span className="cases-preview-label">КОМАНДЫ</span>
                     </div>
                   </div>
                   <div className="cases-preview-description">
-                    <div className="cases-preview-heading">DESCRIPTION</div>
+                    <div className="cases-preview-heading">ОПИСАНИЕ</div>
                     <p>{activeCase.description || 'Описание будет доступно после открытия кейса.'}</p>
                   </div>
                   <Link to={`/cases/${activeCase.id}`} className="cases-preview-action">
-                    EXECUTE_VIEW
+                    ОТКРЫТЬ_КЕЙС
                   </Link>
                 </>
               ) : (

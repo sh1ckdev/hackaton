@@ -72,21 +72,21 @@ const Landing = () => {
   };
 
   const defaultTimeline = [
-    { type: 'registration', title: 'Registration Opens', description: 'Sign up via Telegram, form your squad, and prepare your dev environment.', date: null, active: true },
-    { type: 'hacking_begins', title: 'Hacking Begins', description: 'The mainframe opens. 48 hours of non-stop coding. Energy drinks recommended.', date: null, active: false },
-    { type: 'submission', title: 'Submission Deadline', description: 'Commit your final code to GitHub. Late submissions will be rejected by the firewall.', date: null, active: false }
+    { type: 'registration', title: 'Старт регистрации', description: 'Войдите через Telegram, соберите команду и подготовьте рабочее окружение.', date: null, active: true },
+    { type: 'hacking_begins', title: 'Начало хакатона', description: 'Открывается доступ к кейсам. 48 часов непрерывной разработки.', date: null, active: false },
+    { type: 'submission', title: 'Дедлайн сдачи решений', description: 'Залейте финальный код в GitHub. Просроченные решения не принимаются.', date: null, active: false }
   ];
 
   const defaultPrizes = [
-    { rank: 2, name: 'Silver Node', amount: 5000, benefits: ['Cloud Credits', 'Dev Tools License', 'Merch Pack'], featured: false },
-    { rank: 1, name: 'Gold Master', amount: 15000, benefits: ['VC Introduction', 'Audit Credits', 'Premium Hardware'], featured: true },
-    { rank: 3, name: 'Bronze Link', amount: 2500, benefits: ['API Credits', 'Mentorship Session', 'Merch Pack'], featured: false }
+    { rank: 2, name: 'Серебряный нод', amount: 5000, benefits: ['Облачные кредиты', 'Лицензия на dev-инструменты', 'Мерч-пак'], featured: false },
+    { rank: 1, name: 'Золотой мастер', amount: 15000, benefits: ['Интро к инвесторам', 'Кредиты на аудит', 'Премиальное железо'], featured: true },
+    { rank: 3, name: 'Бронзовый линк', amount: 2500, benefits: ['API-кредиты', 'Менторская сессия', 'Мерч-пак'], featured: false }
   ];
 
   const defaultTracks = [
-    { id: 1, name: 'AI & ML', description: 'Develop intelligent agents, predictive models, and generative systems.', tags: ['Python', 'TensorFlow'] },
-    { id: 2, name: 'Cybersecurity', description: 'Build defensive tools, secure communications, or blockchain auditing.', tags: ['Rust', 'Cryptography'] },
-    { id: 3, name: 'GameFi', description: 'Create immersive experiences with decentralized economies.', tags: ['Unity', 'Solidity'] }
+    { id: 1, name: 'AI & ML', description: 'Разработка интеллектуальных агентов, моделей предсказания и генеративных систем.', tags: ['Python', 'TensorFlow'] },
+    { id: 2, name: 'Кибербезопасность', description: 'Инструменты защиты, безопасные коммуникации, анализ смарт-контрактов и блокчейна.', tags: ['Rust', 'Cryptography'] },
+    { id: 3, name: 'GameDev / GameFi', description: 'Игровые механики, геймификация и встроенные экономики.', tags: ['Unity', 'Solidity'] }
   ];
 
   const displayTimeline = timeline.length > 0 ? timeline : defaultTimeline;
@@ -106,46 +106,45 @@ const Landing = () => {
         <section className="landing-hero">
           <div className="landing-hero-left">
             <h1>
-              BUILD THE<br />
-              <span>FUTURE_</span>
+              СОЗДАЙ<br />
+              <span>БУДУЩЕЕ_</span>
             </h1>
             <p>
-              Join 500+ developers in a 48-hour sprint to deconstruct
-              problems and compile solutions. Access the mainframe, deploy
-              your code, and claim your bounty.
+              Присоединяйся к сотням разработчиков в 48‑часовом спринте: разбирайся в кейсах,
+              собирай решения и выкатывай продакшн. Доступ к инфраструктуре, наставникам и призам.
             </p>
             <div className="landing-hero-actions">
               {authStore.isAuthenticated ? (
                 <Link to="/cases" className="landing-primary-btn">
                   <CaseIcon size={18} />
-                  Initialize Sequence
+                  Перейти к кейсам
                 </Link>
               ) : (
                 <Link to="/login" className="landing-primary-btn">
                   <TelegramIcon size={18} />
-                  Initialize Sequence
+                  Войти через Telegram
                 </Link>
               )}
               <Link to="/info" className="landing-secondary-btn">
-                Read Docs
+                Подробнее о хакатоне
               </Link>
             </div>
             <div className="landing-timer">
               <div>
                 <span>{countdown.days.toString().padStart(2, '0')}</span>
-                <span>DAYS</span>
+                  <span>ДНЕЙ</span>
               </div>
               <div>
                 <span>{countdown.hours.toString().padStart(2, '0')}</span>
-                <span>HRS</span>
+                  <span>ЧАС</span>
               </div>
               <div>
                 <span>{countdown.minutes.toString().padStart(2, '0')}</span>
-                <span>MIN</span>
+                  <span>МИН</span>
               </div>
               <div>
                 <span>{countdown.seconds.toString().padStart(2, '0')}</span>
-                <span>SEC</span>
+                  <span>СЕК</span>
               </div>
             </div>
           </div>
@@ -159,11 +158,11 @@ const Landing = () => {
               </div>
               <div className="landing-terminal-body">
                 <div className="line">➜ hack_node init</div>
-                <div className="line muted">&gt; Initializing environment...</div>
-                <div className="line muted">&gt; Loading modules: [React, Tailwind, Node, Python]</div>
-                <div className="line muted">&gt; TARGET DETECTED: 48 hours to launch</div>
-                <div className="line muted">&gt; Optimizing caffeine intake... Done.</div>
-                <div className="line accent">&gt; ACCESS GRANTED</div>
+                <div className="line muted">&gt; Инициализация окружения...</div>
+                <div className="line muted">&gt; Загрузка модулей: [React, Tailwind, Node, Python]</div>
+                <div className="line muted">&gt; ОБНАРУЖЕН СОБЫТИЕ: старт через 48 часов</div>
+                <div className="line muted">&gt; Оптимизация уровня кофеина... Готово.</div>
+                <div className="line accent">&gt; ДОСТУП РАЗРЕШЕН</div>
                 <div className="line cursor">▍</div>
               </div>
             </div>
@@ -171,8 +170,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-tracks">
-          <div className="landing-section-title">/ select protocol</div>
-          <h2>Event Tracks</h2>
+          <div className="landing-section-title">/ выбор трека</div>
+          <h2>Треки хакатона</h2>
           <div className="landing-track-grid">
             {displayTracks.map((track, idx) => (
               <div key={track.id || idx} className="landing-track-card">
@@ -189,8 +188,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-timeline">
-          <div className="landing-section-title">/ execution sequence</div>
-          <h2>Timeline</h2>
+          <div className="landing-section-title">/ последовательность</div>
+          <h2>Таймлайн</h2>
           <div className="landing-timeline-list">
             {displayTimeline.map((item, idx) => {
               const isLeft = idx % 2 === 0;
@@ -227,8 +226,8 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-prizes">
-          <div className="landing-section-title">/ bounty board</div>
-          <h2>Prizes & Rewards</h2>
+          <div className="landing-section-title">/ призовой фонд</div>
+          <h2>Призы и награды</h2>
           <div className="landing-prize-grid">
             {displayPrizes.map((prize) => {
               const rankClass = prize.rank === 1 ? 'landing-prize-rank-gold' : 
@@ -248,7 +247,7 @@ const Landing = () => {
                     ))}
                   </ul>
                   {prize.featured && (
-                    <Link to="/cases" className="landing-prize-btn">View Details</Link>
+                    <Link to="/cases" className="landing-prize-btn">Смотреть кейсы</Link>
                   )}
                 </div>
               );
@@ -257,18 +256,18 @@ const Landing = () => {
         </section>
 
         <section className="landing-section landing-cta">
-          <h2>Ready to Deploy?</h2>
-          <p>The network is waiting. Secure your spot in the most anticipated dev event of the year.</p>
+          <h2>Готов(а) залетать?</h2>
+          <p>Сеть уже ждёт. Займи место на одном из самых ожидаемых dev‑ивентов года.</p>
           <Link to="/login" className="landing-primary-btn">
             <TelegramIcon size={18} />
-            [ LOGIN WITH TELEGRAM ]
+            [ ВОЙТИ ЧЕРЕЗ TELEGRAM ]
           </Link>
-          <span className="landing-cta-note">Secured via Telegram Auth Protocol v2.0</span>
+          <span className="landing-cta-note">Авторизация и вход по Telegram, токены одноразовые.</span>
         </section>
 
         <footer className="landing-footer">
           <Logo showVersion={true} asLink={true} />
-          <span>© 2024 System Corp. All rights reserved.</span>
+          <span>© 2024 System Corp. Все права защищены.</span>
         </footer>
       </div>
     </div>

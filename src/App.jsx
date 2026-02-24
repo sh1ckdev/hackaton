@@ -20,25 +20,25 @@ const Info = lazy(() => import('./pages/Info'));
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-        <div className="terminal-loading">
-          <div className="terminal-loading-container">
-            <div>
-              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
-              <span className="terminal-loading-command">auth_check</span>
+            <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+              <div className="terminal-loading">
+                <div className="terminal-loading-container">
+                  <div>
+                    <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+                    <span className="terminal-loading-command">auth_check</span>
+                  </div>
+                  <div className="terminal-loading-status">
+                    &gt; Проверка учетных данных
+                    <span className="terminal-loading-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </span>
+                  </div>
+                  <div className="terminal-loading-bar"></div>
+                </div>
+              </div>
             </div>
-            <div className="terminal-loading-status">
-              &gt; Verifying credentials
-              <span className="terminal-loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </div>
-            <div className="terminal-loading-bar"></div>
-          </div>
-        </div>
-      </div>
     );
   }
   if (!authStore.isAuthenticated) {
@@ -73,7 +73,7 @@ function App() {
                     <span className="terminal-loading-command">load_module</span>
                   </div>
                   <div className="terminal-loading-status">
-                    &gt; Initializing system
+                    &gt; Инициализация системы
                     <span className="terminal-loading-dots">
                       <span></span>
                       <span></span>

@@ -25,8 +25,8 @@ const Layout = () => {
         </div>
       </main>
       <footer className="app-footer">
-        <span>SYSTEM_STATUS: OPTIMAL</span>
-        <span>© 2023 HACKATHON_OS / ALL RIGHTS RESERVED</span>
+        <span>СТАТУС_СИСТЕМЫ: НОРМА</span>
+        <span>© 2023 HACKATHON_OS / ВСЕ ПРАВА ЗАЩИЩЕНЫ</span>
       </footer>
     </div>
   );

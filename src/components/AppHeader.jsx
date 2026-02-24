@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { CaseIcon, SolutionIcon, TeamIcon, ProfileIcon, AdminIcon } from './Icons';
 import Logo from './Logo';
+import { useLanguage } from '../i18n/LanguageContext.jsx';
 
 const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
   const location = useLocation();
+  const { lang, setLang } = useLanguage();
   const isActive = (path) => location.pathname.startsWith(path);
 
   const navItems = [
@@ -37,6 +39,13 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
       </nav>
 
       <div className="app-actions">
+        <button
+          type="button"
+          className="app-lang-toggle"
+          onClick={() => setLang(lang === 'ru' ? 'en' : 'ru')}
+        >
+          {lang === 'ru' ? 'RU' : 'EN'}
+        </button>
         {isAuthenticated ? (
           <>
             <Link to="/profile" className="app-user">
@@ -46,7 +55,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
             <button onClick={onLogout} className="app-logout">Выход</button>
           </>
         ) : (
-          <Link to="/login" className="app-login">[ Login ]</Link>
+          <Link to="/login" className="app-login">[ Вход ]</Link>
         )}
       </div>
     </header>
