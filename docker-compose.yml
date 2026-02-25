@@ -19,13 +19,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       MAIN_ADMIN_TELEGRAM_ID: ${MAIN_ADMIN_TELEGRAM_ID:-}
-      TRUST_PROXY: ${TRUST_PROXY:-1}
-      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
-      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-300}
-      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-600000}
-      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-60}
-      SLOWDOWN_WINDOW_MS: ${SLOWDOWN_WINDOW_MS:-600000}
-      SLOWDOWN_AFTER: ${SLOWDOWN_AFTER:-100}
+
     depends_on:
       db:
         condition: service_healthy
@@ -42,9 +36,7 @@ services:
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
       # HTTP to HTTPS redirect for API
-      - "traefik.http.routers.backend-api-http.rule=Host(`api.chermanx.ru`)"
-      - "traefik.http.routers.backend-api-http.entrypoints=web"
-      - "traefik.http.routers.backend-api-http.middlewares=backend-api-redirect-to-https"
+      - "traefik.http.routers.backend-api.middlewares=backend-api-redirect-to-https"
       - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.permanent=true"
 
