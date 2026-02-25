@@ -31,7 +31,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend-api.rule=Host(`api.chermanx.ru`)"
-      - "traefik.http.routers.backend-api.entrypoints=websecure"
       - "traefik.http.routers.backend-api.tls=true"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
