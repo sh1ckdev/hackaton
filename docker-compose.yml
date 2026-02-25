@@ -47,9 +47,9 @@ services:
       - "traefik.http.routers.backend-api-http.middlewares=backend-api-redirect-to-https"
       - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.permanent=true"
-      
+
       - "traefik.http.routers.backend-api.middlewares=backend-api-ipallowlist"
-      - "traefik.http.middlewares.backend-api-ipallowlist.ipallowlist.sourcerange=127.0.0.1/32, 193.23.3.161/32"
+      - "traefik.http.middlewares.backend-api-ipallowlist.ipallowlist.sourcerange=127.0.0.1/32, 193.23.3.161"
   db:
     image: postgres:16-alpine
     container_name: hackathon-db
