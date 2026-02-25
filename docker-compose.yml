@@ -30,19 +30,23 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
+
       - "traefik.http.routers.backend-api.rule=Host(`api.chermanx.ru`)"
+      - "traefik.http.routers.backend-api.entrypoints=websecure"
       - "traefik.http.routers.backend-api.tls=true"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
-      - "traefik.http.routers.backend-api.service=backend-api"
-
-      # HTTP to HTTPS redirect for API
-      - "traefik.http.routers.backend-api.middlewares=backend-api-redirect-to-https"
-      - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.backend-api-redirect-to-https.redirectscheme.permanent=true"
-
+      - "traefik.http.routers.backend-api.middlewares=redirect-to-https"
+      # Middleware объединяем в одну строку
       - "traefik.http.routers.backend-api.middlewares=backend-api-ipallowlist"
-      - "traefik.http.middlewares.backend-api-ipallowlist.ipallowlist.sourcerange=127.0.0.1/32, 193.23.3.161"
+
+      - "traefik.http.middlewares.backend-api-ipallowlist.ipallowlist.sourcerange=127.0.0.1/32,193.23.3.161"
+
+      - "traefik.http.routers.backend-api-http.rule=Host(`api.chermanx.ru`)"
+      - "traefik.http.routers.backend-api-http.entrypoints=web"
+      - "traefik.http.routers.backend-api-http.middlewares=redirect-to-https"
+
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
   db:
     image: postgres:16-alpine
     container_name: hackathon-db
