@@ -37,14 +37,13 @@ class CasesStore {
     }
   }
 
-  async createCase(data, isFormData = false) {
+  async createCase(data, isFormData = false, onUploadProgress = null) {
     this.loading = true;
     this.error = null;
     try {
       const config = isFormData ? {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
+        ...(onUploadProgress ? { onUploadProgress } : {}),
       } : {};
       const response = await api.post('/cases', data, config);
       this.cases.push(response.data.case);
@@ -57,14 +56,13 @@ class CasesStore {
     }
   }
 
-  async updateCase(id, data, isFormData = false) {
+  async updateCase(id, data, isFormData = false, onUploadProgress = null) {
     this.loading = true;
     this.error = null;
     try {
       const config = isFormData ? {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
+        ...(onUploadProgress ? { onUploadProgress } : {}),
       } : {};
       const response = await api.put(`/cases/${id}`, data, config);
       const index = this.cases.findIndex(c => c.id === id);

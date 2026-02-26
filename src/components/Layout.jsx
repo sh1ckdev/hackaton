@@ -32,7 +32,7 @@ const Layout = () => {
   const isSupportPage = location.pathname === '/support';
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isSupportPage ? ' app-shell-support' : ''}`}>
       <AppHeader
         isAuthenticated={authStore.isAuthenticated}
         user={authStore.user}

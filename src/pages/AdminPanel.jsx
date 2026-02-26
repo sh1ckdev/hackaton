@@ -71,6 +71,7 @@ const AdminPanel = () => {
   });
   const [newLink, setNewLink] = useState({ label: '', url: '' });
   const [attachmentFiles, setAttachmentFiles] = useState([]);
+  const [caseUploadProgress, setCaseUploadProgress] = useState(0); // 0-100, null = не загружается
   const [randomizingTeams, setRandomizingTeams] = useState(false);
   const MAIN_ADMIN_TELEGRAM_ID = 1046635419;
   
@@ -720,33 +721,34 @@ const AdminPanel = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`border transition-all p-4 flex items-center justify-between bg-terminal-dark cursor-pointer ${
+                    className={`border transition-all p-4 bg-terminal-dark cursor-pointer ${
                       isMainAdmin 
                         ? 'border-terminal-blue/50 hover:border-terminal-blue' 
                         : 'border-terminal-gray hover:border-terminal-blue'
                     }`}
+                    onClick={() => setSelectedUser(user)}
                   >
-                    <div className="flex-1" onClick={() => setSelectedUser(user)}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-terminal-blue">
-                          {user.first_name} {user.last_name} ({user.vk_id ? (
-                            <a href={`https://vk.com/id${user.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>vk.com/id{user.vk_id}</a>
-                          ) : user.username ? (
-                            <a href={`https://t.me/${user.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>@{user.username}</a>
-                          ) : '—'})
+                    <div className="flex-1 min-w-0 mb-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <p className="font-semibold text-terminal-blue break-all">
+                          {user.first_name} {user.last_name}
+                          {' '}
+                          <span className="text-terminal-cyan text-sm font-normal">
+                            {user.vk_id ? `vk.com/id${user.vk_id}` : user.username ? `@${user.username}` : ''}
+                          </span>
                         </p>
                         {isMainAdmin && (
-                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-blue/50 text-terminal-blue bg-terminal-blue/10">
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-blue/50 text-terminal-blue bg-terminal-blue/10 whitespace-nowrap">
                             Главный админ
                           </span>
                         )}
                         {user.participant_category === 'student' && (
-                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-cyan/50 text-terminal-cyan bg-terminal-cyan/10">
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-cyan/50 text-terminal-cyan bg-terminal-cyan/10 whitespace-nowrap">
                             Студент
                           </span>
                         )}
                         {user.participant_category === 'school' && (
-                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-purple/50 text-terminal-purple bg-terminal-purple/10">
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-purple/50 text-terminal-purple bg-terminal-purple/10 whitespace-nowrap">
                             Школьник
                           </span>
                         )}
@@ -757,13 +759,10 @@ const AdminPanel = () => {
                           user.role === 'moderator' ? 'Модератор' : 'Пользователь'
                         }
                         {isUserOnline && (
-                          <>
-                            {' | '}
-                            <span className="text-terminal-blue inline-flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-terminal-blue"></span>
-                              Онлайн
-                            </span>
-                          </>
+                          <span className="text-terminal-blue inline-flex items-center gap-1 ml-2">
+                            <span className="w-2 h-2 rounded-full bg-terminal-blue"></span>
+                            Онлайн
+                          </span>
                         )}
                       </p>
                       {(() => {
@@ -777,7 +776,7 @@ const AdminPanel = () => {
                         return skillsStr ? <p className="text-sm text-white/60 mt-1">{skillsStr}</p> : null;
                       })()}
                     </div>
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
                       {user.role !== 'admin' && (
                         <button
                           onClick={async () => {
@@ -865,11 +864,23 @@ const AdminPanel = () => {
         )}
 
         {selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedUser(null)}>
-            <div className="glass rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-xl font-semibold mb-4 text-white border-b border-terminal-gray/60 pb-2">
-                Информация о пользователе
-              </h2>
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={() => setSelectedUser(null)}>
+            <div className="glass w-full sm:rounded-xl sm:max-w-lg rounded-t-2xl p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              {/* Полоска-индикатор для свайпа на мобиле */}
+              <div className="sm:hidden flex justify-center mb-3 -mt-1">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+              <div className="flex items-center justify-between mb-4 border-b border-terminal-gray/60 pb-2">
+                <h2 className="text-xl font-semibold text-white">
+                  Информация о пользователе
+                </h2>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors text-lg"
+                >
+                  ✕
+                </button>
+              </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-terminal-gray/30">
                   {selectedUser.photo_url ? (
@@ -1654,6 +1665,7 @@ const AdminPanel = () => {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
+                const hasNewFiles = caseFormData.attachments.some(a => a.file);
                 try {
                   const formData = new FormData();
                   formData.append('title', caseFormData.title);
@@ -1661,8 +1673,6 @@ const AdminPanel = () => {
                   formData.append('requirements', caseFormData.requirements || '');
                   formData.append('participant_category', caseFormData.participant_category || '');
                   formData.append('links', JSON.stringify(caseFormData.links));
-                  
-
 
                   let preservedIndex = 0;
                   caseFormData.attachments.forEach((att) => {
@@ -1675,19 +1685,28 @@ const AdminPanel = () => {
                     }
                   });
 
+                  const onProgress = hasNewFiles
+                    ? (e) => {
+                        if (e.total) setCaseUploadProgress(Math.round((e.loaded / e.total) * 100));
+                      }
+                    : null;
+
+                  if (hasNewFiles) setCaseUploadProgress(0);
+
                   if (editingCase) {
-                    // Флаг что вложения обновлялись (даже если удалили все)
                     formData.append('attachments_updated', '1');
-                    await casesStore.updateCase(editingCase.id, formData, true);
+                    await casesStore.updateCase(editingCase.id, formData, true, onProgress);
                   } else {
-                    await casesStore.createCase(formData, true);
+                    await casesStore.createCase(formData, true, onProgress);
                   }
+                  setCaseUploadProgress(0);
                   setShowCaseForm(false);
                   setEditingCase(null);
                   setNewLink({ label: '', url: '' });
                   setAttachmentFiles([]);
                   casesStore.fetchCases();
                 } catch (error) {
+                  setCaseUploadProgress(0);
                   alert(error.response?.data?.error || 'Ошибка сохранения кейса');
                 }
               }}
@@ -1813,11 +1832,17 @@ const AdminPanel = () => {
                 <div className="space-y-3 mb-3">
                   {(caseFormData.attachments || []).map((att, idx) => (
                     <div key={idx} className="flex items-center gap-2 p-3 bg-terminal-dark/20 rounded border border-terminal-gray/20">
-                      <div className="flex-1">
-                        <div className="text-white text-sm font-medium">{att.name || 'Файл'}</div>
-                        {att.url && (
-                          <div className="text-gray-400 text-xs break-all">{att.url}</div>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-medium truncate">{att.name || 'Файл'}</div>
+                        {att.file ? (
+                          <div className="text-blue-400 text-xs">
+                            Новый файл · {att.file.size > 1024 * 1024
+                              ? `${(att.file.size / 1024 / 1024).toFixed(1)} МБ`
+                              : `${Math.round(att.file.size / 1024)} КБ`}
+                          </div>
+                        ) : att.url ? (
+                          <div className="text-gray-400 text-xs truncate">Сохранённый файл</div>
+                        ) : null}
                       </div>
                       <button
                         type="button"
@@ -1847,19 +1872,41 @@ const AdminPanel = () => {
                     });
                   }}
                   multiple
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt,.md,.jpg,.jpeg,.png,.gif"
                   className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white rounded file:mr-4 file:py-1 file:px-3 file:border-0 file:text-sm file:bg-terminal-gray/40 file:text-white file:cursor-pointer cursor-pointer"
                 />
                 <p className="text-xs text-white/60 mt-2">
-                  Максимальный размер файла: 100MB. Поддерживаемые форматы: PDF, DOC, DOCX, ZIP, RAR
+                  Максимальный размер файла: 100MB. Поддерживаемые форматы: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, ZIP, RAR, TXT, MD, изображения
                 </p>
               </div>
+
+              {caseUploadProgress > 0 && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-white/60">
+                    <span>Загрузка файлов...</span>
+                    <span>{caseUploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-terminal-dark/60 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-terminal-blue rounded-full transition-all duration-200"
+                      style={{ width: `${caseUploadProgress}%` }}
+                    />
+                  </div>
+                  {caseUploadProgress === 100 && (
+                    <p className="text-xs text-green-400">✓ Файлы загружены, сохранение...</p>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-4 border-t border-terminal-gray pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded"
+                  disabled={caseUploadProgress > 0 && caseUploadProgress < 100}
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingCase ? 'Сохранить' : 'Создать'}
+                  {caseUploadProgress > 0 && caseUploadProgress < 100
+                    ? `Загрузка ${caseUploadProgress}%...`
+                    : editingCase ? 'Сохранить' : 'Создать'}
                 </button>
                 <button
                   type="button"

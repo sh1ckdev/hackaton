@@ -326,12 +326,28 @@ const Login = () => {
                 </button>
 
                 <button
-                  onClick={handleVkRedirect}
+                  disabled
                   className="login-vk-button"
-                  disabled={!participantCategory || (turnstileSiteKey && !captchaToken)}
+                  style={{ opacity: 0.45, cursor: 'not-allowed', position: 'relative' }}
+                  title="Временно недоступно"
                 >
                   <VkIcon size={22} />
                   <span>Войти через VK ID</span>
+                  <span style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: 'rgba(0,0,0,0.7)',
+                    borderRadius: '6px',
+                    padding: '2px 8px',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    letterSpacing: '0.3px'
+                  }}>Временно недоступно</span>
                 </button>
               </div>
             )}
