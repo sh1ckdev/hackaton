@@ -31,9 +31,9 @@ const AdminPanel = () => {
   const [teams, setTeams] = useState([]);
   const [expandedTeams, setExpandedTeams] = useState(new Set());
   const [activeTab, setActiveTab] = useState('solutions');
-  const [settingsSubTab, setSettingsSubTab] = useState('timeline');
   const [filters, setFilters] = useState({ status: '', case_id: '' });
   const [usersFilter, setUsersFilter] = useState({ participant_category: '' });
+  const [teamsFilter, setTeamsFilter] = useState({ participant_category: '' });
   const [moderatingSolution, setModeratingSolution] = useState(null);
   const [moderationData, setModerationData] = useState({
     status: 'approved',
@@ -64,10 +64,7 @@ const AdminPanel = () => {
     title: '',
     description: '',
     requirements: '',
-    difficulty: 'medium',
-    max_participants: 0,
-    status: 'active',
-    opens_at: '',
+    participant_category: '',
     links: [],
     attachments: [],
   });
@@ -78,13 +75,9 @@ const AdminPanel = () => {
   
   // Настройки хакатона
   const [hackathonSettings, setHackathonSettings] = useState({
-    timeline: [],
-    prizes: [],
-    tracks: []
+    timeline: []
   });
   const [editingTimelineItem, setEditingTimelineItem] = useState(null);
-  const [editingPrize, setEditingPrize] = useState(null);
-  const [editingTrack, setEditingTrack] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [analytics, setAnalytics] = useState(null);
 
@@ -110,7 +103,7 @@ const AdminPanel = () => {
     if (activeTab === 'teams') {
       fetchTeams();
     }
-  }, [activeTab]);
+  }, [activeTab, teamsFilter.participant_category]);
 
   useEffect(() => {
     if (activeTab === 'users') fetchUsers();
@@ -141,7 +134,9 @@ const AdminPanel = () => {
 
   const fetchTeams = async () => {
     try {
-      const response = await api.get('/teams/all');
+      const params = new URLSearchParams();
+      if (teamsFilter.participant_category) params.set('participant_category', teamsFilter.participant_category);
+      const response = await api.get(`/teams/all${params.toString() ? '?' + params.toString() : ''}`);
       setTeams(response.data.teams);
     } catch (error) {
     }
@@ -157,7 +152,7 @@ const AdminPanel = () => {
   };
 
   const statusLabels = { pending: 'Ожидает', reviewing: 'На проверке', approved: 'Одобрено', rejected: 'Отклонено' };
-  const CHART_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const CHART_COLORS = ['#60a5fa', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   const exportToCSV = (data, filename, columns) => {
     const headers = columns.map(c => c.label || c.key).join(',');
@@ -291,15 +286,9 @@ const AdminPanel = () => {
 
   const fetchHackathonSettings = async () => {
     try {
-      const [timelineRes, prizesRes, tracksRes] = await Promise.all([
-        api.get('/admin/settings/timeline').catch(() => ({ data: { timeline: [] } })),
-        api.get('/admin/settings/prizes').catch(() => ({ data: { prizes: [] } })),
-        api.get('/admin/settings/tracks').catch(() => ({ data: { tracks: [] } }))
-      ]);
+      const timelineRes = await api.get('/admin/settings/timeline').catch(() => ({ data: { timeline: [] } }));
       setHackathonSettings({
-        timeline: timelineRes.data.timeline || [],
-        prizes: prizesRes.data.prizes || [],
-        tracks: tracksRes.data.tracks || []
+        timeline: timelineRes.data.timeline || []
       });
     } catch (error) {
       console.error('Ошибка загрузки настроек', error);
@@ -337,34 +326,6 @@ const AdminPanel = () => {
     }
   };
 
-  const savePrize = async (prize) => {
-    try {
-      if (prize.id) {
-        await api.put(`/admin/settings/prizes/${prize.id}`, prize);
-      } else {
-        await api.post('/admin/settings/prizes', prize);
-      }
-      await fetchHackathonSettings();
-      setEditingPrize(null);
-    } catch (error) {
-      alert(error.response?.data?.error || 'Ошибка сохранения приза');
-    }
-  };
-
-  const saveTrack = async (track) => {
-    try {
-      if (track.id) {
-        await api.put(`/admin/settings/tracks/${track.id}`, track);
-      } else {
-        await api.post('/admin/settings/tracks', track);
-      }
-      await fetchHackathonSettings();
-      setEditingTrack(null);
-    } catch (error) {
-      alert(error.response?.data?.error || 'Ошибка сохранения трека');
-    }
-  };
-
   const deleteTimelineItem = async (id) => {
     if (!confirm('Удалить этот пункт таймлайна?')) return;
     try {
@@ -373,26 +334,6 @@ const AdminPanel = () => {
         ...prev,
         timeline: prev.timeline.filter(t => t.id !== id)
       }));
-    } catch (error) {
-      alert(error.response?.data?.error || 'Ошибка удаления');
-    }
-  };
-
-  const deletePrize = async (id) => {
-    if (!confirm('Удалить этот приз?')) return;
-    try {
-      await api.delete(`/admin/settings/prizes/${id}`);
-      await fetchHackathonSettings();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Ошибка удаления');
-    }
-  };
-
-  const deleteTrack = async (id) => {
-    if (!confirm('Удалить этот трек?')) return;
-    try {
-      await api.delete(`/admin/settings/tracks/${id}`);
-      await fetchHackathonSettings();
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка удаления');
     }
@@ -495,7 +436,7 @@ const AdminPanel = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      approved: 'border-terminal-green text-terminal-green',
+      approved: 'border-terminal-blue text-terminal-blue',
       rejected: 'border-terminal-red text-terminal-red',
       reviewing: 'border-terminal-cyan text-terminal-cyan',
       pending: 'border-terminal-gray text-terminal-gray',
@@ -608,7 +549,7 @@ const AdminPanel = () => {
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
               >
                 <option value="">Все статусы</option>
                 <option value="pending">Ожидает</option>
@@ -620,7 +561,7 @@ const AdminPanel = () => {
                 name="case_id"
                 value={filters.case_id}
                 onChange={handleFilterChange}
-                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
               >
                 <option value="">Все кейсы</option>
                 {casesStore.cases.map((c) => (
@@ -635,7 +576,7 @@ const AdminPanel = () => {
               {solutionsStore.allSolutions.map((solution, index) => (
                 <div
                   key={solution.id}
-                  className="border border-terminal-gray hover:border-terminal-green transition-all duration-300 p-4 bg-terminal-dark transform hover:scale-[1.01] hover:shadow-lg hover:shadow-terminal-green/10 animate-fade-in-up"
+                  className="border border-terminal-gray hover:border-terminal-blue transition-all duration-300 p-4 bg-terminal-dark transform hover:scale-[1.01] hover:shadow-lg hover:shadow-terminal-blue/10 animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                     <div className="flex items-start justify-between mb-2 border-b border-terminal-gray/60 pb-2">
@@ -667,7 +608,7 @@ const AdminPanel = () => {
                     )}
                     {solution.presentation_file_path && (
                       <a
-                        href={`/uploads/${solution.presentation_file_path.split('/').pop()}`}
+                        href={solution.presentation_file_path.startsWith('http') ? solution.presentation_file_path : `/uploads/${solution.presentation_file_path.split('/').pop()}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-terminal-cyan hover:text-white transition-colors"
@@ -696,12 +637,28 @@ const AdminPanel = () => {
                       Комментарий: {solution.admin_comment}
                     </p>
                   )}
-                  <button
-                    onClick={() => setModeratingSolution(solution)}
-                    className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all duration-300 text-sm font-medium rounded transform hover:scale-105 shadow-md hover:shadow-terminal-green/30"
-                  >
-                    Модерировать →
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setModeratingSolution(solution)}
+                      className="px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all duration-300 text-sm font-medium rounded transform hover:scale-105 shadow-md hover:shadow-terminal-blue/30"
+                    >
+                      Модерировать →
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Удалить решение «${solution.title}»?`)) return;
+                        try {
+                          await solutionsStore.deleteSolution(solution.id);
+                          solutionsStore.fetchAllSolutions(filters);
+                        } catch (e) {
+                          alert(e.response?.data?.error || 'Ошибка удаления');
+                        }
+                      }}
+                      className="px-4 py-2 bg-terminal-dark/40 border border-red-500/60 text-red-400 hover:bg-red-500/20 hover:border-red-500 transition-all duration-300 text-sm font-medium rounded"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -715,7 +672,7 @@ const AdminPanel = () => {
               <select
                 value={usersFilter.participant_category}
                 onChange={(e) => setUsersFilter({ participant_category: e.target.value })}
-                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
               >
                 <option value="">Все</option>
                 <option value="student">Студенты</option>
@@ -732,13 +689,13 @@ const AdminPanel = () => {
                     key={user.id}
                     className={`border transition-all p-4 flex items-center justify-between bg-terminal-dark cursor-pointer ${
                       isMainAdmin 
-                        ? 'border-terminal-green/50 hover:border-terminal-green' 
-                        : 'border-terminal-gray hover:border-terminal-green'
+                        ? 'border-terminal-blue/50 hover:border-terminal-blue' 
+                        : 'border-terminal-gray hover:border-terminal-blue'
                     }`}
                   >
                     <div className="flex-1" onClick={() => setSelectedUser(user)}>
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-terminal-green">
+                        <p className="font-semibold text-terminal-blue">
                           {user.first_name} {user.last_name} ({user.vk_id ? (
                             <a href={`https://vk.com/id${user.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>vk.com/id{user.vk_id}</a>
                           ) : user.username ? (
@@ -746,7 +703,7 @@ const AdminPanel = () => {
                           ) : '—'})
                         </p>
                         {isMainAdmin && (
-                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-green/50 text-terminal-green bg-terminal-green/10">
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-blue/50 text-terminal-blue bg-terminal-blue/10">
                             Главный админ
                           </span>
                         )}
@@ -769,8 +726,8 @@ const AdminPanel = () => {
                         {isUserOnline && (
                           <>
                             {' | '}
-                            <span className="text-terminal-green inline-flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-terminal-green"></span>
+                            <span className="text-terminal-blue inline-flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-terminal-blue"></span>
                               Онлайн
                             </span>
                           </>
@@ -853,7 +810,7 @@ const AdminPanel = () => {
                               alert(error.response?.data?.error || 'Ошибка изменения роли');
                             }
                           }}
-                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all text-sm font-medium rounded"
+                          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all text-sm font-medium rounded"
                         >
                           Сделать админом
                         </button>
@@ -883,9 +840,9 @@ const AdminPanel = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-terminal-gray/30">
                   {selectedUser.photo_url ? (
-                    <img src={selectedUser.photo_url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-terminal-green/50" />
+                    <img src={selectedUser.photo_url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-terminal-blue/50" />
                   ) : (
-                    <div className="w-20 h-20 rounded-full bg-terminal-gray/40 flex items-center justify-center text-2xl font-bold text-terminal-green">
+                    <div className="w-20 h-20 rounded-full bg-terminal-gray/40 flex items-center justify-center text-2xl font-bold text-terminal-blue">
                       {(selectedUser.first_name?.[0] || selectedUser.username?.[0] || '?').toUpperCase()}
                     </div>
                   )}
@@ -893,8 +850,8 @@ const AdminPanel = () => {
                     <p className="font-semibold text-white text-lg flex items-center gap-2">
                       {selectedUser.first_name} {selectedUser.last_name}
                       {selectedUser.last_activity_at && (Date.now() - new Date(selectedUser.last_activity_at).getTime()) < 120 * 1000 && (
-                        <span className="text-terminal-green text-sm font-normal inline-flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-terminal-green"></span>
+                        <span className="text-terminal-blue text-sm font-normal inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-terminal-blue"></span>
                           Онлайн
                         </span>
                       )}
@@ -1003,7 +960,7 @@ const AdminPanel = () => {
                               <p className="text-white/50 text-xs mb-1">Языки:</p>
                               <div className="flex flex-wrap gap-2">
                                 {langs.map((s, i) => (
-                                  <span key={i} className="px-2 py-1 bg-terminal-green/20 text-terminal-green text-xs rounded">
+                                  <span key={i} className="px-2 py-1 bg-terminal-blue/20 text-terminal-blue text-xs rounded">
                                     {s.name}{s.extension ? `.${s.extension}` : ''}
                                   </span>
                                 ))}
@@ -1077,7 +1034,7 @@ const AdminPanel = () => {
                           alert(e.response?.data?.error || 'Ошибка');
                         }
                       }}
-                      className="px-3 py-1.5 text-sm border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded transition-colors"
+                      className="px-3 py-1.5 text-sm border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg rounded transition-colors"
                     >
                       Сделать админом
                     </button>
@@ -1102,7 +1059,7 @@ const AdminPanel = () => {
                   )}
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className="px-4 py-1.5 text-sm border border-terminal-gray text-white/70 hover:border-terminal-green rounded transition-colors ml-auto"
+                    className="px-4 py-1.5 text-sm border border-terminal-gray text-white/70 hover:border-terminal-blue rounded transition-colors ml-auto"
                   >
                     Закрыть
                   </button>
@@ -1137,7 +1094,7 @@ const AdminPanel = () => {
                 </button>
                 <button
                   onClick={fetchAnalytics}
-                  className="px-3 py-2 text-sm border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded transition-colors"
+                  className="px-3 py-2 text-sm border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg rounded transition-colors"
                 >
                   Обновить
                 </button>
@@ -1180,7 +1137,7 @@ const AdminPanel = () => {
                           <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
                           <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
                           <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                          <Bar dataKey="count" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="count" fill="#60a5fa" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -1210,7 +1167,7 @@ const AdminPanel = () => {
                           <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} />
                           <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
                           <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                          <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={{ fill: '#22c55e' }} />
+                          <Line type="monotone" dataKey="count" stroke="#60a5fa" strokeWidth={2} dot={{ fill: '#60a5fa' }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -1221,7 +1178,7 @@ const AdminPanel = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
                       <p className="text-white/60 text-sm">Пользователей</p>
-                      <p className="text-2xl font-bold text-terminal-green">{stats?.users ?? '—'}</p>
+                      <p className="text-2xl font-bold text-terminal-blue">{stats?.users ?? '—'}</p>
                     </div>
                     <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
                       <p className="text-white/60 text-sm">Решений</p>
@@ -1233,7 +1190,7 @@ const AdminPanel = () => {
                     </div>
                     <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
                       <p className="text-white/60 text-sm">Команд</p>
-                      <p className="text-2xl font-bold text-terminal-green">{teams.length}</p>
+                      <p className="text-2xl font-bold text-terminal-blue">{teams.length}</p>
                     </div>
                   </div>
                 </div>
@@ -1248,8 +1205,19 @@ const AdminPanel = () => {
 
         {activeTab === 'teams' && (
           <div className="p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-white">Команды</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-semibold text-white">Команды</h2>
+                <select
+                  value={teamsFilter.participant_category}
+                  onChange={(e) => setTeamsFilter({ participant_category: e.target.value })}
+                  className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
+                >
+                  <option value="">Все команды</option>
+                  <option value="school">Школьники</option>
+                  <option value="student">Студенты</option>
+                </select>
+              </div>
               <button
                 onClick={handleRandomizeTeams}
                 disabled={randomizingTeams}
@@ -1265,18 +1233,29 @@ const AdminPanel = () => {
                 teams.map((team) => (
                   <div
                     key={team.id}
-                    className="border border-terminal-gray hover:border-terminal-green transition-all bg-terminal-dark"
+                    className="border border-terminal-gray hover:border-terminal-blue transition-all bg-terminal-dark"
                   >
                     <div
                       className="p-4 flex items-center justify-between cursor-pointer"
                       onClick={() => toggleTeam(team.id)}
                     >
                       <div className="flex-1">
-                        <p className="font-semibold text-terminal-green">
-                          {team.name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-terminal-blue">
+                            {team.name}
+                          </p>
+                          {team.participant_category && (
+                            <span className={`px-2 py-0.5 text-xs rounded border ${
+                              team.participant_category === 'school' 
+                                ? 'border-amber-500/50 text-amber-400 bg-amber-500/10' 
+                                : 'border-terminal-blue/50 text-terminal-cyan bg-terminal-blue/10'
+                            }`}>
+                              {team.participant_category === 'school' ? 'Школьники' : 'Студенты'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-white/70">
-                          Код: {team.code} | Участников: {team.members_count} | Кейс: {team.assigned_case_title || 'не назначен'} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
+                          Код: {team.team_code || team.code} | Участников: {team.members_count} | Кейс: {team.assigned_case_title || 'не назначен'} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
                         </p>
                       </div>
                       <svg
@@ -1345,10 +1324,7 @@ const AdminPanel = () => {
                     title: '',
                     description: '',
                     requirements: '',
-                    difficulty: 'medium',
-                    max_participants: 0,
-                    status: 'active',
-                    opens_at: '',
+                    participant_category: '',
                     links: [],
                     attachments: [],
                   });
@@ -1356,7 +1332,7 @@ const AdminPanel = () => {
                   setAttachmentFiles([]);
                   setShowCaseForm(true);
                 }}
-                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded"
               >
                 + Создать кейс
               </button>
@@ -1366,21 +1342,18 @@ const AdminPanel = () => {
               {casesStore.cases.map((caseItem) => (
                 <div
                   key={caseItem.id}
-                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 bg-terminal-dark"
+                  className="border border-terminal-gray hover:border-terminal-blue transition-all p-4 bg-terminal-dark"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-white mb-1">{caseItem.title}</h3>
                       <p className="text-sm text-white/70 line-clamp-2">{caseItem.description}</p>
                       <div className="mt-2 flex gap-4 text-xs text-white/60">
-                        <span>Сложность: {caseItem.difficulty === 'easy' ? 'Лёгкая' : caseItem.difficulty === 'medium' ? 'Средняя' : caseItem.difficulty === 'hard' ? 'Сложная' : caseItem.difficulty}</span>
-                        <span>Участников: {caseItem.current_participants}</span>
-                        {caseItem.opens_at && (
-                          <span>
-                            Откроется: {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+                        {caseItem.participant_category && (
+                          <span className={caseItem.participant_category === 'school' ? 'text-terminal-cyan' : 'text-terminal-blue'}>
+                            {caseItem.participant_category === 'school' ? 'Школьники' : 'Студенты'}
                           </span>
                         )}
-                        {!caseItem.opens_at && <span>Открыт</span>}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1391,12 +1364,7 @@ const AdminPanel = () => {
                             title: caseItem.title,
                             description: caseItem.description,
                             requirements: caseItem.requirements || '',
-                            difficulty: caseItem.difficulty,
-                            max_participants: caseItem.max_participants,
-                            status: caseItem.status,
-                            opens_at: caseItem.opens_at
-                              ? new Date(caseItem.opens_at).toISOString().slice(0, 16)
-                              : '',
+                            participant_category: caseItem.participant_category || '',
                             links: Array.isArray(caseItem.links) ? caseItem.links : [],
                             attachments: Array.isArray(caseItem.attachments) ? caseItem.attachments : [],
                           });
@@ -1434,7 +1402,7 @@ const AdminPanel = () => {
                   onChange={(e) => setBroadcastMessage(e.target.value)}
                   placeholder="Введите сообщение, которое будет отправлено всем участникам соревнований..."
                   rows={8}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 />
                 <p className="text-xs text-white/60 mt-2">
                   Сообщение будет отправлено всем пользователям, которые не снялись с соревнований
@@ -1443,7 +1411,7 @@ const AdminPanel = () => {
               <button
                 onClick={handleBroadcast}
                 disabled={broadcasting || !broadcastMessage.trim()}
-                className="group flex items-center justify-center gap-2 px-6 py-3 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group flex items-center justify-center gap-2 px-6 py-3 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {broadcasting ? (
                   <>
@@ -1458,7 +1426,7 @@ const AdminPanel = () => {
                 )}
               </button>
               {broadcastResult && (
-                <div className="glass rounded-lg p-4 border border-terminal-green">
+                <div className="glass rounded-lg p-4 border border-terminal-blue">
                   <p className="text-white/90 mb-2">Результат рассылки:</p>
                   <p className="text-sm text-white/70">
                     Отправлено: {broadcastResult.sent} | Ошибок: {broadcastResult.failed} | Всего: {broadcastResult.total}
@@ -1489,7 +1457,7 @@ const AdminPanel = () => {
                   });
                   setShowSettingForm(true);
                 }}
-                className="px-4 py-2 bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-all font-medium rounded"
+                className="px-4 py-2 bg-terminal-blue text-terminal-bg hover:bg-terminal-cyan transition-all font-medium rounded"
               >
                 + Создать настройку
               </button>
@@ -1499,7 +1467,7 @@ const AdminPanel = () => {
               {broadcastSettings.map((setting) => (
                 <div
                   key={setting.id}
-                  className="border border-terminal-gray hover:border-terminal-green transition-all p-4 bg-terminal-dark rounded"
+                  className="border border-terminal-gray hover:border-terminal-blue transition-all p-4 bg-terminal-dark rounded"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -1507,7 +1475,7 @@ const AdminPanel = () => {
                         <h3 className="font-semibold text-white">{setting.name}</h3>
                         <span className={`px-2 py-1 text-xs rounded ${
                           setting.enabled 
-                            ? 'bg-terminal-green/20 text-terminal-green border border-terminal-green' 
+                            ? 'bg-terminal-blue/20 text-terminal-blue border border-terminal-blue' 
                             : 'bg-terminal-gray/20 text-terminal-gray border border-terminal-gray'
                         }`}>
                           {setting.enabled ? 'Включено' : 'Выключено'}
@@ -1581,10 +1549,7 @@ const AdminPanel = () => {
                   formData.append('title', caseFormData.title);
                   formData.append('description', caseFormData.description);
                   formData.append('requirements', caseFormData.requirements || '');
-                  formData.append('difficulty', caseFormData.difficulty);
-                  formData.append('max_participants', caseFormData.max_participants);
-                  formData.append('status', caseFormData.status);
-                  formData.append('opens_at', caseFormData.opens_at || '');
+                  formData.append('participant_category', caseFormData.participant_category || '');
                   formData.append('links', JSON.stringify(caseFormData.links));
                   
 
@@ -1628,7 +1593,7 @@ const AdminPanel = () => {
                   value={caseFormData.title}
                   onChange={(e) => setCaseFormData({ ...caseFormData, title: e.target.value })}
                   required
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 />
               </div>
               <div>
@@ -1640,7 +1605,7 @@ const AdminPanel = () => {
                   onChange={(e) => setCaseFormData({ ...caseFormData, description: e.target.value })}
                   required
                   rows={4}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 />
               </div>
               <div>
@@ -1651,64 +1616,25 @@ const AdminPanel = () => {
                   value={caseFormData.requirements}
                   onChange={(e) => setCaseFormData({ ...caseFormData, requirements: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Сложность
-                  </label>
-                  <select
-                    value={caseFormData.difficulty}
-                    onChange={(e) => setCaseFormData({ ...caseFormData, difficulty: e.target.value })}
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
-                  >
-                    <option value="easy">Легко</option>
-                    <option value="medium">Средне</option>
-                    <option value="hard">Сложно</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Макс. участников
-                  </label>
-                  <input
-                    type="number"
-                    value={caseFormData.max_participants}
-                    onChange={(e) => setCaseFormData({ ...caseFormData, max_participants: e.target.value })}
-                    min="0"
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
-                  />
-                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
-                  Дата и время открытия (оставьте пустым для немедленного открытия)
-                </label>
-                <input
-                  type="datetime-local"
-                  value={caseFormData.opens_at}
-                  onChange={(e) => setCaseFormData({ ...caseFormData, opens_at: e.target.value })}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
-                />
-                <p className="text-xs text-white/60 mt-1">
-                  Если указана дата, кейс будет открыт автоматически в указанное время. Все пользователи получат уведомление в Telegram.
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
-                  Статус
+                  Категория участников
                 </label>
                 <select
-                  value={caseFormData.status}
-                  onChange={(e) => setCaseFormData({ ...caseFormData, status: e.target.value })}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  value={caseFormData.participant_category}
+                  onChange={(e) => setCaseFormData({ ...caseFormData, participant_category: e.target.value })}
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 >
-                  <option value="active">Активен</option>
-                  <option value="closed">Закрыт</option>
-                  <option value="archived">Архивирован</option>
+                  <option value="">Не указана</option>
+                  <option value="school">Школьники</option>
+                  <option value="student">Студенты</option>
                 </select>
+                <p className="text-xs text-white/60 mt-1">
+                  Кейс будет назначаться только командам соответствующей категории
+                </p>
               </div>
 
               {}
@@ -1742,14 +1668,14 @@ const AdminPanel = () => {
                     value={newLink.label}
                     onChange={(e) => setNewLink({ ...newLink, label: e.target.value })}
                     placeholder="Название ссылки"
-                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded text-sm"
+                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded text-sm"
                   />
                   <input
                     type="url"
                     value={newLink.url}
                     onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                     placeholder="https://..."
-                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded text-sm"
+                    className="flex-1 px-3 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded text-sm"
                   />
                   <button
                     type="button"
@@ -1762,7 +1688,7 @@ const AdminPanel = () => {
                         setNewLink({ label: '', url: '' });
                       }
                     }}
-                    className="px-4 py-2 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded text-sm transition-colors"
+                    className="px-4 py-2 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg rounded text-sm transition-colors"
                   >
                     Добавить
                   </button>
@@ -1821,7 +1747,7 @@ const AdminPanel = () => {
               <div className="flex gap-4 border-t border-terminal-gray pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded"
                 >
                   {editingCase ? 'Сохранить' : 'Создать'}
                 </button>
@@ -1831,7 +1757,7 @@ const AdminPanel = () => {
                     setShowCaseForm(false);
                     setEditingCase(null);
                   }}
-                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-green transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-blue transition-all font-medium rounded"
                 >
                   Отмена
                 </button>
@@ -1857,7 +1783,7 @@ const AdminPanel = () => {
                   onChange={(e) =>
                     setModerationData({ ...moderationData, status: e.target.value })
                   }
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 >
                   <option value="approved">Одобрено</option>
                   <option value="rejected">Отклонено</option>
@@ -1874,7 +1800,7 @@ const AdminPanel = () => {
                   onChange={(e) =>
                     setModerationData({ ...moderationData, score: parseInt(e.target.value) || 0 })
                   }
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   min="0"
                   max="100"
                 />
@@ -1889,13 +1815,13 @@ const AdminPanel = () => {
                     setModerationData({ ...moderationData, admin_comment: e.target.value })
                   }
                   rows={4}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                 />
               </div>
               <div className="flex gap-4 border-t border-terminal-gray pt-4">
                 <button
                   onClick={handleModerate}
-                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded"
                 >
                   Сохранить
                 </button>
@@ -1904,7 +1830,7 @@ const AdminPanel = () => {
                     setModeratingSolution(null);
                     setModerationData({ status: 'approved', admin_comment: '', score: 0 });
                   }}
-                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-green transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-blue transition-all font-medium rounded"
                 >
                   Отмена
                 </button>
@@ -1936,7 +1862,7 @@ const AdminPanel = () => {
                   value={settingFormData.name}
                   onChange={(e) => setSettingFormData({ ...settingFormData, name: e.target.value })}
                   required
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   placeholder="Например: Уведомление об открытии кейса"
                 />
               </div>
@@ -1950,7 +1876,7 @@ const AdminPanel = () => {
                     value={settingFormData.type}
                     onChange={(e) => setSettingFormData({ ...settingFormData, type: e.target.value })}
                     required
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   >
                     <option value="case_opening">Открытие кейса</option>
                     <option value="general">Общая рассылка</option>
@@ -1966,7 +1892,7 @@ const AdminPanel = () => {
                   <select
                     value={settingFormData.enabled ? 'true' : 'false'}
                     onChange={(e) => setSettingFormData({ ...settingFormData, enabled: e.target.value === 'true' })}
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   >
                     <option value="true">Включено</option>
                     <option value="false">Выключено</option>
@@ -1982,7 +1908,7 @@ const AdminPanel = () => {
                   <select
                     value={settingFormData.case_id || ''}
                     onChange={(e) => setSettingFormData({ ...settingFormData, case_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   >
                     <option value="">Все кейсы</option>
                     {availableCases.map((c) => (
@@ -2003,7 +1929,7 @@ const AdminPanel = () => {
                   onChange={(e) => setSettingFormData({ ...settingFormData, message_template: e.target.value })}
                   required
                   rows={6}
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   placeholder="Введите шаблон сообщения. Для кейсов можно использовать переменные: {{case_title}}, {{case_description}}"
                 />
                 <p className="text-xs text-white/60 mt-1">
@@ -2078,7 +2004,7 @@ const AdminPanel = () => {
                       type="text"
                       value={settingFormData.schedule_cron}
                       onChange={(e) => setSettingFormData({ ...settingFormData, schedule_cron: e.target.value })}
-                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                       placeholder="0 9 * * *"
                     />
                     <p className="text-xs text-white/60 mt-1">
@@ -2093,7 +2019,7 @@ const AdminPanel = () => {
                       type="datetime-local"
                       value={settingFormData.schedule_time}
                       onChange={(e) => setSettingFormData({ ...settingFormData, schedule_time: e.target.value })}
-                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                     />
                   </div>
                 </>
@@ -2102,7 +2028,7 @@ const AdminPanel = () => {
               <div className="flex gap-4 border-t border-terminal-gray/30 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 bg-terminal-dark/40 border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg transition-all font-medium rounded"
                 >
                   {editingSetting ? 'Сохранить изменения' : 'Создать настройку'}
                 </button>
@@ -2123,7 +2049,7 @@ const AdminPanel = () => {
                       case_id: null,
                     });
                   }}
-                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-green transition-all font-medium rounded"
+                  className="flex-1 px-4 py-2 border border-terminal-gray text-white/70 hover:border-terminal-blue transition-all font-medium rounded"
                 >
                   Отмена
                 </button>
@@ -2137,32 +2063,10 @@ const AdminPanel = () => {
         <div className="admin-settings">
           <div className="admin-settings-header">
             <h2>Настройки хакатона</h2>
-            <p>Управление таймлайном, призами и треками</p>
+            <p>Управление таймлайном событий</p>
           </div>
 
-          <div className="admin-settings-tabs">
-            <button
-              onClick={() => setSettingsSubTab('timeline')}
-              className={`admin-settings-tab ${settingsSubTab === 'timeline' ? 'active' : ''}`}
-            >
-              Таймлайн
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('prizes')}
-              className={`admin-settings-tab ${settingsSubTab === 'prizes' ? 'active' : ''}`}
-            >
-              Призы
-            </button>
-            <button
-              onClick={() => setSettingsSubTab('tracks')}
-              className={`admin-settings-tab ${settingsSubTab === 'tracks' ? 'active' : ''}`}
-            >
-              Треки
-            </button>
-          </div>
-
-          {settingsSubTab === 'timeline' && (
-            <div className="admin-settings-content">
+          <div className="admin-settings-content">
               <div className="admin-settings-section-header">
                 <h3>Таймлайн событий</h3>
                 <button
@@ -2286,251 +2190,6 @@ const AdminPanel = () => {
                 </div>
               )}
             </div>
-          )}
-
-          {settingsSubTab === 'prizes' && (
-            <div className="admin-settings-content">
-              <div className="admin-settings-section-header">
-                <h3>Призы и награды</h3>
-                <button
-                  onClick={() => {
-                    setEditingPrize({
-                      rank: 1,
-                      name: '',
-                      amount: 0,
-                      benefits: [],
-                      featured: false
-                    });
-                  }}
-                  className="admin-btn-primary"
-                >
-                  + Добавить приз
-                </button>
-              </div>
-              <div className="admin-settings-list">
-                {hackathonSettings.prizes.map((prize, idx) => (
-                  <div key={prize.id || idx} className="admin-settings-item">
-                    <div className="admin-settings-item-content">
-                      <div className="admin-settings-item-title">
-                        #{prize.rank} - {prize.name}
-                        {prize.featured && <span className="admin-badge-featured">ГЛАВНЫЙ ПРИЗ</span>}
-                      </div>
-                      <div className="admin-settings-item-meta">
-                        <span>Сумма: ${prize.amount.toLocaleString()}</span>
-                        <span>Бонусов: {prize.benefits?.length || 0}</span>
-                      </div>
-                      {prize.benefits && prize.benefits.length > 0 && (
-                        <div className="admin-settings-item-benefits">
-                          {prize.benefits.map((b, i) => (
-                            <span key={i} className="admin-benefit-tag">{b}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="admin-settings-item-actions">
-                      <button
-                        onClick={() => setEditingPrize(prize)}
-                        className="admin-btn-secondary"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => deletePrize(prize.id)}
-                        className="admin-btn-danger"
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {editingPrize && (
-                <div className="admin-modal">
-                  <div className="admin-modal-content">
-                    <h3>{editingPrize.id ? 'Редактировать' : 'Создать'} приз</h3>
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      savePrize(editingPrize);
-                    }}>
-                      <div className="admin-form-group">
-                        <label>Место (ранг)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={editingPrize.rank}
-                          onChange={(e) => setEditingPrize({...editingPrize, rank: parseInt(e.target.value)})}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>Название</label>
-                        <input
-                          type="text"
-                          value={editingPrize.name}
-                          onChange={(e) => setEditingPrize({...editingPrize, name: e.target.value})}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>Сумма ($)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={editingPrize.amount}
-                          onChange={(e) => setEditingPrize({...editingPrize, amount: parseInt(e.target.value)})}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>Бонусы (через запятую)</label>
-                        <input
-                          type="text"
-                          value={editingPrize.benefits?.join(', ') || ''}
-                          onChange={(e) => setEditingPrize({
-                            ...editingPrize,
-                            benefits: e.target.value.split(',').map(b => b.trim()).filter(b => b)
-                          })}
-                          className="admin-input"
-                          placeholder="Знакомство с VC, Аудит, Премиум-оборудование"
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={editingPrize.featured}
-                            onChange={(e) => setEditingPrize({...editingPrize, featured: e.target.checked})}
-                          />
-                          Главный приз
-                        </label>
-                      </div>
-                      <div className="admin-form-actions">
-                        <button type="submit" className="admin-btn-primary">Сохранить</button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingPrize(null)}
-                          className="admin-btn-secondary"
-                        >
-                          Отмена
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {settingsSubTab === 'tracks' && (
-            <div className="admin-settings-content">
-              <div className="admin-settings-section-header">
-                <h3>Треки событий</h3>
-                <button
-                  onClick={() => {
-                    setEditingTrack({
-                      name: '',
-                      description: '',
-                      tags: []
-                    });
-                  }}
-                  className="admin-btn-primary"
-                >
-                  + Добавить трек
-                </button>
-              </div>
-              <div className="admin-settings-list">
-                {hackathonSettings.tracks.map((track, idx) => (
-                  <div key={track.id || idx} className="admin-settings-item">
-                    <div className="admin-settings-item-content">
-                      <div className="admin-settings-item-title">
-                        {String(idx + 1).padStart(2, '0')}. {track.name}
-                      </div>
-                      <div className="admin-settings-item-desc">{track.description}</div>
-                      {track.tags && track.tags.length > 0 && (
-                        <div className="admin-settings-item-tags">
-                          {track.tags.map((tag, i) => (
-                            <span key={i} className="admin-tag">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="admin-settings-item-actions">
-                      <button
-                        onClick={() => setEditingTrack(track)}
-                        className="admin-btn-secondary"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => deleteTrack(track.id)}
-                        className="admin-btn-danger"
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {editingTrack && (
-                <div className="admin-modal">
-                  <div className="admin-modal-content">
-                    <h3>{editingTrack.id ? 'Редактировать' : 'Создать'} трек</h3>
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      saveTrack(editingTrack);
-                    }}>
-                      <div className="admin-form-group">
-                        <label>Название</label>
-                        <input
-                          type="text"
-                          value={editingTrack.name}
-                          onChange={(e) => setEditingTrack({...editingTrack, name: e.target.value})}
-                          className="admin-input"
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>Описание</label>
-                        <textarea
-                          value={editingTrack.description}
-                          onChange={(e) => setEditingTrack({...editingTrack, description: e.target.value})}
-                          className="admin-input"
-                          rows={3}
-                          required
-                        />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>Теги (через запятую)</label>
-                        <input
-                          type="text"
-                          value={editingTrack.tags?.join(', ') || ''}
-                          onChange={(e) => setEditingTrack({
-                            ...editingTrack,
-                            tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
-                          })}
-                          className="admin-input"
-                          placeholder="Python, TensorFlow, AI"
-                        />
-                      </div>
-                      <div className="admin-form-actions">
-                        <button type="submit" className="admin-btn-primary">Сохранить</button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingTrack(null)}
-                          className="admin-btn-secondary"
-                        >
-                          Отмена
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

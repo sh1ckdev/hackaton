@@ -11,8 +11,6 @@ import BackendDownPage from './components/BackendDownPage';
 const Login = lazy(() => import('./pages/Login'));
 const AuthVkCallback = lazy(() => import('./pages/AuthVkCallback'));
 const Landing = lazy(() => import('./pages/Landing'));
-const Cases = lazy(() => import('./pages/Cases'));
-const CaseDetail = lazy(() => import('./pages/CaseDetail'));
 const MySolutions = lazy(() => import('./pages/MySolutions'));
 const SubmitSolution = lazy(() => import('./pages/SubmitSolution'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
@@ -118,8 +116,6 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route path="cases" element={<Cases />} />
-              <Route path="cases/:id" element={<CaseDetail />} />
               <Route path="solutions" element={<MySolutions />} />
               <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
               <Route path="profile" element={<Profile />} />

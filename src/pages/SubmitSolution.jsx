@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import casesStore from '../stores/casesStore';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { UploadIcon, GitHubIcon, ArrowLeftIcon, SolutionIcon, PaperPlaneIcon } from '../components/Icons';
+import { UploadIcon, GitHubIcon, ArrowLeftIcon, PaperPlaneIcon, SolutionIcon, EditIcon } from '../components/Icons';
 
 const SubmitSolution = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
-  
   const caseItem = casesStore.selectedCase;
   useDocumentTitle(caseItem ? `Отправить решение: ${caseItem.title}` : 'Отправить решение');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,8 +24,6 @@ const SubmitSolution = () => {
   useEffect(() => {
     casesStore.fetchCase(caseId);
     solutionsStore.fetchMySolutions();
-    
-
     const existingSolution = solutionsStore.solutions.find(
       s => s.case_id === parseInt(caseId)
     );
@@ -42,86 +40,104 @@ const SubmitSolution = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-
     if (!formData.title.trim()) {
-      setError('Название обязательно');
+      setError('Укажите название решения');
       return;
     }
-
     if (!formData.github_url) {
       setError('Ссылка на GitHub репозиторий обязательна');
       return;
     }
-
+    if (!presentationFile) {
+      setError('Загрузите презентацию');
+      return;
+    }
     try {
       await solutionsStore.submitSolution(formData, presentationFile);
-      navigate(`/cases/${caseId}`);
+      navigate('/solutions');
     } catch (err) {
       setError(err.response?.data?.error || 'Ошибка отправки решения');
     }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   if (casesStore.loading) {
     return (
-      <div className="terminal-loading">
-        <div className="terminal-loading-container">
-          <div>
-            <span className="terminal-loading-prompt">sys@hackathon:~$</span>
-            <span className="terminal-loading-command">load_case_data</span>
+      <div className="solutions-page">
+        <Link to="/solutions" className="submit-solution-back">
+          <ArrowLeftIcon size={18} />
+          Назад к решениям
+        </Link>
+        <div className="terminal-loading">
+          <div className="terminal-loading-container">
+            <div>
+              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-command">load_solution_form</span>
+            </div>
+            <div className="terminal-loading-status">
+              &gt; Загрузка данных
+              <span className="terminal-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </div>
+            <div className="terminal-loading-bar"></div>
           </div>
-          <div className="terminal-loading-status">
-            &gt; Loading case information
-            <span className="terminal-loading-dots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </div>
-          <div className="terminal-loading-bar"></div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-3xl">
-      {}
-      <button
-        onClick={() => navigate(`/cases/${caseId}`)}
-        className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 transition-colors group"
-      >
-        <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" />
-        <span>Назад к кейсу</span>
-      </button>
+  if (!caseItem && !casesStore.loading) {
+    return (
+      <div className="solutions-page">
+        <Link to="/solutions" className="submit-solution-back">
+          <ArrowLeftIcon size={18} />
+          Назад к решениям
+        </Link>
+        <div className="solutions-error">
+          <p>{casesStore.error || 'Кейс не найден'}</p>
+        </div>
+      </div>
+    );
+  }
 
-      {}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-          <SolutionIcon size={28} className="text-terminal-green" />
-          Отправить решение
-        </h1>
-        {casesStore.selectedCase && (
-          <div className="mt-3 p-3 bg-terminal-dark/40 rounded-lg border border-terminal-gray/20">
-            <p className="text-xs text-gray-500 mb-1">Кейс</p>
-            <p className="text-gray-300 font-medium">{casesStore.selectedCase.title}</p>
+  const displayError = error || solutionsStore.error;
+
+  return (
+    <div className="solutions-page">
+      <Link to="/solutions" className="submit-solution-back">
+        <ArrowLeftIcon size={18} />
+        Назад к решениям
+      </Link>
+
+      <header className="submit-solution-header">
+        <div className="solutions-header-text">
+          <h1>ОТПРАВИТЬ РЕШЕНИЕ</h1>
+          <p>// Заполните форму. GitHub и презентация обязательны.</p>
+        </div>
+        {caseItem && (
+          <div className="submit-solution-corner-badge">
+            <SolutionIcon size={20} />
+            <span>{caseItem.title}</span>
           </div>
         )}
-      </div>
+      </header>
 
-      {}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm space-y-6">
-          {}
-          <div>
-            <label htmlFor="title" className="block text-sm font-semibold text-white mb-2">
-              Название решения <span className="text-terminal-red">*</span>
+      <form onSubmit={handleSubmit} className="submit-solution-form submit-solution-form-grid">
+        <div className="submit-form-left">
+        <div className="submit-form-section">
+          <div className="submit-form-section-icon">
+            <EditIcon size={32} />
+          </div>
+          <h3 className="submit-form-section-title">Основная информация</h3>
+          <div className="submit-form-field">
+            <label htmlFor="title" className="submit-form-label">
+              Название решения <span className="submit-form-label-required">*</span>
             </label>
             <input
               type="text"
@@ -130,35 +146,34 @@ const SubmitSolution = () => {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/30 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors placeholder:text-gray-600"
-              placeholder="Введите название решения"
+              className="submit-form-input"
+              placeholder="Например: Мобильное приложение для доставки"
             />
           </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-semibold text-white mb-2">
-              Описание
-            </label>
+          <div className="submit-form-field">
+            <label htmlFor="description" className="submit-form-label">Описание</label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               rows={5}
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/30 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors resize-none placeholder:text-gray-600"
-              placeholder="Опишите ваше решение, используемые технологии, подход и т.д."
+              className="submit-form-textarea"
+              placeholder="Опишите решение: технологии, подход, идеи..."
             />
           </div>
         </div>
+        </div>
 
-        {}
-        <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm space-y-6">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Ссылки</h3>
-          
-          <div>
-            <label htmlFor="github_url" className="flex items-center gap-2 text-sm font-semibold text-white mb-2">
-              <GitHubIcon size={16} className="text-gray-400" />
-              Ссылка на GitHub репозиторий <span className="text-terminal-red">*</span>
+        <div className="submit-form-right">
+        <div className="submit-form-section">
+          <div className="submit-form-section-icon">
+            <GitHubIcon size={32} />
+          </div>
+          <h3 className="submit-form-section-title">Ссылки</h3>
+          <div className="submit-form-field">
+            <label htmlFor="github_url" className="submit-form-label">
+              GitHub репозиторий <span className="submit-form-label-required">*</span>
             </label>
             <input
               type="url"
@@ -167,85 +182,74 @@ const SubmitSolution = () => {
               value={formData.github_url}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/30 text-white focus:border-terminal-green focus:outline-none rounded-lg transition-colors placeholder:text-gray-600"
+              className="submit-form-input"
               placeholder="https://github.com/username/repo"
             />
-            <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-terminal-green shrink-0"></span>
-              <span>Обязательно укажите ссылку на ваш GitHub репозиторий</span>
-            </p>
+            <p className="submit-form-hint">Обязательное поле. Укажите ссылку на репозиторий с кодом.</p>
           </div>
-
-          <div>
-            <label htmlFor="demo_url" className="block text-sm font-semibold text-white mb-2">
-              Ссылка на демо
-            </label>
+          <div className="submit-form-field">
+            <label htmlFor="demo_url" className="submit-form-label">Демо или сайт</label>
             <input
               type="url"
               id="demo_url"
               name="demo_url"
               value={formData.demo_url}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/30 text-white focus:border-terminal-cyan focus:outline-none rounded-lg transition-colors placeholder:text-gray-600"
-              placeholder="https://your-demo.com"
+              className="submit-form-input"
+              placeholder="https://your-demo.com (необязательно)"
             />
-            <p className="mt-2 text-xs text-gray-500">Опционально</p>
           </div>
         </div>
 
-        {}
-        <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">
-          <label htmlFor="presentation" className="flex items-center gap-2 text-sm font-semibold text-white mb-2">
-            <UploadIcon size={16} className="text-gray-400" />
-            Презентация (PDF, PPT, PPTX, ODP)
-          </label>
-          <input
-            type="file"
-            id="presentation"
-            name="presentation"
-            onChange={(e) => setPresentationFile(e.target.files[0])}
-            accept=".pdf,.ppt,.pptx,.odp"
-            className="w-full px-4 py-3 bg-terminal-dark/60 border border-terminal-gray/30 text-white rounded-lg file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:bg-terminal-gray/40 file:text-white file:cursor-pointer file:rounded file:hover:bg-terminal-gray/50 cursor-pointer transition-colors"
-          />
-          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-terminal-cyan shrink-0"></span>
-            <span>Максимальный размер: 100MB. Презентация опциональна.</span>
-          </p>
+        <div className="submit-form-section">
+          <div className="submit-form-section-icon">
+            <UploadIcon size={32} />
+          </div>
+          <h3 className="submit-form-section-title">
+            Презентация <span className="submit-form-label-required">*</span>
+          </h3>
+          <div className="submit-form-field">
+            <div className="submit-form-file-wrap">
+              <input
+                type="file"
+                id="presentation"
+                name="presentation"
+                onChange={(e) => setPresentationFile(e.target.files?.[0] || null)}
+                accept=".pdf,.ppt,.pptx,.odp"
+                required
+              />
+            </div>
+            <p className="submit-form-hint">PDF, PPT, PPTX или ODP. Максимум 100 МБ. Обязательно.</p>
+          </div>
+        </div>
         </div>
 
-        {}
-        {(error || solutionsStore.error) && (
-          <div className="p-4 border border-terminal-red/50 rounded-xl text-terminal-red text-sm bg-terminal-red/10 backdrop-blur-sm">
-            {error || solutionsStore.error}
+        <div className="submit-form-actions-wrap">
+        {displayError && (
+          <div className="solutions-error">
+            <p>{displayError}</p>
           </div>
         )}
 
-        {}
-        <div className="flex items-center justify-between pt-4 border-t border-terminal-gray/30">
-          <button
-            type="button"
-            onClick={() => navigate(`/cases/${caseId}`)}
-            className="px-5 py-2.5 border border-terminal-gray/30 text-gray-300 hover:border-terminal-cyan hover:text-terminal-cyan transition-colors rounded-lg text-sm font-medium"
-          >
-            Отмена
-          </button>
+        <div className="submit-form-actions">
           <button
             type="submit"
             disabled={solutionsStore.loading}
-            className="px-6 py-2.5 bg-terminal-green text-terminal-bg font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 text-sm flex items-center gap-2"
+            className="submit-form-btn-submit"
           >
             {solutionsStore.loading ? (
               <>
-                <span className="animate-spin">⏳</span>
-                <span>Отправка...</span>
+                <span className="submit-form-spinner">⏳</span>
+                Отправка...
               </>
             ) : (
               <>
-                <PaperPlaneIcon size={16} />
-                <span>Отправить</span>
+                <PaperPlaneIcon size={18} />
+                Отправить решение
               </>
             )}
           </button>
+        </div>
         </div>
       </form>
     </div>

@@ -19,11 +19,15 @@ class AuthStore {
     }
   }
 
-  async login(initData, captchaToken) {
+  async login(telegramData, captchaToken, participantCategory) {
     this.loading = true;
     this.error = null;
     try {
-      const response = await api.post('/auth/telegram', { initData, captcha_token: captchaToken });
+      const response = await api.post('/auth/telegram', {
+        telegramData,
+        captcha_token: captchaToken || '',
+        participant_category: participantCategory || undefined,
+      });
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;

@@ -3,8 +3,7 @@ import { observer } from 'mobx-react-lite';
 import api from '../utils/api';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon } from '../components/Icons';
-
+import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon, EditIcon } from '../components/Icons';
 const Team = () => {
   useDocumentTitle('Команда');
   const [team, setTeam] = useState(null);
@@ -23,6 +22,44 @@ const Team = () => {
   const [invitePreview, setInvitePreview] = useState(null);
   const [invitePreviewLoading, setInvitePreviewLoading] = useState(false);
   const [confirmKickUserCode, setConfirmKickUserCode] = useState(null);
+  const [editingMemberId, setEditingMemberId] = useState(null);
+  const [deadlineDate, setDeadlineDate] = useState(null);
+  const [deadlineLeft, setDeadlineLeft] = useState(null);
+
+  useEffect(() => {
+    api.get('/landing/deadline').then((res) => {
+      setDeadlineDate(res.data?.target_date || null);
+    }).catch(() => setDeadlineDate(null));
+  }, []);
+
+  useEffect(() => {
+    if (!deadlineDate) return;
+    const update = () => {
+      const diff = new Date(deadlineDate) - new Date();
+      if (diff <= 0) {
+        setDeadlineLeft({ expired: true });
+        return;
+      }
+      setDeadlineLeft({
+        expired: false,
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000),
+      });
+    };
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
+  }, [deadlineDate]);
+
+  const formatDeadline = () => {
+    if (!deadlineLeft || deadlineLeft.expired) return 'Завершено';
+    const { days, hours, minutes, seconds } = deadlineLeft;
+    const totalHours = days * 24 + hours;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(totalHours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const isOnline = (lastActivityAt) => {
     if (!lastActivityAt) return false;
@@ -279,12 +316,12 @@ const Team = () => {
     <div className="team-page">
       <div className="team-header">
         <div>
-          <h1>Управление командой</h1>
+          <h1>Управление командой{team?.name ? `: ${team.name}` : ''}</h1>
           <p>Управляйте своим составом, приглашайте участников или присоединяйтесь к существующей команде.</p>
         </div>
         <div className="team-deadline">
           <TimeIcon size={16} />
-          <span>ДЕДЛАЙН: 48:00:00</span>
+          <span>ДЕДЛАЙН: {deadlineDate ? formatDeadline() : '—'}</span>
         </div>
       </div>
 
@@ -319,8 +356,28 @@ const Team = () => {
                 const amCaptain = captain && authStore.user?.id === captain.id;
                 const isMe = authStore.user?.id === member.id;
                 const canKick = amCaptain && !isMe && member.role !== 'captain';
+                const isEditingMe = isMe && editingMemberId === member.id;
+                const isEditingCard = editingMemberId === member.id;
+                const showEditBtn = isMe || canKick;
                 return (
-                  <div key={member.id} className="team-member-card">
+                  <div key={member.id} className={`team-member-card${isEditingCard ? ' team-member-card--editing' : ''}`}>
+                    {showEditBtn && (
+                      <button
+                        type="button"
+                        className="team-member-edit-btn"
+                        onClick={() => {
+                          if (editingMemberId === member.id) {
+                            setEditingMemberId(null);
+                            setConfirmKickUserCode(null);
+                          } else {
+                            setEditingMemberId(member.id);
+                          }
+                        }}
+                        title={isEditingCard ? 'Свернуть' : 'Редактировать'}
+                      >
+                        <EditIcon size={14} />
+                      </button>
+                    )}
                     <div className="team-member-avatar-wrapper">
                       <div className="team-member-avatar">
                         {member.photo_url ? (
@@ -352,15 +409,21 @@ const Team = () => {
                         <span className="team-role-badge">Капитан</span>
                       )}
                       {isMe ? (
-                        <select
-                          className="team-specialty-select"
-                          value={member.specialty || 'fullstack'}
-                          onChange={(e) => handleSpecialtyChange(e.target.value)}
-                        >
-                          {SPECIALTIES.map((s) => (
-                            <option key={s.value} value={s.value}>{s.label}</option>
-                          ))}
-                        </select>
+                        isEditingMe ? (
+                          <select
+                            className="team-specialty-select"
+                            value={member.specialty || 'fullstack'}
+                            onChange={(e) => handleSpecialtyChange(e.target.value)}
+                          >
+                            {SPECIALTIES.map((s) => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="team-role-badge">
+                            {SPECIALTIES.find(s => s.value === (member.specialty || 'fullstack'))?.label || 'Фулстек'}
+                          </span>
+                        )
                       ) : (
                         <span className="team-role-badge">
                           {SPECIALTIES.find(s => s.value === (member.specialty || 'fullstack'))?.label || 'Фулстек'}
@@ -368,12 +431,12 @@ const Team = () => {
                       )}
                     </div>
                     <div className="team-member-actions">
-                      {isMe && (
+                      {isEditingMe && (
                         <button type="button" className="team-member-leave-btn" onClick={handleLeave}>
                           Выйти
                         </button>
                       )}
-                      {canKick && confirmKickUserCode === member.user_code ? (
+                      {isEditingCard && canKick && confirmKickUserCode === member.user_code ? (
                         <div className="team-member-kick-confirm">
                           <span className="team-member-kick-confirm-text">Удалить?</span>
                           <button type="button" className="team-member-kick-btn" onClick={() => handleKick(member.user_code)}>
@@ -383,7 +446,7 @@ const Team = () => {
                             Отмена
                           </button>
                         </div>
-                      ) : canKick && (
+                      ) : isEditingCard && canKick && (
                         <button type="button" className="team-member-kick-btn" onClick={() => setConfirmKickUserCode(member.user_code)}>
                           Удалить
                         </button>
@@ -411,7 +474,7 @@ const Team = () => {
                         >
                           {!invitePreview ? (
                             <>
-                            <label className="team-invite-label">Код из профиля (6 символов)</label>
+                            <label className="team-invite-label">Код участника</label>
                             <div className="team-invite-input-block">
                               <input
                                 type="text"
@@ -513,7 +576,6 @@ const Team = () => {
                   {teamCodeCopied ? 'Скопировано' : 'Копировать'}
                 </button>
               </div>
-              <small>Скиньте код участнику</small>
             </div>
           )}
           </div>
@@ -564,20 +626,31 @@ const Team = () => {
               <p>Введите 6-значный код команды, который дал вам капитан, чтобы присоединиться к составу.</p>
               <div className="team-input-group">
                 <label>ВВЕДИТЕ КОД КОМАНДЫ</label>
-                <div className="team-code-inputs">
-                  {teamCode.map((char, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (codeInputRefs.current[index] = el)}
-                      type="text"
-                      maxLength={1}
-                      value={char}
-                      onChange={(e) => handleCodeChange(index, e.target.value)}
-                      onKeyDown={(e) => handleCodeKeyDown(index, e)}
-                      onPaste={handleCodePaste}
-                      className="team-code-input"
-                    />
-                  ))}
+                <div className="team-input-wrapper">
+                  <div className={`team-code-inputs ${teamError && !createError ? 'error' : ''}`}>
+                    {teamCode.map((char, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => (codeInputRefs.current[index] = el)}
+                        type="text"
+                        maxLength={1}
+                        value={char}
+                        onChange={(e) => {
+                          handleCodeChange(index, e.target.value);
+                          setTeamError(null);
+                        }}
+                        onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                        onPaste={handleCodePaste}
+                        className="team-code-input"
+                        title={teamError && !createError ? teamError : undefined}
+                      />
+                    ))}
+                  </div>
+                  {teamError && !createError && (
+                    <div className="team-input-tooltip" role="alert">
+                      {teamError}
+                    </div>
+                  )}
                 </div>
               </div>
               <button onClick={handleJoin} className="team-secondary-btn">
@@ -587,13 +660,6 @@ const Team = () => {
 
             </div>
           </div>
-
-          {teamError && !createError && (
-            <div className="team-error">
-              <strong>Ошибка</strong>
-              <span>{teamError}</span>
-            </div>
-          )}
         </>
       )}
     </div>

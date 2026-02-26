@@ -26,10 +26,6 @@ const Layout = () => {
           <Outlet />
         </div>
       </main>
-      <footer className="app-footer">
-        <span>СТАТУС_СИСТЕМЫ: НОРМА</span>
-        <span>© 2023 HACKATHON_OS / ВСЕ ПРАВА ЗАЩИЩЕНЫ</span>
-      </footer>
     </div>
   );
 };

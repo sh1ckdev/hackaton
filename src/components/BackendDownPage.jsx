@@ -22,7 +22,7 @@ const BackendDownPage = () => (
       <div className="login-terminal-body">
         <div className="login-auth-title">Технические неполадки</div>
         <p className="error-boundary-text">
-          Сервер временно недоступен. Пожалуйста, обновите страницу позже или вернитесь на главную.
+          Приложение временно недоступно. Пожалуйста, обновите страницу позже или вернитесь на главную.
         </p>
 
         <div className="error-boundary-actions">

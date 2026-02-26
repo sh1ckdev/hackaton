@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { CaseIcon, TelegramIcon } from '../components/Icons';
+import { SolutionIcon, TelegramIcon } from '../components/Icons';
 import AppHeader from '../components/AppHeader';
 import Logo from '../components/Logo';
 import api from '../utils/api';
@@ -170,9 +170,9 @@ const Landing = () => {
               }}
             >
               {authStore.isAuthenticated ? (
-                <Link to="/cases" className="landing-primary-btn">
-                  <CaseIcon size={18} />
-                  Перейти к кейсам
+                <Link to="/solutions" className="landing-primary-btn">
+                  <SolutionIcon size={18} />
+                  Мои решения
                 </Link>
               ) : (
                 <Link to="/login" className="landing-primary-btn">
@@ -198,31 +198,35 @@ const Landing = () => {
             >
               {mainExpired ? (
                 <>
-                  <div style={{ fontSize: '24px', fontWeight: 600, marginBottom: 8 }}>
-                    Соревнования идут!
+                  <div className="landing-timer-title">Соревнования идут!</div>
+                  <div className="landing-timer-blocks">
+                    {['hours', 'minutes', 'seconds'].map((key) => {
+                      const totalHours = competitionCountdown.days * 24 + competitionCountdown.hours;
+                      const val = key === 'hours' ? totalHours : competitionCountdown[key];
+                      const label = { hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' }[key];
+                      return (
+                        <div key={key} className="landing-timer-block">
+                          <span className="landing-timer-value">{val.toString().padStart(2, '0')}</span>
+                          <div>{label}</div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {['days', 'hours', 'minutes', 'seconds'].map((key) => (
-                      <div key={key} style={{ textAlign: 'center' }}>
-                        <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                          {competitionCountdown[key].toString().padStart(2, '0')}
-                        </span>
-                        <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: '14px', opacity: 0.8 }}>до окончания хакатона</div>
+                  <div className="landing-timer-sub">до окончания хакатона</div>
                 </>
               ) : (
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {['days', 'hours', 'minutes', 'seconds'].map((key) => (
-                    <div key={key} style={{ textAlign: 'center' }}>
-                      <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                        {countdown[key].toString().padStart(2, '0')}
-                      </span>
-                      <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
-                    </div>
-                  ))}
+                <div className="landing-timer-blocks">
+                  {['hours', 'minutes', 'seconds'].map((key) => {
+                    const totalHours = countdown.days * 24 + countdown.hours;
+                    const val = key === 'hours' ? totalHours : countdown[key];
+                    const label = { hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' }[key];
+                    return (
+                      <div key={key} className="landing-timer-block">
+                        <span className="landing-timer-value">{val.toString().padStart(2, '0')}</span>
+                        <div>{label}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

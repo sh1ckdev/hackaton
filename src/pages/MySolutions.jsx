@@ -4,11 +4,12 @@ import { observer } from 'mobx-react-lite';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import api from '../utils/api';
+import { SolutionIcon } from '../components/Icons';
 
 const MySolutions = () => {
   useDocumentTitle('Мои решения');
   const [team, setTeam] = useState(null);
-  
+
   useEffect(() => {
     solutionsStore.fetchMySolutions();
   }, []);
@@ -22,31 +23,33 @@ const MySolutions = () => {
   }, []);
 
   const getStatusBadge = (status) => {
-    const styles = {
-      approved: 'border-terminal-green text-terminal-green',
-      rejected: 'border-terminal-red text-terminal-red',
-      reviewing: 'border-terminal-cyan text-terminal-cyan',
-      pending: 'border-terminal-gray text-terminal-gray',
+    const map = {
+      approved: 'solutions-status-approved',
+      rejected: 'solutions-status-rejected',
+      reviewing: 'solutions-status-reviewing',
+      pending: 'solutions-status-pending',
     };
     const labels = {
-      approved: 'APPROVED',
-      rejected: 'REJECTED',
-      reviewing: 'REVIEWING',
-      pending: 'PENDING',
+      approved: 'Одобрено',
+      rejected: 'Отклонено',
+      reviewing: 'На проверке',
+      pending: 'Ожидает',
     };
     return (
-      <span className={`px-3 py-1 text-xs rounded border ${styles[status] || styles.pending}`}>
+      <span className={`solutions-status-badge ${map[status] || map.pending}`}>
         {labels[status] || labels.pending}
       </span>
     );
   };
 
   return (
-    <div className="px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-100 mb-2">Мои решения</h1>
-        <p className="text-gray-400">Все ваши отправленные решения</p>
-      </div>
+    <div className="solutions-page">
+      <header className="solutions-header">
+        <div className="solutions-header-text">
+          <h1>МОИ РЕШЕНИЯ</h1>
+          <p>// Все ваши отправленные решения. Редактируйте или добавляйте новые — кейс назначается вашей команде организаторами.</p>
+        </div>
+      </header>
 
       {solutionsStore.loading ? (
         <div className="terminal-loading">
@@ -67,116 +70,101 @@ const MySolutions = () => {
           </div>
         </div>
       ) : solutionsStore.solutions.length === 0 ? (
-        <div className="text-center py-12 glass rounded-lg">
-          <p className="text-gray-400 mb-4">У вас пока нет отправленных решений</p>
-          {team?.assigned_case_id ? (
+        <div className="solutions-empty">
+          <div className="solutions-empty-icon-wrap">
+            <SolutionIcon size={64} className="solutions-empty-icon" />
+          </div>
+          <h3 className="solutions-empty-title">Пока нет отправленных решений</h3>
+          <p className="solutions-empty-text">
+            {team?.assigned_case_id
+              ? 'Отправьте первое решение по назначенному вашей команде кейсу'
+              : 'Кейс вашей команде ещё не назначен. Ожидайте распределения от организаторов.'}
+          </p>
+          {team?.assigned_case_id && (
             <Link
               to={`/solutions/submit/${team.assigned_case_id}`}
-              className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+              className="solutions-empty-btn solutions-empty-btn-primary"
             >
+              <SolutionIcon size={18} className="solutions-empty-btn-icon" />
               {team.assigned_case_title ? `Отправить решение: ${team.assigned_case_title}` : 'Отправить решение'}
             </Link>
-          ) : (
-            <>
-              <p className="text-gray-500 text-sm mb-4">Кейс вашей команде ещё не назначен. Ожидайте распределения от организаторов.</p>
-              <Link
-                to="/cases"
-                className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all rounded"
-              >
-                К кейсам
-              </Link>
-            </>
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {solutionsStore.solutions.map((solution, index) => (
-            <div
-              key={solution.id}
-              className="glass rounded-lg hover:border-terminal-green transition-all duration-300 p-6 transform hover:scale-[1.01] hover:shadow-lg hover:shadow-terminal-green/10 animate-fade-in-up"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="flex items-start justify-between mb-4 border-b-2 border-terminal-gray pb-3">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-100 mb-2">
-                    {solution.title}
-                  </h2>
-                  <p className="text-sm text-gray-400 mb-2">
-                    Кейс: {solution.case_title}
-                  </p>
-                  {solution.description && (
-                    <p className="text-gray-400 text-sm mb-2 line-clamp-2">
-                      {solution.description}
-                    </p>
-                  )}
+        <div className="solutions-list">
+          {solutionsStore.solutions.map((solution) => (
+            <div key={solution.id} className="solutions-card">
+              <div className="solutions-card-header">
+                <div className="solutions-card-title-row">
+                  <h2 className="solutions-card-title">{solution.title}</h2>
+                  {getStatusBadge(solution.status)}
                 </div>
-                {getStatusBadge(solution.status)}
+                <p className="solutions-card-case">Кейс: {solution.case_title}</p>
+                {solution.description && (
+                  <p className="solutions-card-desc">{solution.description}</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm text-gray-400">
+              <div className="solutions-card-meta">
                 {solution.github_url && (
-                  <div>
-                    GitHub:{' '}
+                  <div className="solutions-meta-item">
+                    <span className="solutions-meta-label">GitHub:</span>
                     <a
                       href={solution.github_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-terminal-cyan hover:text-white transition-colors"
+                      className="solutions-meta-link"
                     >
                       {solution.github_url}
                     </a>
                   </div>
                 )}
                 {solution.presentation_file_path && (
-                  <div>
-                    Презентация:{' '}
+                  <div className="solutions-meta-item">
+                    <span className="solutions-meta-label">Презентация:</span>
                     <a
-                      href={`/uploads/${solution.presentation_file_path.split('/').pop()}`}
+                      href={solution.presentation_file_path.startsWith('http') ? solution.presentation_file_path : `/uploads/${solution.presentation_file_path.split('/').pop()}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-terminal-cyan hover:text-white transition-colors"
+                      className="solutions-meta-link"
                     >
                       Скачать
                     </a>
                   </div>
                 )}
                 {solution.demo_url && (
-                  <div>
-                    Демо:{' '}
+                  <div className="solutions-meta-item">
+                    <span className="solutions-meta-label">Демо:</span>
                     <a
                       href={solution.demo_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-terminal-cyan hover:text-white transition-colors"
+                      className="solutions-meta-link"
                     >
                       {solution.demo_url}
                     </a>
                   </div>
                 )}
                 {solution.score > 0 && (
-                  <div>
-                    Оценка: <span className="text-gray-100">{solution.score}</span>
+                  <div className="solutions-meta-item">
+                    <span className="solutions-meta-label">Оценка:</span>
+                    <span className="solutions-meta-value">{solution.score}</span>
                   </div>
                 )}
               </div>
 
               {solution.admin_comment && (
-                <div className="mb-4 p-3 glass rounded border-l-2 border-terminal-cyan">
-                  <p className="text-sm font-semibold text-gray-200 mb-1">
-                    Комментарий администратора:
-                  </p>
-                  <p className="text-sm text-gray-400">{solution.admin_comment}</p>
+                <div className="solutions-admin-comment">
+                  <p className="solutions-admin-comment-title">Комментарий администратора:</p>
+                  <p className="solutions-admin-comment-text">{solution.admin_comment}</p>
                 </div>
               )}
 
-              <div className="flex items-center justify-between border-t border-terminal-gray pt-3">
-                <span className="text-xs text-gray-500">
+              <div className="solutions-card-footer">
+                <span className="solutions-card-date">
                   Отправлено: {new Date(solution.created_at).toLocaleString('ru-RU')}
                 </span>
-                <Link
-                  to={`/solutions/submit/${solution.case_id}`}
-                  className="text-sm text-terminal-green hover:text-terminal-cyan transition-colors"
-                >
+                <Link to={`/solutions/submit/${solution.case_id}`} className="solutions-card-edit">
                   Редактировать
                 </Link>
               </div>
@@ -186,8 +174,8 @@ const MySolutions = () => {
       )}
 
       {solutionsStore.error && (
-        <div className="mt-4 p-4 glass rounded border border-terminal-red">
-          <p className="text-terminal-red text-sm">{solutionsStore.error}</p>
+        <div className="solutions-error">
+          <p>{solutionsStore.error}</p>
         </div>
       )}
     </div>

@@ -175,7 +175,7 @@ const CaseDetail = () => {
                       {caseItem.attachments.map((file, idx) => (
                         <a
                           key={idx}
-                          href={file.url}
+                          href={file.url.startsWith('http') ? file.url : (file.url.startsWith('/') ? file.url : `/uploads/cases/${file.url.split('/').pop()}`)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 text-terminal-cyan hover:text-terminal-green transition-colors"
