@@ -47,7 +47,7 @@ router.get('/me', authenticateToken, async (req, res) => {
       await pool.query('UPDATE teams SET team_code = $1 WHERE id = $2', [teamCode, team.team_id]);
     }
     const membersResult = await pool.query(
-      `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, tm.role
+      `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id, tm.role
        FROM team_members tm
        JOIN users u ON tm.user_id = u.id
        WHERE tm.team_id = $1
@@ -233,7 +233,7 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
     const teamsWithMembers = await Promise.all(
       teams.map(async (team) => {
         const membersResult = await pool.query(
-          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, tm.role
+          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id, tm.role
            FROM team_members tm
            JOIN users u ON tm.user_id = u.id
            WHERE tm.team_id = $1

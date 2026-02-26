@@ -213,7 +213,7 @@ const getVkAuthUrl = () => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   if (!clientId) return null;
   const redirectUri = `${clientUrl}/auth/vk/callback`;
-  const scope = 'vkid.personal_info'; // минимальные права
+  const scope = 'vkid.personal_info email phone';
   const state = generateState();
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -300,6 +300,8 @@ router.post('/vk', async (req, res) => {
     const firstName = vkUser?.first_name || '';
     const lastName = vkUser?.last_name || '';
     const photoUrl = vkUser?.avatar || null;
+    const phone = vkUser?.phone || null;
+    const email = vkUser?.email || null;
 
     let result = await pool.query(
       'SELECT * FROM users WHERE vk_id = $1',
@@ -309,19 +311,19 @@ router.post('/vk', async (req, res) => {
     let user;
     if (result.rows.length === 0) {
       result = await pool.query(
-        `INSERT INTO users (vk_id, first_name, last_name, photo_url, username)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO users (vk_id, first_name, last_name, photo_url, phone, email, username)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [vkUserId, firstName, lastName, photoUrl, `vk${vkUserId}`]
+        [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`]
       );
       user = result.rows[0];
     } else {
       result = await pool.query(
         `UPDATE users
-         SET first_name = $1, last_name = $2, photo_url = $3, updated_at = CURRENT_TIMESTAMP
-         WHERE vk_id = $4
+         SET first_name = $1, last_name = $2, photo_url = $3, phone = $4, email = $5, updated_at = CURRENT_TIMESTAMP
+         WHERE vk_id = $6
          RETURNING *`,
-        [firstName, lastName, photoUrl, vkUserId]
+        [firstName, lastName, photoUrl, phone, email, vkUserId]
       );
       user = result.rows[0];
     }
@@ -348,6 +350,7 @@ router.post('/vk', async (req, res) => {
       last_name: user.last_name,
       photo_url: user.photo_url,
       phone: user.phone,
+      email: user.email || null,
       role: user.role,
       bio: user.bio || null,
       skills: user.skills,

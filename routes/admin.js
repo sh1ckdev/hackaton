@@ -268,6 +268,63 @@ router.get('/broadcast-settings', requireModerator, async (req, res) => {
   }
 });
 
+// Роуты по user id — для VK-пользователей (у них нет telegram_id)
+router.put('/users/by-id/:userId/role', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const { role } = req.body;
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+    const normalizedRole = role ? String(role).toLowerCase().trim() : null;
+    if (!normalizedRole || !['user', 'moderator', 'admin'].includes(normalizedRole)) {
+      return res.status(400).json({ error: 'Некорректная роль' });
+    }
+    const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    const currentUser = userCheck.rows[0];
+    if (currentUser.telegram_id && String(currentUser.telegram_id) === String(MAIN_ADMIN_ID) && normalizedRole !== 'admin') {
+      return res.status(403).json({ error: 'Нельзя снять роль у главного администратора' });
+    }
+    const result = await pool.query(
+      'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [normalizedRole, userId]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка изменения роли (by-id)', error);
+    res.status(500).json({ error: 'Ошибка сервера при изменении роли' });
+  }
+});
+
+router.delete('/users/by-id/:userId', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+    const userCheck = await pool.query('SELECT id, telegram_id FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    const u = userCheck.rows[0];
+    if (u.telegram_id && String(u.telegram_id) === String(MAIN_ADMIN_ID)) {
+      return res.status(403).json({ error: 'Нельзя удалить главного администратора' });
+    }
+    if (req.user?.id === userId) {
+      return res.status(403).json({ error: 'Нельзя удалить самого себя' });
+    }
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    logInfo('[Admin] Пользователь удален (by-id)', { userId, adminId: req.user?.id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления пользователя (by-id)', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 router.delete('/users/:telegramId', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const telegramIdParam = req.params.telegramId;

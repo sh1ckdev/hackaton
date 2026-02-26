@@ -403,6 +403,20 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле skills в таблицу users');
     }
 
+    // email для VK ID и др.
+    const usersEmailExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'email'
+      )
+    `);
+    if (!usersEmailExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN email VARCHAR(255)');
+      logInfo('Добавлено поле email в таблицу users');
+    }
+
     // vk_id для входа через VK ID
     const usersVkIdExists = await pool.query(`
       SELECT EXISTS (
