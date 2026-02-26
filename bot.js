@@ -1,8 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import crypto from 'crypto';
-import pool from './db/index.js';
 import { logError, logWarn, logInfo } from './utils/logger.js';
-import { generateUniqueUserCode } from './utils/userCode.js';
 
 export function startBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -15,172 +12,24 @@ export function startBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  const upsertUser = async (from, photoUrl = null) => {
-    const telegramId = from.id;
-    const existing = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
-    if (existing.rows.length === 0) {
-      const userCode = await generateUniqueUserCode(pool);
-      const result = await pool.query(
-        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING *`,
-        [
-          telegramId,
-          from.username || null,
-          from.first_name || null,
-          from.last_name || null,
-          photoUrl,
-          userCode
-        ]
-      );
-      return result.rows[0];
-    }
-
-    const result = await pool.query(
-      `UPDATE users
-       SET username = $1,
-           first_name = $2,
-           last_name = $3,
-           photo_url = COALESCE($4, photo_url),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE telegram_id = $5
-       RETURNING *`,
-      [
-        from.username || null,
-        from.first_name || null,
-        from.last_name || null,
-        photoUrl,
-        telegramId
-      ]
-    );
-    return result.rows[0];
-  };
-
-  const getPhotoUrl = async (telegramId) => {
-    try {
-      const photos = await bot.getUserProfilePhotos(telegramId, { limit: 1 });
-      if (!photos.total_count) return null;
-      const fileId = photos.photos[0][0].file_id;
-      const file = await bot.getFile(fileId);
-      return `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const createLoginToken = async (userId) => {
-    const loginToken = crypto.randomBytes(24).toString('hex');
-    await pool.query(
-      `INSERT INTO auth_tokens (user_id, token, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
-      [userId, loginToken]
-    );
-    return loginToken;
-  };
-
-  const isHttpsUrl = (url) => {
-    try {
-      const parsed = new URL(url);
-      return parsed.protocol === 'https:';
-    } catch (error) {
-      return false;
-    }
-  };
-
   bot.onText(/\/start/, async (msg) => {
     try {
-      const chatId = msg.chat.id;
-      const from = msg.from;
-      const photoUrl = await getPhotoUrl(from.id);
-      const user = await upsertUser(from, photoUrl);
-
-      const userWithPhone = await pool.query(
-        'SELECT phone FROM users WHERE telegram_id = $1',
-        [from.id]
+      await bot.sendMessage(
+        msg.chat.id,
+        `Добро пожаловать!\n\nДля входа в личный кабинет используйте Telegram Login Widget на сайте.\n\n🌐 ${clientUrl}/login`,
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: 'Перейти на сайт', url: clientUrl + '/login' }]]
+          }
+        }
       );
-
-      if (!userWithPhone.rows[0]?.phone) {
-        await bot.sendMessage(
-          chatId,
-          'Для входа на сайт необходимо поделиться номером телефона. Нажмите кнопку ниже.',
-          {
-            reply_markup: {
-              keyboard: [[{ text: 'Отправить номер телефона', request_contact: true }]],
-              one_time_keyboard: true,
-              resize_keyboard: true
-            }
-          }
-        );
-        return;
-      }
-
-      const loginToken = await createLoginToken(user.id);
-      const loginUrl = `${clientUrl}/login?token=${loginToken}`;
-
-      if (isHttpsUrl(loginUrl)) {
-        await bot.sendMessage(
-          chatId,
-          'Для входа на сайт нажмите кнопку ниже.',
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: 'Войти на сайт', url: loginUrl }]
-              ]
-            }
-          }
-        );
-      } else {
-        await bot.sendMessage(
-          chatId,
-          'Для входа нужен HTTPS-адрес сайта. Задайте CLIENT_URL с https (например, через ngrok).'
-        );
-        await bot.sendMessage(
-          chatId,
-          `Ваш одноразовый токен: ${loginToken}\n` +
-            `Откройте вручную: ${clientUrl}/login?token=${loginToken}`
-        );
-      }
     } catch (error) {
       logError('Ошибка /start в боте', error, { chatId: msg.chat.id });
     }
   });
 
-  bot.on('message', async (msg) => {
-    if (!msg.contact) return;
-    try {
-      const chatId = msg.chat.id;
-      const from = msg.from;
-      const phoneNumber = msg.contact.phone_number;
-
-      const photoUrl = await getPhotoUrl(from.id);
-      const user = await upsertUser(from, photoUrl);
-
-      await pool.query(
-        'UPDATE users SET phone = $1, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = $2',
-        [phoneNumber, from.id]
-      );
-
-      const loginToken = await createLoginToken(user.id);
-      const loginUrl = `${clientUrl}/login?token=${loginToken}`;
-
-      await bot.sendMessage(chatId, 'Телефон сохранён. Теперь вы можете войти на сайт.');
-
-      if (isHttpsUrl(loginUrl)) {
-        await bot.sendMessage(chatId, 'Нажмите кнопку ниже для входа.', {
-          reply_markup: {
-            inline_keyboard: [[{ text: 'Войти на сайт', url: loginUrl }]]
-          }
-        });
-      } else {
-        await bot.sendMessage(chatId, `Ваш одноразовый токен: ${loginToken}\nОткройте: ${loginUrl}`);
-      }
-    } catch (error) {
-      logError('Ошибка сохранения телефона в боте', error, { telegramId: msg.from?.id });
-    }
-  });
-
   logInfo('Telegram бот запущен');
-  
+
   return bot;
 }
 

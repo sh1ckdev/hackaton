@@ -977,26 +977,25 @@ router.delete('/settings/tracks/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Рандомное распределение команд по кейсам
+// Рандомное распределение команд по кейсам (учитывает participant_category: школьники/студенты)
 router.post('/cases/assign-random', requireModerator, adminOperationLimiter, async (req, res) => {
   let transactionStarted = false;
   try {
     const casesResult = await pool.query(`
-      SELECT id
+      SELECT id, participant_category
       FROM cases
-      WHERE status = 'active'
       ORDER BY id ASC
     `);
     const teamsResult = await pool.query(`
-      SELECT t.id, COUNT(tm.user_id) as members_count
+      SELECT t.id, t.participant_category, COUNT(tm.user_id) as members_count
       FROM teams t
       LEFT JOIN team_members tm ON t.id = tm.team_id
-      GROUP BY t.id
+      GROUP BY t.id, t.participant_category
       ORDER BY t.id ASC
     `);
 
     if (casesResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Нет активных кейсов для распределения' });
+      return res.status(400).json({ error: 'Нет кейсов для распределения' });
     }
 
     if (teamsResult.rows.length === 0) {
@@ -1018,8 +1017,17 @@ router.post('/cases/assign-random', requireModerator, adminOperationLimiter, asy
     const assignments = [];
 
     for (const team of teams) {
-      const minLoad = Math.min(...cases.map((c) => caseLoads.get(c.id)));
-      const candidateCases = cases.filter((c) => caseLoads.get(c.id) === minLoad);
+      const teamCat = team.participant_category || null;
+      const eligibleCases = cases.filter((c) => {
+        const caseCat = c.participant_category || null;
+        if (!caseCat) return true;
+        if (!teamCat) return true;
+        return caseCat === teamCat;
+      });
+      if (eligibleCases.length === 0) continue;
+
+      const minLoad = Math.min(...eligibleCases.map((c) => caseLoads.get(c.id)));
+      const candidateCases = eligibleCases.filter((c) => caseLoads.get(c.id) === minLoad);
       const selected = candidateCases[Math.floor(Math.random() * candidateCases.length)];
 
       assignments.push({ team_id: team.id, case_id: selected.id });

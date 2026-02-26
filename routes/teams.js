@@ -51,7 +51,7 @@ router.get('/me', authenticateToken, async (req, res) => {
        FROM team_members tm
        JOIN users u ON tm.user_id = u.id
        WHERE tm.team_id = $1
-       ORDER BY tm.role DESC, tm.joined_at ASC, u.first_name ASC`,
+       ORDER BY CASE WHEN tm.role = 'captain' THEN 0 ELSE 1 END, tm.joined_at ASC NULLS LAST`,
       [team.team_id]
     );
 
@@ -163,8 +163,8 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
 
     const team = teamResult.rows[0];
     const userCat = (await pool.query('SELECT participant_category FROM users WHERE id = $1', [req.user.id])).rows[0]?.participant_category;
-    if (team.participant_category && userCat && team.participant_category !== userCat) {
-      return res.status(403).json({ error: 'Вы не можете присоединиться к команде другой категории участников (студенты/школьники)' });
+    if (team.participant_category && (!userCat || team.participant_category !== userCat)) {
+      return res.status(403).json({ error: 'Вы не можете присоединиться к команде другой категории (школьники и студенты в разных командах)' });
     }
 
     await pool.query(
@@ -406,17 +406,27 @@ router.post('/kick', authenticateToken, async (req, res) => {
 
 router.get('/all', authenticateToken, requireModerator, async (req, res) => {
   try {
-    const teamsResult = await pool.query(
-      `SELECT t.id, t.team_code, t.name, t.created_at, t.participant_category,
-              COUNT(tm.user_id) as members_count,
-              t.assigned_case_id,
-              c.title as assigned_case_title
-       FROM teams t
-       LEFT JOIN team_members tm ON t.id = tm.team_id
-       LEFT JOIN cases c ON t.assigned_case_id = c.id
-       GROUP BY t.id, t.team_code, t.name, t.created_at, t.participant_category, t.assigned_case_id, c.title
-       ORDER BY t.created_at DESC`
-    );
+    const { participant_category } = req.query;
+    let query = `
+      SELECT t.id, t.team_code, t.name, t.created_at, t.participant_category,
+             COUNT(tm.user_id) as members_count,
+             t.assigned_case_id,
+             c.title as assigned_case_title
+      FROM teams t
+      LEFT JOIN team_members tm ON t.id = tm.team_id
+      LEFT JOIN cases c ON t.assigned_case_id = c.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (participant_category && ['student', 'school'].includes(participant_category)) {
+      params.push(participant_category);
+      query += ` AND t.participant_category = $${params.length}`;
+    }
+    query += `
+      GROUP BY t.id, t.team_code, t.name, t.created_at, t.participant_category, t.assigned_case_id, c.title
+      ORDER BY t.created_at DESC
+    `;
+    const teamsResult = await pool.query(query, params);
 
     const teams = teamsResult.rows;
     
@@ -424,11 +434,11 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
     const teamsWithMembers = await Promise.all(
       teams.map(async (team) => {
         const membersResult = await pool.query(
-          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id, tm.role
+          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id, tm.role, tm.joined_at
            FROM team_members tm
            JOIN users u ON tm.user_id = u.id
            WHERE tm.team_id = $1
-           ORDER BY tm.role DESC, u.first_name ASC`,
+           ORDER BY CASE WHEN tm.role = 'captain' THEN 0 ELSE 1 END, tm.joined_at ASC NULLS LAST`,
           [team.id]
         );
 

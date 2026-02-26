@@ -40,78 +40,99 @@ const verifyCaptcha = async (captchaToken) => {
   return !!data.success;
 };
 
+// Верификация данных Telegram Login Widget
+// https://core.telegram.org/widgets/login#checking-authorization
+const verifyTelegramWidget = (data) => {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return false;
+
+  const { hash, ...fields } = data;
+  if (!hash) return false;
+
+  // Проверяем, что данные не старше 24 часов
+  const authDate = parseInt(fields.auth_date, 10);
+  if (!authDate || Date.now() / 1000 - authDate > 86400) return false;
+
+  // Строим строку для проверки: поля в алфавитном порядке key=value\n
+  const checkString = Object.keys(fields)
+    .sort()
+    .map((k) => `${k}=${fields[k]}`)
+    .join('\n');
+
+  // Ключ = SHA256(bot_token), затем HMAC-SHA256(checkString, key)
+  const secretKey = crypto.createHash('sha256').update(botToken).digest();
+  const expectedHash = crypto
+    .createHmac('sha256', secretKey)
+    .update(checkString)
+    .digest('hex');
+
+  return expectedHash === hash;
+};
+
+// POST /auth/telegram — вход через Telegram Login Widget
 router.post('/telegram', async (req, res) => {
   try {
-    const { initData, captcha_token } = req.body;
+    const { telegramData, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
     if (!captchaOk) {
       return res.status(400).json({ error: 'Капча не пройдена' });
     }
 
-    if (!initData) {
+    if (!telegramData || !telegramData.id || !telegramData.hash) {
       return res.status(400).json({ error: 'Данные Telegram отсутствуют' });
     }
 
-
-
-    const params = new URLSearchParams(initData);
-    const userStr = params.get('user');
-    
-    if (!userStr) {
-      return res.status(400).json({ error: 'Данные пользователя отсутствуют' });
+    if (!verifyTelegramWidget(telegramData)) {
+      return res.status(401).json({ error: 'Подпись Telegram недействительна' });
     }
 
-    const telegramUser = JSON.parse(userStr);
-    const telegramId = telegramUser.id;
+    const telegramId = telegramData.id;
+    const cat = participant_category === 'student' || participant_category === 'school'
+      ? participant_category : null;
 
-
-    let result = await pool.query(
-      'SELECT * FROM users WHERE telegram_id = $1',
-      [telegramId]
-    );
+    let result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
 
     let user;
     if (result.rows.length === 0) {
       const userCode = await generateUniqueUserCode(pool);
       result = await pool.query(
-        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code, participant_category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
         [
           telegramId,
-          telegramUser.username || null,
-          telegramUser.first_name || null,
-          telegramUser.last_name || null,
-          telegramUser.photo_url || null,
-          userCode
+          telegramData.username || null,
+          telegramData.first_name || null,
+          telegramData.last_name || null,
+          telegramData.photo_url || null,
+          userCode,
+          cat
         ]
       );
       user = result.rows[0];
     } else {
-
+      const existingCat = result.rows[0].participant_category;
       result = await pool.query(
-        `UPDATE users 
-         SET username = $1, first_name = $2, last_name = $3, photo_url = $4, updated_at = CURRENT_TIMESTAMP
-         WHERE telegram_id = $5
+        `UPDATE users
+         SET username = $1, first_name = $2, last_name = $3, photo_url = $4,
+             participant_category = COALESCE($5, participant_category),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE telegram_id = $6
          RETURNING *`,
         [
-          telegramUser.username || null,
-          telegramUser.first_name || null,
-          telegramUser.last_name || null,
-          telegramUser.photo_url || null,
+          telegramData.username || null,
+          telegramData.first_name || null,
+          telegramData.last_name || null,
+          telegramData.photo_url || null,
+          existingCat || cat,
           telegramId
         ]
       );
       user = result.rows[0];
     }
 
-    // Парсим JSON поля если они есть
     if (user.skills && typeof user.skills === 'string') {
-      try {
-        user.skills = JSON.parse(user.skills);
-      } catch (e) {
-        user.skills = [];
-      }
+      try { user.skills = JSON.parse(user.skills); } catch (e) { user.skills = []; }
     } else if (!user.skills) {
       user.skills = [];
     }
@@ -121,7 +142,7 @@ router.post('/telegram', async (req, res) => {
 
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {
-    logError('Ошибка аутентификации', error);
+    logError('Ошибка аутентификации Telegram Widget', error);
     res.status(500).json({ error: 'Ошибка сервера при аутентификации' });
   }
 });

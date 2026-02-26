@@ -8,26 +8,17 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { uploadToS3, buildKey, isS3Configured } from '../utils/s3.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 const uploadsCasesDir = path.join(__dirname, '../uploads/cases');
 if (!fs.existsSync(uploadsCasesDir)) {
   fs.mkdirSync(uploadsCasesDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsCasesDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `case-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
+const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
@@ -58,26 +49,18 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { status, include_future } = req.query;
+    const { participant_category } = req.query;
     let query = 'SELECT * FROM cases WHERE 1=1';
     const params = [];
     let paramCount = 0;
 
-
-    if (status) {
+    if (participant_category === 'student' || participant_category === 'school') {
       paramCount++;
-      query += ` AND status = $${paramCount}`;
-      params.push(status);
-    } else {
-      paramCount++;
-      query += ` AND status = $${paramCount}`;
-      params.push('active');
+      query += ` AND (participant_category = $${paramCount} OR participant_category IS NULL)`;
+      params.push(participant_category);
     }
 
-
-
-
-    query += ' ORDER BY COALESCE(opens_at, created_at) DESC, created_at DESC';
+    query += ' ORDER BY created_at DESC';
 
     const result = await pool.query(query, params);
     
@@ -166,12 +149,13 @@ router.post('/',
   validateCaseCreation,
   async (req, res) => {
   try {
-    let { title, description, requirements, difficulty, max_participants, opens_at, links } = req.body;
+    let { title, description, requirements, participant_category, links } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ error: 'Название и описание обязательны' });
     }
 
+    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : null;
 
     let linksArray = [];
     if (links) {
@@ -185,38 +169,33 @@ router.post('/',
       }
     }
 
-
-    let opensAtValue = null;
-    if (opens_at) {
-      opensAtValue = new Date(opens_at);
-      if (isNaN(opensAtValue.getTime())) {
-        return res.status(400).json({ error: 'Некорректная дата открытия' });
+    const attachments = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        let url;
+        if (isS3Configured()) {
+          const key = buildKey('cases', file.originalname, uniqueSuffix);
+          url = await uploadToS3(file.buffer, key, file.mimetype);
+        }
+        if (!url) {
+          const filename = `case-${uniqueSuffix}${path.extname(file.originalname)}`;
+          fs.writeFileSync(path.join(uploadsCasesDir, filename), file.buffer);
+          url = `/uploads/cases/${filename}`;
+        }
+        attachments.push({ name: file.originalname, url });
       }
     }
 
-
-
-    const attachments = [];
-    if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        attachments.push({
-          name: file.originalname,
-          url: `/uploads/cases/${path.basename(file.filename)}`
-        });
-      });
-    }
-
     const result = await pool.query(
-      `INSERT INTO cases (title, description, requirements, difficulty, max_participants, opens_at, links, attachments)
-       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+      `INSERT INTO cases (title, description, requirements, participant_category, links, attachments)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
        RETURNING *`,
       [
-        title, 
-        description, 
-        requirements || null, 
-        difficulty || 'medium', 
-        max_participants || 0, 
-        opensAtValue,
+        title,
+        description,
+        requirements || null,
+        cat,
         JSON.stringify(linksArray),
         JSON.stringify(attachments)
       ]
@@ -249,7 +228,7 @@ router.put('/:id',
   async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, description, requirements, difficulty, max_participants, status, opens_at, links } = req.body;
+    let { title, description, requirements, participant_category, links } = req.body;
 
 
     const currentCase = await pool.query('SELECT attachments FROM cases WHERE id = $1', [id]);
@@ -280,12 +259,20 @@ router.put('/:id',
 
     const newAttachments = [];
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        newAttachments.push({
-          name: file.originalname,
-          url: `/uploads/cases/${path.basename(file.filename)}`
-        });
-      });
+      for (const file of req.files) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        let url;
+        if (isS3Configured()) {
+          const key = buildKey('cases', file.originalname, uniqueSuffix);
+          url = await uploadToS3(file.buffer, key, file.mimetype);
+        }
+        if (!url) {
+          const filename = `case-${uniqueSuffix}${path.extname(file.originalname)}`;
+          fs.writeFileSync(path.join(uploadsCasesDir, filename), file.buffer);
+          url = `/uploads/cases/${filename}`;
+        }
+        newAttachments.push({ name: file.originalname, url });
+      }
     }
 
 
@@ -309,19 +296,7 @@ router.put('/:id',
 
     const allAttachments = [...preservedAttachments, ...newAttachments];
 
-
-    let opensAtValue = undefined;
-    if (opens_at !== undefined) {
-      if (opens_at === null || opens_at === '') {
-        opensAtValue = null;
-      } else {
-        opensAtValue = new Date(opens_at);
-        if (isNaN(opensAtValue.getTime())) {
-          return res.status(400).json({ error: 'Некорректная дата открытия' });
-        }
-      }
-    }
-
+    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : participant_category === '' || participant_category === null ? null : undefined;
 
     const updates = [];
     const params = [];
@@ -342,25 +317,10 @@ router.put('/:id',
       updates.push(`requirements = $${paramCount}`);
       params.push(requirements);
     }
-    if (difficulty !== undefined) {
+    if (cat !== undefined) {
       paramCount++;
-      updates.push(`difficulty = $${paramCount}`);
-      params.push(difficulty);
-    }
-    if (max_participants !== undefined) {
-      paramCount++;
-      updates.push(`max_participants = $${paramCount}`);
-      params.push(max_participants);
-    }
-    if (status !== undefined) {
-      paramCount++;
-      updates.push(`status = $${paramCount}`);
-      params.push(status);
-    }
-    if (opensAtValue !== undefined) {
-      paramCount++;
-      updates.push(`opens_at = $${paramCount}`);
-      params.push(opensAtValue);
+      updates.push(`participant_category = $${paramCount}`);
+      params.push(cat);
     }
     if (linksArray !== undefined) {
       paramCount++;

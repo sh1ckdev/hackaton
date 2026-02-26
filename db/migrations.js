@@ -343,6 +343,57 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле presentation_file_path в таблицу solutions');
     }
 
+    const solutionsTeamIdExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'solutions' 
+        AND column_name = 'team_id'
+      )
+    `);
+
+    if (!solutionsTeamIdExists.rows[0].exists) {
+      await pool.query('ALTER TABLE solutions ADD COLUMN team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE');
+      await pool.query(`
+        UPDATE solutions s SET team_id = (
+          SELECT tm.team_id FROM team_members tm WHERE tm.user_id = s.user_id LIMIT 1
+        )
+      `);
+      await pool.query('DELETE FROM solutions WHERE team_id IS NULL');
+      await pool.query('ALTER TABLE solutions ALTER COLUMN team_id SET NOT NULL');
+      await pool.query('ALTER TABLE solutions ADD CONSTRAINT solutions_team_id_case_id_key UNIQUE (team_id, case_id)');
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_solutions_team_id ON solutions(team_id)');
+      logInfo('Добавлено поле team_id в таблицу solutions, решения привязаны к командам');
+    }
+
+    if (solutionsTeamIdExists.rows[0].exists) {
+      await pool.query(`
+        UPDATE solutions s SET team_id = (
+          SELECT tm.team_id FROM team_members tm WHERE tm.user_id = s.user_id LIMIT 1
+        ) WHERE s.team_id IS NULL
+      `);
+      await pool.query('DELETE FROM solutions WHERE team_id IS NULL');
+
+      const oldConstraintExists = await pool.query(`
+        SELECT 1 FROM pg_constraint 
+        WHERE conrelid = 'solutions'::regclass AND conname = 'solutions_user_id_case_id_key'
+      `);
+      if (oldConstraintExists.rows.length > 0) {
+        await pool.query('ALTER TABLE solutions DROP CONSTRAINT solutions_user_id_case_id_key');
+        logInfo('Удалён старый UNIQUE(user_id, case_id)');
+      }
+
+      const newConstraintExists = await pool.query(`
+        SELECT 1 FROM pg_constraint 
+        WHERE conrelid = 'solutions'::regclass AND conname = 'solutions_team_id_case_id_key'
+      `);
+      if (newConstraintExists.rows.length === 0) {
+        await pool.query('ALTER TABLE solutions ADD CONSTRAINT solutions_team_id_case_id_key UNIQUE (team_id, case_id)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_solutions_team_id ON solutions(team_id)');
+        logInfo('Добавлен UNIQUE(team_id, case_id)');
+      }
+    }
+
     // Проверка существования таблицы broadcast_settings
     const broadcastSettingsExists = await pool.query(`
       SELECT EXISTS (
@@ -505,6 +556,29 @@ async function ensureNewFieldsExist() {
     if (!teamsParticipantCategoryExists.rows[0].exists) {
       await pool.query(`ALTER TABLE teams ADD COLUMN participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL)`);
       logInfo('Добавлено поле participant_category в teams');
+    }
+
+    await pool.query(`
+      UPDATE teams t SET participant_category = (
+        SELECT u.participant_category FROM team_members tm
+        JOIN users u ON u.id = tm.user_id
+        WHERE tm.team_id = t.id AND tm.role = 'captain'
+        LIMIT 1
+      ) WHERE t.participant_category IS NULL
+    `);
+
+    // participant_category в cases — школьники / студенты
+    const casesParticipantCategoryExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cases' 
+        AND column_name = 'participant_category'
+      )
+    `);
+    if (!casesParticipantCategoryExists.rows[0].exists) {
+      await pool.query(`ALTER TABLE cases ADD COLUMN participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL)`);
+      logInfo('Добавлено поле participant_category в cases');
     }
 
     // last_activity_at — время последней активности на сайте (для статуса онлайн)

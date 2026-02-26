@@ -2,8 +2,7 @@
 
 
 export const validateCaseCreation = (req, res, next) => {
-  const { title, description, requirements, difficulty, max_participants, opens_at } = req.body;
-
+  const { title, description, requirements, participant_category } = req.body;
 
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
     return res.status(400).json({ error: 'Название кейса обязательно' });
@@ -21,31 +20,9 @@ export const validateCaseCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Описание слишком длинное (максимум 10000 символов)' });
   }
 
-
-  if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) {
-    return res.status(400).json({ error: 'Некорректная сложность' });
+  if (participant_category !== undefined && participant_category !== null && participant_category !== '' && !['student', 'school'].includes(participant_category)) {
+    return res.status(400).json({ error: 'participant_category должна быть student или school' });
   }
-
-
-  if (max_participants !== undefined) {
-    const maxParticipants = parseInt(max_participants);
-    if (isNaN(maxParticipants) || maxParticipants < 0 || maxParticipants > 10000) {
-      return res.status(400).json({ error: 'Некорректное количество участников' });
-    }
-  }
-
-
-  if (opens_at) {
-    const openDate = new Date(opens_at);
-    if (isNaN(openDate.getTime())) {
-      return res.status(400).json({ error: 'Некорректная дата открытия' });
-    }
-
-    if (openDate < new Date(Date.now() - 60000)) {
-      return res.status(400).json({ error: 'Дата открытия не может быть в прошлом' });
-    }
-  }
-
 
   if (requirements && typeof requirements === 'string' && requirements.length > 5000) {
     return res.status(400).json({ error: 'Требования слишком длинные (максимум 5000 символов)' });
@@ -58,14 +35,11 @@ export const validateCaseCreation = (req, res, next) => {
 export const validateSolutionCreation = (req, res, next) => {
   const { case_id, title, description, github_url, demo_url } = req.body;
 
-
-  if (!case_id) {
-    return res.status(400).json({ error: 'ID кейса обязателен' });
-  }
-
-  const caseId = parseInt(case_id);
-  if (isNaN(caseId) || caseId <= 0) {
-    return res.status(400).json({ error: 'Некорректный ID кейса' });
+  if (case_id) {
+    const caseId = parseInt(case_id);
+    if (isNaN(caseId) || caseId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID кейса' });
+    }
   }
 
   if (!title || typeof title !== 'string' || title.trim().length === 0) {

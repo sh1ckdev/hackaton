@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS cases (
     max_participants INTEGER DEFAULT 0,
     current_participants INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'closed', 'archived')),
-    opens_at TIMESTAMP, -- Дата и время открытия кейса (null = открыт сразу)
+    opens_at TIMESTAMP, -- (deprecated) Дата открытия — все кейсы открываются при старте 48ч
+    participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL), -- Школьники / Студенты
     links JSONB DEFAULT '[]'::jsonb, -- Массив ссылок [{label: string, url: string}]
     attachments JSONB DEFAULT '[]'::jsonb, -- Массив файлов [{name: string, url: string}]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS cases (
 );
 
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS opens_at TIMESTAMP;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL);
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FALSE;
@@ -71,6 +73,7 @@ ALTER TABLE cases ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT FAL
 CREATE TABLE IF NOT EXISTS solutions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
     case_id INTEGER NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -86,6 +89,7 @@ CREATE TABLE IF NOT EXISTS solutions (
     UNIQUE(user_id, case_id)
 );
 
+ALTER TABLE solutions ADD COLUMN IF NOT EXISTS team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE;
 ALTER TABLE solutions ADD COLUMN IF NOT EXISTS github_url TEXT;
 ALTER TABLE solutions ADD COLUMN IF NOT EXISTS presentation_file_path TEXT;
 

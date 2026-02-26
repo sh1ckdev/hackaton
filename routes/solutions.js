@@ -6,24 +6,19 @@ import { validateSolutionCreation, validateIdParam } from '../middleware/validat
 import { logError } from '../utils/logger.js';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { uploadToS3, buildKey, isS3Configured } from '../utils/s3.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const router = express.Router();
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../uploads/'));
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB для презентаций
@@ -45,6 +40,7 @@ const upload = multer({
   }
 });
 
+const router = express.Router();
 
 router.get('/my', authenticateToken, async (req, res) => {
   try {
@@ -52,7 +48,7 @@ router.get('/my', authenticateToken, async (req, res) => {
       `SELECT s.*, c.title as case_title 
        FROM solutions s
        JOIN cases c ON s.case_id = c.id
-       WHERE s.user_id = $1
+       JOIN team_members tm ON tm.team_id = s.team_id AND tm.user_id = $1
        ORDER BY s.created_at DESC`,
       [req.user.id]
     );
@@ -70,9 +66,11 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
     let query = `
       SELECT s.*, 
              u.username, u.first_name, u.last_name,
+             t.name as team_name,
              c.title as case_title
       FROM solutions s
-      JOIN users u ON s.user_id = u.id
+      LEFT JOIN users u ON s.user_id = u.id
+      LEFT JOIN teams t ON s.team_id = t.id
       JOIN cases c ON s.case_id = c.id
       WHERE 1=1
     `;
@@ -110,7 +108,7 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
               u.username, u.first_name, u.last_name,
               c.title as case_title
        FROM solutions s
-       JOIN users u ON s.user_id = u.id
+       LEFT JOIN users u ON s.user_id = u.id
        JOIN cases c ON s.case_id = c.id
        WHERE s.id = $1`,
       [id]
@@ -122,9 +120,14 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     const solution = result.rows[0];
     
-
-    if (solution.user_id !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Нет доступа' });
+    if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+      const memberCheck = await pool.query(
+        'SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2',
+        [solution.team_id, req.user.id]
+      );
+      if (memberCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Нет доступа' });
+      }
     }
 
     res.json({ solution });
@@ -138,16 +141,35 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
 router.post('/', 
   authenticateToken, 
   solutionCreationLimiter,
+  upload.single('presentation'),
   validateSolutionCreation,
-  upload.single('presentation'), 
   async (req, res) => {
   try {
-    const { case_id, title, description, github_url, demo_url } = req.body;
+    let { case_id, title, description, github_url, demo_url } = req.body;
 
-    if (!case_id || !title) {
-      return res.status(400).json({ error: 'ID кейса и название обязательны' });
+    if (!title) {
+      return res.status(400).json({ error: 'Название решения обязательно' });
     }
 
+    const teamResult = await pool.query(
+      `SELECT t.id as team_id, t.assigned_case_id
+       FROM team_members tm
+       JOIN teams t ON tm.team_id = t.id
+       WHERE tm.user_id = $1`,
+      [req.user.id]
+    );
+
+    if (teamResult.rows.length === 0) {
+      return res.status(403).json({ error: 'Для отправки решения нужна команда' });
+    }
+
+    const teamId = teamResult.rows[0].team_id;
+    const assignedCaseId = teamResult.rows[0].assigned_case_id;
+    if (!assignedCaseId) {
+      return res.status(403).json({ error: 'Кейс вашей команде еще не назначен' });
+    }
+
+    case_id = assignedCaseId;
 
     const canProceed = await checkMassOperation(req, 'solution_creation', 5);
     if (!canProceed) {
@@ -162,30 +184,6 @@ router.post('/',
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Кейс не найден' });
     }
-
-    if (!['admin', 'moderator'].includes(req.user.role)) {
-      const teamResult = await pool.query(
-        `SELECT t.assigned_case_id
-         FROM team_members tm
-         JOIN teams t ON tm.team_id = t.id
-         WHERE tm.user_id = $1`,
-        [req.user.id]
-      );
-
-      if (teamResult.rows.length === 0) {
-        return res.status(403).json({ error: 'Для отправки решения нужна команда' });
-      }
-
-      const assignedCaseId = teamResult.rows[0].assigned_case_id;
-      if (!assignedCaseId) {
-        return res.status(403).json({ error: 'Кейс вашей команде еще не назначен' });
-      }
-
-      if (parseInt(case_id, 10) !== assignedCaseId) {
-        return res.status(403).json({ error: 'Вы можете отправлять решения только по назначенному кейсу' });
-      }
-    }
-
 
     const caseData = caseResult.rows[0];
 
@@ -204,20 +202,29 @@ router.post('/',
       return res.status(403).json({ error: 'Кейсы еще не открыты' });
     }
 
-    if (caseData.opens_at && new Date(caseData.opens_at) > new Date()) {
-      return res.status(403).json({ error: 'Кейс еще не открыт' });
-    }
-
-
     const existingSolution = await pool.query(
-      'SELECT * FROM solutions WHERE user_id = $1 AND case_id = $2',
-      [req.user.id, case_id]
+      'SELECT * FROM solutions WHERE team_id = $1 AND case_id = $2',
+      [teamId, case_id]
     );
+
+    let presentationUrl = null;
+    if (req.file) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      if (isS3Configured()) {
+        const key = buildKey('presentations', req.file.originalname, uniqueSuffix);
+        presentationUrl = await uploadToS3(req.file.buffer, key, req.file.mimetype);
+      }
+      if (!presentationUrl) {
+        const filename = `presentation-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+        fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
+        presentationUrl = `/uploads/${filename}`;
+      }
+    }
 
     let solution;
     if (existingSolution.rows.length > 0) {
 
-      const presentationPath = req.file ? req.file.path : existingSolution.rows[0].presentation_file_path;
+      const presentationPath = presentationUrl || existingSolution.rows[0].presentation_file_path;
       const result = await pool.query(
         `UPDATE solutions 
          SET title = $1, description = $2, github_url = $3, demo_url = $4,
@@ -230,17 +237,18 @@ router.post('/',
     } else {
 
       const result = await pool.query(
-        `INSERT INTO solutions (user_id, case_id, title, description, github_url, demo_url, presentation_file_path)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO solutions (team_id, user_id, case_id, title, description, github_url, demo_url, presentation_file_path)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
+          teamId,
           req.user.id,
           case_id,
           title,
           description || null,
           github_url,
           demo_url || null,
-          req.file ? req.file.path : null
+          presentationUrl
         ]
       );
       solution = result.rows[0];
@@ -299,8 +307,14 @@ router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
       return res.status(404).json({ error: 'Решение не найдено' });
     }
 
-    if (solutionResult.rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Нет прав на удаление' });
+    if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+      const memberCheck = await pool.query(
+        'SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2',
+        [solutionResult.rows[0].team_id, req.user.id]
+      );
+      if (memberCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Нет прав на удаление' });
+      }
     }
 
     const caseId = solutionResult.rows[0].case_id;
