@@ -1667,10 +1667,8 @@ const AdminPanel = () => {
                   let preservedIndex = 0;
                   caseFormData.attachments.forEach((att) => {
                     if (att.file) {
-
                       formData.append('attachments', att.file);
                     } else if (att.url) {
-
                       formData.append(`attachment_url_${preservedIndex}`, att.url);
                       formData.append(`attachment_name_${preservedIndex}`, att.name || '');
                       preservedIndex++;
@@ -1678,6 +1676,8 @@ const AdminPanel = () => {
                   });
 
                   if (editingCase) {
+                    // Флаг что вложения обновлялись (даже если удалили все)
+                    formData.append('attachments_updated', '1');
                     await casesStore.updateCase(editingCase.id, formData, true);
                   } else {
                     await casesStore.createCase(formData, true);

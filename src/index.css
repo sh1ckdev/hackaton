@@ -5008,7 +5008,8 @@ code {
 .profile-assigned-case-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .profile-assigned-case-body {
   display: flex;
@@ -5039,6 +5040,99 @@ code {
 .profile-assigned-case-meta span {
   color: #60a5fa;
   font-weight: 600;
+}
+.profile-assigned-case-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.profile-assigned-case-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(148, 163, 184, 0.6);
+  margin-bottom: 8px;
+}
+.profile-assigned-case-requirements {
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 12px;
+}
+.profile-assigned-case-requirements-text {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.8);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.profile-assigned-case-links {
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 12px;
+}
+.profile-assigned-case-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.profile-assigned-case-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #60a5fa;
+  text-decoration: none;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(96, 165, 250, 0.06);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  transition: all 0.15s;
+  word-break: break-all;
+}
+.profile-assigned-case-link:hover {
+  background: rgba(96, 165, 250, 0.14);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+}
+.profile-assigned-case-link svg {
+  flex-shrink: 0;
+  color: rgba(96, 165, 250, 0.7);
+}
+.profile-assigned-case-files {
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  padding-top: 12px;
+}
+.profile-assigned-case-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.profile-assigned-case-file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.9);
+  text-decoration: none;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  transition: all 0.15s;
+  word-break: break-all;
+}
+.profile-assigned-case-file:hover {
+  background: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.25);
+  color: #fff;
+}
+.profile-assigned-case-file svg {
+  flex-shrink: 0;
+  color: rgba(96, 165, 250, 0.6);
 }
 
 .profile-skills {

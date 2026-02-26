@@ -169,15 +169,66 @@ const Profile = () => {
             <div className="profile-assigned-case">
               <div className="profile-assigned-case-label">
                 <span className="profile-skills-prompt">user@mainframe:~/case</span>
+                {assignedCase.participant_category && (
+                  <span className="profile-assigned-case-badge">
+                    {assignedCase.participant_category === 'school' ? 'Школьники' : 'Студенты'}
+                  </span>
+                )}
               </div>
               <div className="profile-assigned-case-body">
                 <div className="profile-assigned-case-title">{assignedCase.title}</div>
                 {assignedCase.description && (
                   <div className="profile-assigned-case-desc">{assignedCase.description}</div>
                 )}
-                {assignedCase.participant_category && (
-                  <div className="profile-assigned-case-meta">
-                    Категория: <span>{assignedCase.participant_category === 'school' ? 'Школьники' : 'Студенты'}</span>
+                {assignedCase.requirements && (
+                  <div className="profile-assigned-case-requirements">
+                    <div className="profile-assigned-case-section-title">Требования</div>
+                    <div className="profile-assigned-case-requirements-text">{assignedCase.requirements}</div>
+                  </div>
+                )}
+                {Array.isArray(assignedCase.links) && assignedCase.links.length > 0 && (
+                  <div className="profile-assigned-case-links">
+                    <div className="profile-assigned-case-section-title">Ссылки</div>
+                    <div className="profile-assigned-case-links-list">
+                      {assignedCase.links.map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="profile-assigned-case-link"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          </svg>
+                          {link.label || link.url}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(assignedCase.attachments) && assignedCase.attachments.length > 0 && (
+                  <div className="profile-assigned-case-files">
+                    <div className="profile-assigned-case-section-title">Файлы</div>
+                    <div className="profile-assigned-case-files-list">
+                      {assignedCase.attachments.map((att, idx) => (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="profile-assigned-case-file"
+                          download={att.name}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                          </svg>
+                          {att.name}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
