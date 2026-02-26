@@ -29,7 +29,9 @@ const AdminPanel = () => {
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [expandedTeams, setExpandedTeams] = useState(new Set());
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedTeamSolution, setSelectedTeamSolution] = useState(null);
+  const [selectedTeamSolutionLoading, setSelectedTeamSolutionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('solutions');
   const [filters, setFilters] = useState({ status: '', case_id: '' });
   const [usersFilter, setUsersFilter] = useState({ participant_category: '' });
@@ -52,7 +54,6 @@ const AdminPanel = () => {
     enabled: true,
     target_audience: { all: true },
     message_template: '',
-    schedule_cron: '',
     schedule_time: '',
     conditions: {},
     case_id: null,
@@ -194,7 +195,6 @@ const AdminPanel = () => {
       { key: 'last_name', label: 'Фамилия' },
       { key: 'username', label: 'Username' },
       { key: 'case_title', label: 'Кейс' },
-      { key: 'score', label: 'Оценка' },
       { key: 'created_at', label: 'Дата' }
     ];
     exportToCSV(solutionsStore.allSolutions, 'solutions', cols);
@@ -236,14 +236,18 @@ const AdminPanel = () => {
     }
   };
 
-  const toggleTeam = (teamId) => {
-    const newExpanded = new Set(expandedTeams);
-    if (newExpanded.has(teamId)) {
-      newExpanded.delete(teamId);
-    } else {
-      newExpanded.add(teamId);
+  const openTeamModal = async (team) => {
+    setSelectedTeam(team);
+    setSelectedTeamSolution(null);
+    setSelectedTeamSolutionLoading(true);
+    try {
+      const res = await api.get(`/admin/teams/${team.id}/solution`);
+      setSelectedTeamSolution(res.data.solution || null);
+    } catch {
+      setSelectedTeamSolution(null);
+    } finally {
+      setSelectedTeamSolutionLoading(false);
     }
-    setExpandedTeams(newExpanded);
   };
 
   const handleBroadcast = async () => {
@@ -354,7 +358,6 @@ const AdminPanel = () => {
         enabled: true,
         target_audience: { all: true },
         message_template: '',
-        schedule_cron: '',
         schedule_time: '',
         conditions: {},
         case_id: null,
@@ -409,8 +412,7 @@ const AdminPanel = () => {
       enabled: setting.enabled,
       target_audience: setting.target_audience || { all: true },
       message_template: setting.message_template,
-      schedule_cron: setting.schedule_cron || '',
-      schedule_time: setting.schedule_time ? new Date(setting.schedule_time).toISOString().slice(0, 16) : '',
+      schedule_time: setting.schedule_time ? utcToMoscowForInput(setting.schedule_time) : '',
       conditions: setting.conditions || {},
       case_id: setting.case_id || null,
     });
@@ -625,11 +627,6 @@ const AdminPanel = () => {
                       >
                         Демо
                       </a>
-                    )}
-                    {solution.score > 0 && (
-                      <span>
-                        Оценка: <span className="text-white">{solution.score}</span>
-                      </span>
                     )}
                   </div>
                   {solution.admin_comment && (
@@ -1226,89 +1223,169 @@ const AdminPanel = () => {
                 {randomizingTeams ? 'Распределение...' : 'Рандомизировать кейсы'}
               </button>
             </div>
-            <div className="space-y-4">
-              {teams.length === 0 ? (
-                <p className="text-white/70 text-center py-8">Команды не найдены</p>
-              ) : (
-                teams.map((team) => (
-                  <div
-                    key={team.id}
-                    className="border border-terminal-gray hover:border-terminal-blue transition-all bg-terminal-dark"
-                  >
-                    <div
-                      className="p-4 flex items-center justify-between cursor-pointer"
-                      onClick={() => toggleTeam(team.id)}
+
+            {/* Таблица команд */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-terminal-gray/40 text-white/50 text-left">
+                    <th className="pb-3 pr-4 font-medium">Команда</th>
+                    <th className="pb-3 pr-4 font-medium">Категория</th>
+                    <th className="pb-3 pr-4 font-medium">Код</th>
+                    <th className="pb-3 pr-4 font-medium">Участников</th>
+                    <th className="pb-3 pr-4 font-medium">Кейс</th>
+                    <th className="pb-3 font-medium">Создана</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-terminal-gray/20">
+                  {teams.length === 0 ? (
+                    <tr><td colSpan={6} className="py-8 text-center text-white/50">Команды не найдены</td></tr>
+                  ) : teams.map((team) => (
+                    <tr
+                      key={team.id}
+                      className="hover:bg-terminal-blue/5 cursor-pointer transition-colors"
+                      onClick={() => openTeamModal(team)}
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-terminal-blue">
-                            {team.name}
-                          </p>
-                          {team.participant_category && (
-                            <span className={`px-2 py-0.5 text-xs rounded border ${
-                              team.participant_category === 'school' 
-                                ? 'border-amber-500/50 text-amber-400 bg-amber-500/10' 
-                                : 'border-terminal-blue/50 text-terminal-cyan bg-terminal-blue/10'
-                            }`}>
-                              {team.participant_category === 'school' ? 'Школьники' : 'Студенты'}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-white/70">
-                          Код: {team.team_code || team.code} | Участников: {team.members_count} | Кейс: {team.assigned_case_title || 'не назначен'} | Создана: {new Date(team.created_at).toLocaleDateString('ru-RU')}
-                        </p>
-                      </div>
-                      <svg
-                        className={`w-5 h-5 text-white/70 transition-transform ${
-                          expandedTeams.has(team.id) ? 'rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                    {expandedTeams.has(team.id) && (
-                      <div className="border-t border-terminal-gray p-4 space-y-3">
-                        <h3 className="text-sm font-semibold text-white/80 mb-3">Участники:</h3>
-                        {team.members && team.members.length > 0 ? (
-                          team.members.map((member) => (
-                            <div key={member.id} className="flex items-center gap-3 glass rounded-lg p-3">
-                              <div className="h-10 w-10 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray shrink-0">
-                                {member.photo_url ? (
-                                  <img
-                                    src={member.photo_url}
-                                    alt="аватар"
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="h-full w-full flex items-center justify-center text-white/50 text-sm font-semibold">
-                                    {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-white/90 font-medium">
-                                  {member.first_name || ''} {member.last_name || ''}
-                                  {(!member.first_name && !member.last_name) && (member.username || 'Участник')}
-                                </div>
-                                <div className="text-white/60 text-sm">
-                                  {member.username ? (
-                                    <a href={`https://t.me/${member.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{member.username}</a>
-                                  ) : '—'} · {member.role === 'captain' ? 'Капитан' : 'Участник'}
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-white/60 text-sm">Нет участников</p>
-                        )}
-                      </div>
+                      <td className="py-3 pr-4">
+                        <span className="font-medium text-terminal-blue hover:text-terminal-cyan transition-colors">
+                          {team.name}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        {team.participant_category ? (
+                          <span className={`px-2 py-0.5 text-xs rounded border ${
+                            team.participant_category === 'school'
+                              ? 'border-amber-500/50 text-amber-400 bg-amber-500/10'
+                              : 'border-terminal-blue/50 text-terminal-cyan bg-terminal-blue/10'
+                          }`}>
+                            {team.participant_category === 'school' ? 'Школьники' : 'Студенты'}
+                          </span>
+                        ) : <span className="text-white/30">—</span>}
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-white/70">{team.team_code || team.code}</td>
+                      <td className="py-3 pr-4 text-white/70">{team.members_count}</td>
+                      <td className="py-3 pr-4 text-white/70">{team.assigned_case_title || <span className="text-white/30">не назначен</span>}</td>
+                      <td className="py-3 text-white/50">{new Date(team.created_at).toLocaleDateString('ru-RU')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно команды */}
+        {selectedTeam && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTeam(null)}>
+            <div className="glass rounded-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              {/* Шапка */}
+              <div className="flex items-center justify-between p-6 border-b border-terminal-gray/40">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-xl font-semibold text-white">{selectedTeam.name}</h2>
+                    {selectedTeam.participant_category && (
+                      <span className={`px-2 py-0.5 text-xs rounded border ${
+                        selectedTeam.participant_category === 'school'
+                          ? 'border-amber-500/50 text-amber-400 bg-amber-500/10'
+                          : 'border-terminal-blue/50 text-terminal-cyan bg-terminal-blue/10'
+                      }`}>
+                        {selectedTeam.participant_category === 'school' ? 'Школьники' : 'Студенты'}
+                      </span>
                     )}
                   </div>
-                ))
-              )}
+                  <p className="text-sm text-white/50">
+                    Код: <span className="font-mono text-white/70">{selectedTeam.team_code || selectedTeam.code}</span>
+                    {' · '}Создана: {new Date(selectedTeam.created_at).toLocaleDateString('ru-RU')}
+                  </p>
+                </div>
+                <button onClick={() => setSelectedTeam(null)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none">✕</button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Кейс */}
+                <div>
+                  <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2">Назначенный кейс</h3>
+                  <p className="text-white/90">{selectedTeam.assigned_case_title || <span className="text-white/30 italic">Кейс не назначен</span>}</p>
+                </div>
+
+                {/* Участники */}
+                <div>
+                  <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">
+                    Участники ({selectedTeam.members?.length || 0})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedTeam.members && selectedTeam.members.length > 0 ? selectedTeam.members.map((member) => (
+                      <div key={member.id} className="flex items-center gap-3 bg-terminal-dark/40 border border-terminal-gray/30 rounded-lg p-3">
+                        <div className="h-9 w-9 rounded-full overflow-hidden bg-terminal-dark border border-terminal-gray/50 shrink-0">
+                          {member.photo_url ? (
+                            <img src={member.photo_url} alt="аватар" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-white/50 text-sm font-semibold">
+                              {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white/90 font-medium text-sm">
+                            {[member.first_name, member.last_name].filter(Boolean).join(' ') || member.username || 'Участник'}
+                            {member.role === 'captain' && (
+                              <span className="ml-2 text-xs text-amber-400 border border-amber-500/40 rounded px-1.5 py-0.5">Капитан</span>
+                            )}
+                          </div>
+                          <div className="text-white/40 text-xs">
+                            {member.username ? (
+                              <a href={`https://t.me/${member.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{member.username}</a>
+                            ) : '—'}
+                            {member.participant_category && ` · ${member.participant_category === 'school' ? 'Школьник' : 'Студент'}`}
+                          </div>
+                        </div>
+                      </div>
+                    )) : <p className="text-white/40 text-sm">Нет участников</p>}
+                  </div>
+                </div>
+
+                {/* Решение */}
+                <div>
+                  <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">Решение</h3>
+                  {selectedTeamSolutionLoading ? (
+                    <p className="text-white/40 text-sm">Загрузка...</p>
+                  ) : selectedTeamSolution ? (
+                    <div className="bg-terminal-dark/40 border border-terminal-gray/30 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 text-xs rounded border ${
+                          selectedTeamSolution.status === 'approved' ? 'border-green-500/50 text-green-400 bg-green-500/10' :
+                          selectedTeamSolution.status === 'rejected' ? 'border-red-500/50 text-red-400 bg-red-500/10' :
+                          selectedTeamSolution.status === 'reviewing' ? 'border-amber-500/50 text-amber-400 bg-amber-500/10' :
+                          'border-terminal-gray text-white/50 bg-transparent'
+                        }`}>
+                          {statusLabels[selectedTeamSolution.status] || selectedTeamSolution.status}
+                        </span>
+                        <span className="text-xs text-white/30 ml-auto">
+                          {new Date(selectedTeamSolution.submitted_at || selectedTeamSolution.created_at).toLocaleString('ru-RU')}
+                        </span>
+                      </div>
+                      {selectedTeamSolution.admin_comment && (
+                        <p className="text-sm text-white/60 border-l-2 border-terminal-blue/40 pl-3">{selectedTeamSolution.admin_comment}</p>
+                      )}
+                      {selectedTeamSolution.presentation_file_path && (
+                        <a
+                          href={selectedTeamSolution.presentation_file_path.startsWith('http')
+                            ? selectedTeamSolution.presentation_file_path
+                            : `/uploads/${selectedTeamSolution.presentation_file_path.split('/').pop()}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-terminal-cyan hover:underline"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+                          Скачать презентацию
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-white/30 text-sm italic">Решение ещё не подано</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1450,7 +1527,6 @@ const AdminPanel = () => {
                     enabled: true,
                     target_audience: { all: true },
                     message_template: '',
-                    schedule_cron: '',
                     schedule_time: '',
                     conditions: {},
                     case_id: null,
@@ -1481,9 +1557,7 @@ const AdminPanel = () => {
                           {setting.enabled ? 'Включено' : 'Выключено'}
                         </span>
                         <span className="px-2 py-1 text-xs rounded bg-terminal-cyan/20 text-terminal-cyan border border-terminal-cyan">
-                          {setting.type === 'case_opening' ? 'Открытие кейса' :
-                           setting.type === 'general' ? 'Общая' :
-                           setting.type === 'scheduled' ? 'По расписанию' : 'Событие'}
+                          {setting.type === 'scheduled' ? 'По расписанию' : 'Общая'}
                         </span>
                       </div>
                       {setting.case_title && (
@@ -1792,21 +1866,6 @@ const AdminPanel = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
-                  Оценка
-                </label>
-                <input
-                  type="number"
-                  value={moderationData.score}
-                  onChange={(e) =>
-                    setModerationData({ ...moderationData, score: parseInt(e.target.value) || 0 })
-                  }
-                  className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
-                  min="0"
-                  max="100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">
                   Комментарий
                 </label>
                 <textarea
@@ -1878,10 +1937,8 @@ const AdminPanel = () => {
                     required
                     className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
                   >
-                    <option value="case_opening">Открытие кейса</option>
                     <option value="general">Общая рассылка</option>
                     <option value="scheduled">По расписанию</option>
-                    <option value="event">Событие</option>
                   </select>
                 </div>
 
@@ -1900,25 +1957,6 @@ const AdminPanel = () => {
                 </div>
               </div>
 
-              {settingFormData.type === 'case_opening' && (
-                <div>
-                  <label className="block text-sm font-medium text-white/80 mb-2">
-                    Связанный кейс (опционально)
-                  </label>
-                  <select
-                    value={settingFormData.case_id || ''}
-                    onChange={(e) => setSettingFormData({ ...settingFormData, case_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
-                  >
-                    <option value="">Все кейсы</option>
-                    {availableCases.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
@@ -1930,10 +1968,10 @@ const AdminPanel = () => {
                   required
                   rows={6}
                   className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
-                  placeholder="Введите шаблон сообщения. Для кейсов можно использовать переменные: {{case_title}}, {{case_description}}"
+                  placeholder="Введите текст сообщения для рассылки..."
                 />
                 <p className="text-xs text-white/60 mt-1">
-                  Поддерживается HTML разметка. Для кейсов доступны переменные: {'{{case_title}}'}, {'{{case_description}}'}
+                  Поддерживается HTML разметка Telegram: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;, &lt;code&gt;код&lt;/code&gt;
                 </p>
               </div>
 
@@ -1995,34 +2033,22 @@ const AdminPanel = () => {
               </div>
 
               {settingFormData.type === 'scheduled' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Cron выражение (например: "0 9 * * *" для ежедневно в 9:00)
-                    </label>
-                    <input
-                      type="text"
-                      value={settingFormData.schedule_cron}
-                      onChange={(e) => setSettingFormData({ ...settingFormData, schedule_cron: e.target.value })}
-                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
-                      placeholder="0 9 * * *"
-                    />
-                    <p className="text-xs text-white/60 mt-1">
-                      Формат: минута час день месяц день_недели
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white/80 mb-2">
-                      Или конкретное время отправки
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={settingFormData.schedule_time}
-                      onChange={(e) => setSettingFormData({ ...settingFormData, schedule_time: e.target.value })}
-                      className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
-                    />
-                  </div>
-                </>
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Время отправки <span className="text-terminal-red">*</span>
+                    <span className="text-white/40 font-normal ml-2">(московское время, МСК)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={settingFormData.schedule_time}
+                    onChange={(e) => setSettingFormData({ ...settingFormData, schedule_time: e.target.value })}
+                    required={settingFormData.type === 'scheduled'}
+                    className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded"
+                  />
+                  <p className="text-xs text-white/60 mt-1">
+                    Укажите дату и время по Москве (UTC+3)
+                  </p>
+                </div>
               )}
 
               <div className="flex gap-4 border-t border-terminal-gray/30 pt-4">
@@ -2043,7 +2069,6 @@ const AdminPanel = () => {
                       enabled: true,
                       target_audience: { all: true },
                       message_template: '',
-                      schedule_cron: '',
                       schedule_time: '',
                       conditions: {},
                       case_id: null,

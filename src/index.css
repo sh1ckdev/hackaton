@@ -761,7 +761,9 @@ code {
   backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 200;
+  /* нужно для абсолютного позиционирования мобильного меню */
+  /* overflow: visible через sticky */
 }
 
 .app-topbar-inner {
@@ -2620,26 +2622,6 @@ code {
     grid-column: 1;
   }
 
-  .app-topbar-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 20px;
-  }
-
-  .app-nav {
-    flex-wrap: wrap;
-  }
-
-  .app-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .app-actions {
-    flex-wrap: wrap;
-  }
-
   .app-content-inner {
     padding: 20px;
   }
@@ -2721,27 +2703,6 @@ code {
 
   .app-topbar-inner {
     padding: 12px 14px;
-  }
-
-  .app-nav {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .app-nav-link {
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-
-  .app-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .app-user {
-    font-size: 11px;
-    padding: 4px 8px;
   }
 
   .app-content-inner {
@@ -5354,5 +5315,535 @@ code {
 @media (max-width: 960px) {
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   БУРГЕР-МЕНЮ И МОБИЛЬНЫЙ ХЕДЕР
+   ============================================================ */
+
+/* Десктоп nav/actions скрываем только на мобиле */
+@media (max-width: 768px) {
+  .app-nav-desktop,
+  .app-actions-desktop {
+    display: none !important;
+  }
+
+  .app-burger {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .app-burger {
+    display: none;
+  }
+
+  .app-mobile-menu {
+    display: none !important;
+  }
+}
+
+/* Кнопка-бургер */
+.app-burger {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 8px;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.app-burger:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.app-burger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: rgba(148, 163, 184, 0.8);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  transform-origin: center;
+}
+
+.app-burger-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.app-burger-open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.app-burger-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Мобильное меню (дропдаун) */
+.app-mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(10, 17, 32, 0.98);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+  animation: slideDown 0.18s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 14px;
+  letter-spacing: 0.4px;
+  transition: all 0.15s;
+}
+
+.app-mobile-link:hover,
+.app-mobile-link.is-active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+
+.app-mobile-link.is-admin {
+  color: rgba(248, 113, 113, 0.9);
+}
+
+.app-mobile-divider {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.1);
+  margin: 6px 0;
+}
+
+.app-mobile-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: rgba(248, 113, 113, 0.8);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.app-mobile-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+/* ============================================================
+   АДАПТИВ: ПРОФИЛЬ
+   ============================================================ */
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 16px;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .profile-card {
+    padding: 20px;
+  }
+
+  .profile-avatar-section {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .profile-name-section {
+    text-align: center;
+    width: 100%;
+  }
+
+  .profile-name-row {
+    justify-content: center;
+  }
+
+  .profile-name {
+    font-size: 22px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .profile-skills {
+    padding: 20px;
+  }
+
+  .profile-skills-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-skills-add-form {
+    flex-wrap: wrap;
+  }
+
+  .profile-skills-add-input,
+  .profile-skills-add-ext {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  .support-fab {
+    bottom: 16px;
+    right: 16px;
+    height: 44px;
+    padding: 0 14px 0 12px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: КОМАНДА
+   ============================================================ */
+@media (max-width: 768px) {
+  .team-page {
+    padding: 16px;
+  }
+
+  .team-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .team-deadline {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .team-main-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .team-code-sidebar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .team-members-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .team-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .team-code-inputs {
+    gap: 6px;
+  }
+
+  .team-code-input {
+    width: 40px;
+    height: 48px;
+    font-size: 18px;
+  }
+
+  .team-invite-input-block {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-members-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .team-member-card {
+    padding: 14px 10px;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: КЕЙСЫ
+   ============================================================ */
+@media (max-width: 768px) {
+  .cases-page {
+    padding: 16px;
+  }
+
+  .cases-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .cases-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .cases-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cases-preview {
+    display: none;
+  }
+
+  .cases-table {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .cases-table-head,
+  .cases-row {
+    grid-template-columns: 1fr 2fr;
+    gap: 8px;
+  }
+
+  .cases-table-head span:nth-child(n+3),
+  .cases-row span:nth-child(n+3) {
+    display: none;
+  }
+
+  .cases-row {
+    padding: 12px;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: ДЕТАЛИ КЕЙСА
+   ============================================================ */
+@media (max-width: 768px) {
+  .case-detail-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .case-detail-actions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .case-detail-actions button,
+  .case-detail-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: МОИ РЕШЕНИЯ
+   ============================================================ */
+@media (max-width: 768px) {
+  .solutions-page {
+    padding: 16px;
+  }
+
+  .solutions-card-title-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .solutions-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .solutions-card-meta a {
+    word-break: break-all;
+  }
+
+  .solutions-empty-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: ЛЕНДИНГ
+   ============================================================ */
+@media (max-width: 768px) {
+  .landing-timer-blocks {
+    gap: 8px;
+  }
+
+  .landing-timer-block {
+    padding: 12px 12px;
+    min-width: 60px;
+  }
+
+  .landing-timer-value {
+    font-size: 30px;
+  }
+
+  .landing-timer-sub {
+    font-size: 12px;
+    text-align: center;
+  }
+
+  /* Таймлайн — линейный вид */
+  .landing-timeline-list {
+    padding-left: 20px;
+  }
+
+  .landing-timeline-item {
+    display: block !important;
+    padding-left: 20px !important;
+    padding-right: 0 !important;
+    text-align: left !important;
+    margin-bottom: 24px;
+  }
+
+  .landing-timeline-item-left,
+  .landing-timeline-item-right {
+    text-align: left;
+  }
+
+  .landing-timeline-node {
+    left: -20px !important;
+    right: auto !important;
+  }
+
+  .landing-timeline-date {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: АДМИН-ПАНЕЛЬ
+   ============================================================ */
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 12px;
+  }
+
+  .admin-nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-nav-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+
+  .admin-content > div {
+    padding: 14px;
+  }
+
+}
+
+/* ============================================================
+   АДАПТИВ: LAYOUT
+   ============================================================ */
+@media (max-width: 768px) {
+  .app-content-inner {
+    padding: 16px 14px 80px; /* низ с запасом под FAB */
+  }
+
+  .app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: ЛОГИН
+   ============================================================ */
+@media (max-width: 480px) {
+  .login-surface {
+    padding: 24px 12px 40px;
+  }
+
+  .login-terminal {
+    width: 100%;
+  }
+
+  .login-terminal-body {
+    padding: 16px;
+  }
+
+  .login-auth-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .login-telegram-button,
+  .login-vk-button {
+    width: 100%;
+    flex: none;
+  }
+
+  .login-category-block {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* ============================================================
+   АДАПТИВ: ПОДДЕРЖКА
+   ============================================================ */
+@media (max-width: 480px) {
+  .support-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .support-chat {
+    width: 100%;
+    max-width: 100%;
+    height: 75vh;
+    border-radius: 16px 16px 0 0;
   }
 }

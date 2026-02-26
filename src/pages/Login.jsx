@@ -14,6 +14,10 @@ const TelegramIcon = () => (
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
 
+// Виджет Telegram работает только на HTTPS с зарегистрированным доменом
+const isLocalhost = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 const Login = () => {
   useDocumentTitle('Вход');
   const navigate = useNavigate();
@@ -190,7 +194,13 @@ const Login = () => {
       return;
     }
     setError(null);
-    setShowTgWidget(true);
+    if (isLocalhost) {
+      // На localhost виджет не работает — редиректим в бота
+      try { localStorage.setItem(CATEGORY_STORAGE_KEY, participantCategory); } catch (e) {}
+      window.location.href = `https://t.me/${botUsername}?start=login`;
+    } else {
+      setShowTgWidget(true);
+    }
   };
 
   const handleVkRedirect = () => {
