@@ -828,8 +828,46 @@ export async function runMigrations() {
     await applySchemaChanges();
     // Всегда применяем дополнительные миграции (vk_id и др.) — они добавляют отсутствующие столбцы
     await applyAdditionalMigrations();
+    await applySupportMigration();
   } catch (error) {
     logError('Ошибка при выполнении миграций', error);
     throw error;
+  }
+}
+
+async function applySupportMigration() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(255),
+        status VARCHAR(20) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+        sender VARCHAR(10) NOT NULL CHECK (sender IN ('user', 'admin')),
+        text TEXT NOT NULL,
+        tg_message_id BIGINT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_support_messages_ticket_id ON support_messages(ticket_id)
+    `);
+
+    logInfo('Миграция support: таблицы готовы');
+  } catch (error) {
+    logWarn('Предупреждение при миграции support', { error: error.message });
   }
 }
