@@ -98,7 +98,7 @@ const AuthVkCallback = () => {
           </div>
           <div className="login-terminal-title">auth_vk_callback</div>
         </div>
-        <div className="login-terminal-body">
+        <div className="login-terminal-body auth-vk-callback-body">
           {error && (
             <div className="login-error">
               <strong>Ошибка</strong>

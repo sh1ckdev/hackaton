@@ -1745,6 +1745,17 @@ code {
   text-align: center;
 }
 
+.auth-vk-callback-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.auth-vk-callback-body .login-error {
+  text-align: center;
+}
+
 @keyframes blink {
   0%, 50% {
     opacity: 1;
