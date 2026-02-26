@@ -24,14 +24,19 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
 
-    const allowedTypes = /pdf|doc|docx|zip|rar|txt|md|jpg|jpeg|png|gif/;
+    const allowedTypes = /pdf|doc|docx|ppt|pptx|xls|xlsx|zip|rar|txt|md|jpg|jpeg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype) || 
                      file.mimetype === 'application/pdf' ||
                      file.mimetype === 'application/msword' ||
                      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                     file.mimetype === 'application/vnd.ms-powerpoint' ||
+                     file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+                     file.mimetype === 'application/vnd.ms-excel' ||
+                     file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                      file.mimetype === 'application/zip' ||
                      file.mimetype === 'application/x-rar-compressed' ||
+                     file.mimetype === 'application/x-zip-compressed' ||
                      file.mimetype === 'text/plain' ||
                      file.mimetype === 'text/markdown' ||
                      file.mimetype.startsWith('image/');
