@@ -1,11 +1,28 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+
+// Конвертация UTC (из API) в московское время для datetime-local
+const utcToMoscowForInput = (utcStr) => {
+  if (!utcStr) return '';
+  const d = new Date(utcStr);
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d);
+  const get = (t) => p.find(x => x.type === t).value;
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+};
+// Значение из datetime-local (московское время) → ISO UTC для API
+const moscowInputToUtc = (v) => {
+  if (!v || !String(v).trim()) return null;
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return new Date(s + '+03:00').toISOString();
+  return s; // уже ISO из API
+};
 import solutionsStore from '../stores/solutionsStore';
 import casesStore from '../stores/casesStore';
 import authStore from '../stores/authStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { PaperPlaneIcon } from '../components/Icons';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const AdminPanel = () => {
   useDocumentTitle('Панель администратора');
@@ -16,6 +33,7 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('solutions');
   const [settingsSubTab, setSettingsSubTab] = useState('timeline');
   const [filters, setFilters] = useState({ status: '', case_id: '' });
+  const [usersFilter, setUsersFilter] = useState({ participant_category: '' });
   const [moderatingSolution, setModeratingSolution] = useState(null);
   const [moderationData, setModerationData] = useState({
     status: 'approved',
@@ -68,6 +86,7 @@ const AdminPanel = () => {
   const [editingPrize, setEditingPrize] = useState(null);
   const [editingTrack, setEditingTrack] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -82,6 +101,9 @@ const AdminPanel = () => {
     if (activeTab === 'settings') {
       fetchHackathonSettings();
     }
+    if (activeTab === 'analytics') {
+      fetchAnalytics();
+    }
   }, [activeTab]);
 
   useEffect(() => {
@@ -89,6 +111,16 @@ const AdminPanel = () => {
       fetchTeams();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'users') fetchUsers();
+  }, [activeTab, usersFilter.participant_category]);
+
+  useEffect(() => {
+    if (activeTab !== 'users') return;
+    const interval = setInterval(fetchUsers, 15000);
+    return () => clearInterval(interval);
+  }, [activeTab, usersFilter.participant_category]);
 
   const fetchStats = async () => {
     try {
@@ -100,7 +132,8 @@ const AdminPanel = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users');
+      const params = usersFilter.participant_category ? `?participant_category=${usersFilter.participant_category}` : '';
+      const response = await api.get(`/admin/users${params}`);
       setUsers(response.data.users);
     } catch (error) {
     }
@@ -112,6 +145,86 @@ const AdminPanel = () => {
       setTeams(response.data.teams);
     } catch (error) {
     }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await api.get('/admin/analytics');
+      setAnalytics(response.data);
+    } catch (error) {
+      setAnalytics(null);
+    }
+  };
+
+  const statusLabels = { pending: 'Ожидает', reviewing: 'На проверке', approved: 'Одобрено', rejected: 'Отклонено' };
+  const CHART_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  const exportToCSV = (data, filename, columns) => {
+    const headers = columns.map(c => c.label || c.key).join(',');
+    const rows = data.map(row => columns.map(c => {
+      const v = row[c.key];
+      return typeof v === 'string' && (v.includes(',') || v.includes('"')) ? `"${v.replace(/"/g, '""')}"` : v;
+    }).join(','));
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportUsers = () => {
+    const cols = [
+      { key: 'id', label: 'ID' },
+      { key: 'first_name', label: 'Имя' },
+      { key: 'last_name', label: 'Фамилия' },
+      { key: 'username', label: 'Username' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Телефон' },
+      { key: 'role', label: 'Роль' },
+      { key: 'solutions_count', label: 'Решений' },
+      { key: 'created_at', label: 'Дата регистрации' }
+    ];
+    exportToCSV(users, 'users', cols);
+  };
+
+  const handleExportSolutions = () => {
+    const cols = [
+      { key: 'id', label: 'ID' },
+      { key: 'title', label: 'Название' },
+      { key: 'status', label: 'Статус' },
+      { key: 'first_name', label: 'Имя' },
+      { key: 'last_name', label: 'Фамилия' },
+      { key: 'username', label: 'Username' },
+      { key: 'case_title', label: 'Кейс' },
+      { key: 'score', label: 'Оценка' },
+      { key: 'created_at', label: 'Дата' }
+    ];
+    exportToCSV(solutionsStore.allSolutions, 'solutions', cols);
+  };
+
+  const handleExportTeams = () => {
+    const flat = [];
+    teams.forEach(t => {
+      t.members?.forEach(m => {
+        flat.push({
+          team_id: t.id,
+          team_name: t.name,
+          member_name: `${m.first_name || ''} ${m.last_name || ''}`.trim(),
+          member_username: m.username,
+          role: m.role
+        });
+      });
+    });
+    exportToCSV(flat, 'teams', [
+      { key: 'team_id', label: 'ID команды' },
+      { key: 'team_name', label: 'Команда' },
+      { key: 'member_name', label: 'Участник' },
+      { key: 'member_username', label: 'Username' },
+      { key: 'role', label: 'Роль' }
+    ]);
   };
 
   const handleRandomizeTeams = async () => {
@@ -195,7 +308,14 @@ const AdminPanel = () => {
 
   const saveTimeline = async (item) => {
     try {
-      const payload = { type: item.type || 'other', title: item.title, description: item.description, date: item.date };
+      const payload = {
+        type: item.type || 'other',
+        title: item.title,
+        description: item.description,
+        date: moscowInputToUtc(item.date) || item.date,
+        date_to: item.date_to ? moscowInputToUtc(item.date_to) : null,
+        show_countdown: !!item.show_countdown
+      };
       if (item.id) {
         const res = await api.put(`/admin/settings/timeline/${item.id}`, payload);
         setHackathonSettings(prev => ({
@@ -207,7 +327,7 @@ const AdminPanel = () => {
         setHackathonSettings(prev => ({
           ...prev,
           timeline: [...prev.timeline, res.data.timeline_item].sort(
-            (a, b) => new Date(a.date) - new Date(b.date)
+            (a, b) => new Date(a.date_to || a.date) - new Date(b.date_to || b.date)
           )
         }));
       }
@@ -404,7 +524,10 @@ const AdminPanel = () => {
         <div className="admin-stats-grid">
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.users}</div>
-            <div className="admin-stat-label">ПОЛЬЗОВАТЕЛЕЙ</div>
+            <div className="admin-stat-label">УЧАСТНИКОВ</div>
+            <div className="admin-stat-sub">
+              (студентов: {stats.participants_students ?? 0} · школьников: {stats.participants_school ?? 0})
+            </div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.cases}</div>
@@ -441,6 +564,12 @@ const AdminPanel = () => {
               className={`admin-nav-tab ${activeTab === 'teams' ? 'active' : ''}`}
             >
               Команды
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`admin-nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+            >
+              Аналитика
             </button>
             <button
               onClick={() => setActiveTab('cases')}
@@ -581,9 +710,22 @@ const AdminPanel = () => {
 
         {activeTab === 'users' && (
           <div className="p-6">
+            <div className="mb-4 flex flex-wrap gap-4 items-center">
+              <label className="text-white/70 text-sm">Категория:</label>
+              <select
+                value={usersFilter.participant_category}
+                onChange={(e) => setUsersFilter({ participant_category: e.target.value })}
+                className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
+              >
+                <option value="">Все</option>
+                <option value="student">Студенты</option>
+                <option value="school">Школьники</option>
+              </select>
+            </div>
             <div className="space-y-4">
               {users.map((user) => {
                 const isMainAdmin = user.telegram_id && Number(user.telegram_id) === MAIN_ADMIN_TELEGRAM_ID;
+                const isUserOnline = user.last_activity_at && (Date.now() - new Date(user.last_activity_at).getTime()) < 120 * 1000;
                 
                 return (
                   <div
@@ -608,13 +750,42 @@ const AdminPanel = () => {
                             Главный админ
                           </span>
                         )}
+                        {user.participant_category === 'student' && (
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-cyan/50 text-terminal-cyan bg-terminal-cyan/10">
+                            Студент
+                          </span>
+                        )}
+                        {user.participant_category === 'school' && (
+                          <span className="px-2 py-0.5 text-xs rounded border border-terminal-purple/50 text-terminal-purple bg-terminal-purple/10">
+                            Школьник
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-white/70">
                         Решений: {user.solutions_count} | Роль: {
                           user.role === 'admin' ? 'Администратор' :
                           user.role === 'moderator' ? 'Модератор' : 'Пользователь'
                         }
+                        {isUserOnline && (
+                          <>
+                            {' | '}
+                            <span className="text-terminal-green inline-flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-terminal-green"></span>
+                              Онлайн
+                            </span>
+                          </>
+                        )}
                       </p>
+                      {(() => {
+                        const skills = user.skills && Array.isArray(user.skills) ? user.skills : [];
+                        const langs = skills.filter(s => s.type === 'language').map(s => `${s.name}${s.extension ? '.' + s.extension : ''}`).join(', ');
+                        const fws = skills.filter(s => s.type === 'framework').map(s => s.name).join(', ');
+                        const parts = [];
+                        if (langs) parts.push(`Языки: ${langs}`);
+                        if (fws) parts.push(`Фреймворки: ${fws}`);
+                        const skillsStr = parts.join(' | ');
+                        return skillsStr ? <p className="text-sm text-white/60 mt-1">{skillsStr}</p> : null;
+                      })()}
                     </div>
                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       {user.role !== 'admin' && (
@@ -719,8 +890,14 @@ const AdminPanel = () => {
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold text-white text-lg">
+                    <p className="font-semibold text-white text-lg flex items-center gap-2">
                       {selectedUser.first_name} {selectedUser.last_name}
+                      {selectedUser.last_activity_at && (Date.now() - new Date(selectedUser.last_activity_at).getTime()) < 120 * 1000 && (
+                        <span className="text-terminal-green text-sm font-normal inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-terminal-green"></span>
+                          Онлайн
+                        </span>
+                      )}
                     </p>
                     <p className="text-terminal-cyan">
                       {selectedUser.vk_id ? (
@@ -732,24 +909,80 @@ const AdminPanel = () => {
                     <p className="text-sm text-white/60 mt-1">ID: {selectedUser.vk_id ? `vk.com/id${selectedUser.vk_id}` : selectedUser.telegram_id}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-white/60">Имя:</span> <span className="text-white">{selectedUser.first_name || '—'}</span></div>
-                  <div><span className="text-white/60">Фамилия:</span> <span className="text-white">{selectedUser.last_name || '—'}</span></div>
-                  <div><span className="text-white/60">Username:</span> <span className="text-white">{selectedUser.vk_id ? (
-                    <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a>
-                  ) : selectedUser.username ? (
-                    <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
-                  ) : '—'}</span></div>
-                  <div><span className="text-white/60">Telegram ID:</span> <span className="text-white">{selectedUser.telegram_id || '—'}</span></div>
-                  {selectedUser.vk_id && <div><span className="text-white/60">VK ID:</span> <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a></div>}
-                  {selectedUser.email && <div><span className="text-white/60">Email:</span> <span className="text-white">{selectedUser.email}</span></div>}
-                  <div><span className="text-white/60">Телефон:</span> <span className="text-white">{selectedUser.phone || '—'}</span></div>
-                  <div><span className="text-white/60">Роль:</span> <span className="text-white">{
-                    selectedUser.role === 'admin' ? 'Администратор' :
-                    selectedUser.role === 'moderator' ? 'Модератор' : 'Пользователь'
-                  }</span></div>
-                  <div><span className="text-white/60">Решений:</span> <span className="text-white">{selectedUser.solutions_count || 0}</span></div>
-                  <div><span className="text-white/60">Зарегистрирован:</span> <span className="text-white">{selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString('ru-RU') : '—'}</span></div>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Имя:</span>
+                    <span className="text-white">{selectedUser.first_name || '—'}</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Фамилия:</span>
+                    <span className="text-white">{selectedUser.last_name || '—'}</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Username:</span>
+                    <span className="text-white">{selectedUser.vk_id ? (
+                      <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a>
+                    ) : selectedUser.username ? (
+                      <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
+                    ) : '—'}</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Telegram ID:</span>
+                    <span className="text-white">{selectedUser.telegram_id || '—'}</span>
+                  </div>
+                  {selectedUser.vk_id && (
+                    <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                      <span className="text-white/60">VK ID:</span>
+                      <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a>
+                    </div>
+                  )}
+                  {selectedUser.email && (
+                    <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                      <span className="text-white/60">Email:</span>
+                      <span className="text-white">{selectedUser.email}</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Телефон:</span>
+                    <span className="text-white">{selectedUser.phone || '—'}</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Роль:</span>
+                    <span className="text-white">{
+                      selectedUser.role === 'admin' ? 'Администратор' :
+                      selectedUser.role === 'moderator' ? 'Модератор' : 'Пользователь'
+                    }</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Категория:</span>
+                    <select
+                      value={selectedUser.participant_category || ''}
+                      onChange={async (e) => {
+                        const v = e.target.value;
+                        const cat = v === 'student' || v === 'school' ? v : null;
+                        try {
+                          const res = await api.put(`/admin/users/by-id/${selectedUser.id}/participant-category`, { participant_category: cat });
+                          fetchUsers();
+                          setSelectedUser(u => u && u.id === selectedUser.id ? { ...u, participant_category: res.data.user.participant_category } : u);
+                        } catch (err) {
+                          alert(err.response?.data?.error || 'Ошибка изменения');
+                        }
+                      }}
+                      className="w-full max-w-[200px] px-3 py-1.5 bg-terminal-dark/60 border border-terminal-gray text-white rounded text-sm"
+                    >
+                      <option value="">Не выбрано</option>
+                      <option value="student">Студент</option>
+                      <option value="school">Школьник</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Решений:</span>
+                    <span className="text-white">{selectedUser.solutions_count || 0}</span>
+                  </div>
+                  <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                    <span className="text-white/60">Зарегистрирован:</span>
+                    <span className="text-white">{selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString('ru-RU') : '—'}</span>
+                  </div>
                 </div>
                 {selectedUser.bio && (
                   <div>
@@ -760,13 +993,38 @@ const AdminPanel = () => {
                 {selectedUser.skills && Array.isArray(selectedUser.skills) && selectedUser.skills.length > 0 && (
                   <div>
                     <p className="text-white/60 text-sm mb-1">Навыки:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedUser.skills.map((s, i) => (
-                        <span key={i} className="px-2 py-1 bg-terminal-green/20 text-terminal-green text-xs rounded">
-                          {s.name}{s.extension ? `.${s.extension}` : ''}
-                        </span>
-                      ))}
-                    </div>
+                    {(() => {
+                      const langs = selectedUser.skills.filter(s => s.type === 'language');
+                      const fws = selectedUser.skills.filter(s => s.type === 'framework');
+                      return (
+                        <div className="space-y-2">
+                          {langs.length > 0 && (
+                            <div>
+                              <p className="text-white/50 text-xs mb-1">Языки:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {langs.map((s, i) => (
+                                  <span key={i} className="px-2 py-1 bg-terminal-green/20 text-terminal-green text-xs rounded">
+                                    {s.name}{s.extension ? `.${s.extension}` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {fws.length > 0 && (
+                            <div>
+                              <p className="text-white/50 text-xs mb-1">Фреймворки:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {fws.map((s, i) => (
+                                  <span key={i} className="px-2 py-1 bg-terminal-cyan/20 text-terminal-cyan text-xs rounded">
+                                    {s.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2 pt-4 border-t border-terminal-gray/30">
@@ -851,6 +1109,140 @@ const AdminPanel = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="p-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold text-white">Аналитика</h2>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleExportUsers}
+                  className="px-3 py-2 text-sm border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded transition-colors"
+                >
+                  Выгрузить пользователей (CSV)
+                </button>
+                <button
+                  onClick={handleExportSolutions}
+                  className="px-3 py-2 text-sm border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded transition-colors"
+                >
+                  Выгрузить решения (CSV)
+                </button>
+                <button
+                  onClick={handleExportTeams}
+                  className="px-3 py-2 text-sm border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded transition-colors"
+                >
+                  Выгрузить команды (CSV)
+                </button>
+                <button
+                  onClick={fetchAnalytics}
+                  className="px-3 py-2 text-sm border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded transition-colors"
+                >
+                  Обновить
+                </button>
+              </div>
+            </div>
+
+            {analytics ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+                    <h3 className="text-lg font-semibold text-white mb-4">Решения по статусу</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={analytics.solutionsByStatus.map((s, i) => ({ ...s, name: statusLabels[s.name] || s.name }))}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={90}
+                            paddingAngle={2}
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${value}`}
+                          >
+                            {analytics.solutionsByStatus.map((_, i) => (
+                              <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+                    <h3 className="text-lg font-semibold text-white mb-4">Решения по кейсам</h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.solutionsByCase} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                          <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
+                          <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                          <Bar dataKey="count" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+                    <h3 className="text-lg font-semibold text-white mb-4">Регистрации пользователей по дням</h3>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={analytics.usersByDate} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                          <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                          <Line type="monotone" dataKey="count" stroke="#60a5fa" strokeWidth={2} dot={{ fill: '#60a5fa' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+                    <h3 className="text-lg font-semibold text-white mb-4">Решения по дням</h3>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={analytics.solutionsByDate} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                          <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                          <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={{ fill: '#22c55e' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+                <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+                  <h3 className="text-lg font-semibold text-white mb-4">Сводка</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
+                      <p className="text-white/60 text-sm">Пользователей</p>
+                      <p className="text-2xl font-bold text-terminal-green">{stats?.users ?? '—'}</p>
+                    </div>
+                    <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
+                      <p className="text-white/60 text-sm">Решений</p>
+                      <p className="text-2xl font-bold text-terminal-cyan">{stats?.solutions ?? '—'}</p>
+                    </div>
+                    <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
+                      <p className="text-white/60 text-sm">Кейсов</p>
+                      <p className="text-2xl font-bold text-terminal-purple">{stats?.cases ?? '—'}</p>
+                    </div>
+                    <div className="p-3 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">
+                      <p className="text-white/60 text-sm">Команд</p>
+                      <p className="text-2xl font-bold text-terminal-green">{teams.length}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-white/70">
+                <p>Загрузка аналитики...</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -1778,7 +2170,9 @@ const AdminPanel = () => {
                     setEditingTimelineItem({
                       title: '',
                       description: '',
-                      date: ''
+                      date: '',
+                      date_to: '',
+                      show_countdown: false
                     });
                   }}
                   className="admin-btn-primary"
@@ -1793,7 +2187,12 @@ const AdminPanel = () => {
                       <div className="admin-settings-item-title">{item.title}</div>
                       <div className="admin-settings-item-desc">{item.description}</div>
                       <div className="admin-settings-item-meta">
-                        <span>Дата: {item.date ? new Date(item.date).toLocaleString('ru-RU') : 'Не указана'}</span>
+                        {item.date_to ? (
+                          <span>От {item.date ? new Date(item.date).toLocaleString('ru-RU') : '—'} до {item.date_to ? new Date(item.date_to).toLocaleString('ru-RU') : '—'}</span>
+                        ) : (
+                          <span>Дата: {item.date ? new Date(item.date).toLocaleString('ru-RU') : 'Не указана'}</span>
+                        )}
+                        {item.show_countdown && <span className="admin-badge" style={{ marginLeft: 8 }}>Таймер на главной</span>}
                       </div>
                     </div>
                     <div className="admin-settings-item-actions">
@@ -1842,14 +2241,35 @@ const AdminPanel = () => {
                         />
                       </div>
                       <div className="admin-form-group">
-                        <label>Дата и время</label>
+                        <label>Дата начала (от)</label>
                         <input
                           type="datetime-local"
-                          value={editingTimelineItem.date ? new Date(editingTimelineItem.date).toISOString().slice(0, 16) : ''}
+                          value={utcToMoscowForInput(editingTimelineItem.date)}
                           onChange={(e) => setEditingTimelineItem({...editingTimelineItem, date: e.target.value})}
                           className="admin-input"
-                          required
                         />
+                        <small style={{ color: 'var(--text-muted)' }}>Московское время. Если не указано — от текущего времени</small>
+                      </div>
+                      <div className="admin-form-group">
+                        <label>Дата окончания (до)</label>
+                        <input
+                          type="datetime-local"
+                          value={utcToMoscowForInput(editingTimelineItem.date_to)}
+                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, date_to: e.target.value})}
+                          className="admin-input"
+                        />
+                        <small style={{ color: 'var(--text-muted)' }}>Московское время. Если указано — таймлайн покажет период «от и до»</small>
+                      </div>
+                      <div className="admin-form-group">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!editingTimelineItem.show_countdown}
+                            onChange={(e) => setEditingTimelineItem({...editingTimelineItem, show_countdown: e.target.checked})}
+                          />
+                          Использовать для таймера на главной
+                        </label>
+                        <small style={{ color: 'var(--text-muted)' }}>Таймер будет считать до даты окончания (до)</small>
                       </div>
                       <div className="admin-form-actions">
                         <button type="submit" className="admin-btn-primary">Сохранить</button>

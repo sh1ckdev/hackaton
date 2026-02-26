@@ -2,8 +2,10 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import AppHeader from './AppHeader';
+import { useHeartbeat } from '../hooks/useHeartbeat';
 
 const Layout = () => {
+  useHeartbeat();
   const navigate = useNavigate();
   const handleLogout = () => {
     authStore.logout();

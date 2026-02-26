@@ -6,6 +6,7 @@ import Navbar from './Navbar';
 const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
   return (
     <header className="app-topbar">
+      <div className="app-topbar-inner">
       <Logo showVersion={true} asLink={true} />
       <Navbar isAdmin={isAdmin} />
       <div className="app-actions">
@@ -20,6 +21,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
         ) : (
           <Link to="/login" className="app-login">[ Вход ]</Link>
         )}
+      </div>
       </div>
     </header>
   );

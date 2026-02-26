@@ -39,13 +39,13 @@ class AuthStore {
     }
   }
 
-  async loginWithVk(code, state, deviceId) {
+  async loginWithVk(code, state, deviceId, participantCategory) {
     if (this.loginInProgress) return false;
     this.loginInProgress = true;
     this.loading = true;
     this.error = null;
     try {
-      const response = await api.post('/auth/vk', { code, state, device_id: deviceId });
+      const response = await api.post('/auth/vk', { code, state, device_id: deviceId, participant_category: participantCategory || undefined });
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;
@@ -62,7 +62,7 @@ class AuthStore {
     }
   }
 
-  async loginWithToken(token, captchaToken) {
+  async loginWithToken(token, captchaToken, participantCategory) {
     // Предотвращаем одновременные вызовы
     if (this.loginInProgress) {
       return false;
@@ -72,7 +72,7 @@ class AuthStore {
     this.loading = true;
     this.error = null;
     try {
-      const response = await api.post('/auth/bot', { token, captcha_token: captchaToken });
+      const response = await api.post('/auth/bot', { token, captcha_token: captchaToken, participant_category: participantCategory || undefined });
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;

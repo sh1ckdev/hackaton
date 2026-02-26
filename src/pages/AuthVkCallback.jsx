@@ -47,9 +47,20 @@ const AuthVkCallback = () => {
       return;
     }
 
+    const participantCategory = (() => {
+      try {
+        const s = localStorage.getItem('hackathon_participant_category');
+        if (s === 'student' || s === 'school') return s;
+      } catch (e) {}
+      return undefined;
+    })();
+    if (participantCategory) {
+      try { localStorage.removeItem('hackathon_participant_category'); } catch (e) {}
+    }
+
     (async () => {
       try {
-        const ok = await authStore.loginWithVk(code, state, device_id);
+        const ok = await authStore.loginWithVk(code, state, device_id, participantCategory);
         if (ok) {
           navigate('/profile', { replace: true });
         } else {

@@ -20,6 +20,13 @@ const Landing = () => {
     minutes: 0,
     seconds: 0
   });
+  const [mainExpired, setMainExpired] = useState(false);
+  const [competitionCountdown, setCompetitionCountdown] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
 
   useEffect(() => {
     fetchLandingData();
@@ -43,31 +50,63 @@ const Landing = () => {
   };
 
   const updateCountdown = () => {
-    const startDate = timeline.find(t => t.type === 'hacking_begins')?.date;
-    if (!startDate) return;
+    const countdownItem = timeline.find(t => t.show_countdown);
+    const targetDate = countdownItem
+      ? (countdownItem.date_to || countdownItem.date)
+      : timeline.find(t => t.type === 'hacking_begins')?.date;
+    if (!targetDate) return;
 
     const now = new Date();
-    const diff = new Date(startDate) - now;
+    const diff = new Date(targetDate) - now;
 
     if (diff > 0) {
+      setMainExpired(false);
       setCountdown({
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
         hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
         minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((diff % (1000 * 60)) / 1000)
       });
+    } else {
+      setMainExpired(true);
+      const end48h = new Date(targetDate).getTime() + 48 * 60 * 60 * 1000;
+      const remaining = end48h - now.getTime();
+      if (remaining > 0) {
+        setCompetitionCountdown({
+          days: Math.floor(remaining / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((remaining % (1000 * 60)) / 1000)
+        });
+      } else {
+        setCompetitionCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
     }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    const month = months[date.getMonth()];
-    const day = date.getDate();
-    const hours = date.getUTCHours().toString().padStart(2, '0');
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    return `${month} ${day}, ${hours}:${minutes} UTC`;
+    const moscow = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).formatToParts(date);
+    const day = moscow.find(p => p.type === 'day').value;
+    const month = moscow.find(p => p.type === 'month').value;
+    const hour = moscow.find(p => p.type === 'hour').value;
+    const minute = moscow.find(p => p.type === 'minute').value;
+    return `${month} ${day}, ${hour}:${minute} МСК`;
+  };
+
+  const formatDateRange = (item, isFirst) => {
+    if (item.date_to) {
+      if (isFirst) return formatDate(item.date_to); // для первого — только «до»
+      return `${formatDate(item.date)} — ${formatDate(item.date_to)}`;
+    }
+    return formatDate(item.date);
   };
 
   const handleLogout = () => {
@@ -152,19 +191,40 @@ const Landing = () => {
               className="landing-timer"
               style={{
                 display: 'flex',
-                gap: '32px',
-                justifyContent: 'center',
-                flexWrap: 'wrap'
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '16px'
               }}
             >
-              {['days', 'hours', 'minutes', 'seconds'].map((key) => (
-                <div key={key} style={{ textAlign: 'center' }}>
-                  <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
-                    {countdown[key].toString().padStart(2, '0')}
-                  </span>
-                  <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
+              {mainExpired ? (
+                <>
+                  <div style={{ fontSize: '24px', fontWeight: 600, marginBottom: 8 }}>
+                    Соревнования идут!
+                  </div>
+                  <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {['days', 'hours', 'minutes', 'seconds'].map((key) => (
+                      <div key={key} style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                          {competitionCountdown[key].toString().padStart(2, '0')}
+                        </span>
+                        <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.8 }}>до окончания хакатона</div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {['days', 'hours', 'minutes', 'seconds'].map((key) => (
+                    <div key={key} style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                        {countdown[key].toString().padStart(2, '0')}
+                      </span>
+                      <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </section>
@@ -172,9 +232,8 @@ const Landing = () => {
         {/* TIMELINE */}
         <section className="landing-section landing-timeline">
           <div className="landing-section-title">
-            / последовательность
           </div>
-          <h2>Таймлайн</h2>
+          <h2>Таймлайн соревнований</h2>
 
           <div className="landing-timeline-list">
             {displayTimeline.map((item, idx) => {
@@ -197,13 +256,13 @@ const Landing = () => {
                       </div>
                       <div className="landing-timeline-node" />
                       <span className="landing-timeline-date">
-                        {formatDate(item.date)}
+                        {formatDateRange(item, idx === 0)}
                       </span>
                     </>
                   ) : (
                     <>
                       <span className="landing-timeline-date">
-                        {formatDate(item.date)}
+                        {formatDateRange(item, idx === 0)}
                       </span>
                       <div className="landing-timeline-node" />
                       <div className="landing-timeline-content">

@@ -21,13 +21,22 @@ const Login = () => {
   const [captchaReady, setCaptchaReady] = useState(false);
   const [loginPending, setLoginPending] = useState(false);
   const [processedToken, setProcessedToken] = useState(null);
+  const [participantCategory, setParticipantCategory] = useState(() => {
+    try {
+      const s = localStorage.getItem('hackathon_participant_category');
+      return (s === 'student' || s === 'school') ? s : '';
+    } catch { return ''; }
+  });
   const loginAttemptRef = useRef(false);
+
+  const CATEGORY_STORAGE_KEY = 'hackathon_participant_category';
 
   useEffect(() => {
     if (authStore.isAuthenticated) {
       navigate('/');
     }
   }, [navigate]);
+
 
   useEffect(() => {
     if (!turnstileSiteKey) return;
@@ -72,6 +81,10 @@ const Login = () => {
       setError('Токен входа не найден.');
       return;
     }
+    if (!participantCategory) {
+      setError('Выберите категорию участника: студент или школьник.');
+      return;
+    }
     
     // Проверяем, не обрабатывали ли мы уже этот токен
     if (processedToken === token && loginPending) {
@@ -84,7 +97,7 @@ const Login = () => {
     setError(null);
     
     try {
-      const ok = await authStore.loginWithToken(token, captcha || '');
+      const ok = await authStore.loginWithToken(token, captcha || '', participantCategory);
       if (ok) {
         navigate('/profile');
       } else {
@@ -98,7 +111,7 @@ const Login = () => {
     } finally {
       setLoginPending(false);
     }
-  }, [location.search, captchaToken, navigate, turnstileSiteKey, processedToken, loginPending]);
+  }, [location.search, captchaToken, navigate, turnstileSiteKey, processedToken, loginPending, participantCategory]);
 
 
   useEffect(() => {
@@ -127,14 +140,24 @@ const Login = () => {
   }, [captchaToken, location.search, turnstileSiteKey, processedToken, loginPending]);
 
   const handleTelegramRedirect = () => {
+    if (!participantCategory) {
+      setError('Выберите категорию: студент или школьник.');
+      return;
+    }
     if (!botUsername) {
       setError('Укажите VITE_TELEGRAM_BOT_USERNAME в .env клиента.');
       return;
     }
+    try { localStorage.setItem(CATEGORY_STORAGE_KEY, participantCategory); } catch (e) {}
     window.location.href = `https://t.me/${botUsername}?start=login`;
   };
 
   const handleVkRedirect = () => {
+    if (!participantCategory) {
+      setError('Выберите категорию: студент или школьник.');
+      return;
+    }
+    try { localStorage.setItem(CATEGORY_STORAGE_KEY, participantCategory); } catch (e) {}
     window.location.href = vkAuthUrl;
   };
 
@@ -190,6 +213,30 @@ const Login = () => {
           <div className="login-terminal-divider"></div>
           <div className="login-auth-title">Войдите одним из способов</div>
 
+          <div className="login-category-block">
+            <label className="login-category-label">Я участник:</label>
+            <label className="login-category-option">
+              <input
+                type="radio"
+                name="participant_category"
+                value="student"
+                checked={participantCategory === 'student'}
+                onChange={(e) => setParticipantCategory(e.target.value)}
+              />
+              <span>Студент</span>
+            </label>
+            <label className="login-category-option">
+              <input
+                type="radio"
+                name="participant_category"
+                value="school"
+                checked={participantCategory === 'school'}
+                onChange={(e) => setParticipantCategory(e.target.value)}
+              />
+              <span>Школьник</span>
+            </label>
+          </div>
+
           <div className="login-actions">
             {hasToken ? (
               <div className="login-token-block">
@@ -217,11 +264,11 @@ const Login = () => {
               </div>
             ) : (
               <div className="login-auth-buttons">
-                <button onClick={handleTelegramRedirect} className="login-telegram-button">
+                <button onClick={handleTelegramRedirect} className="login-telegram-button" disabled={!participantCategory}>
                   <TelegramIcon size={22} />
                   <span>Войти через Telegram</span>
                 </button>
-                <button onClick={handleVkRedirect} className="login-vk-button">
+                <button onClick={handleVkRedirect} className="login-vk-button" disabled={!participantCategory}>
                   <VkIcon size={22} />
                   <span>Войти через VK ID</span>
                 </button>

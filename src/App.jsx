@@ -1,9 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import authStore from './stores/authStore';
+import backendHealthStore from './stores/backendHealthStore';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import BackendDownPage from './components/BackendDownPage';
 
 
 const Login = lazy(() => import('./pages/Login'));
@@ -55,6 +57,22 @@ const AdminRoute = observer(({ children }) => {
   return children;
 });
 
+const BackendHealthGuard = observer(({ children }) => {
+  const location = useLocation();
+  const isLanding = location.pathname === '/' || location.pathname === '';
+
+  useEffect(() => {
+    backendHealthStore.startPolling();
+    return () => backendHealthStore.stopPolling();
+  }, []);
+
+  if (!backendHealthStore.isHealthy && !isLanding) {
+    return <BackendDownPage />;
+  }
+
+  return children;
+});
+
 function App() {
   return (
     <ErrorBoundary>
@@ -64,6 +82,7 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
+        <BackendHealthGuard>
         <Suspense
           fallback={
             <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
@@ -117,6 +136,7 @@ function App() {
             </Route>
           </Routes>
         </Suspense>
+        </BackendHealthGuard>
       </Router>
     </ErrorBoundary>
   );

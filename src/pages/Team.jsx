@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import api from '../utils/api';
+import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon } from '../components/Icons';
 
@@ -11,9 +12,42 @@ const Team = () => {
   const [teamError, setTeamError] = useState(null);
   const [teamName, setTeamName] = useState('');
   const [teamNameError, setTeamNameError] = useState(false);
+  const [createError, setCreateError] = useState(null);
   const [teamCode, setTeamCode] = useState(['', '', '', '', '', '']);
   const codeInputRefs = useRef([]);
   const [logs, setLogs] = useState([]);
+  const [teamCodeCopied, setTeamCodeCopied] = useState(false);
+  const [activeInviteSlot, setActiveInviteSlot] = useState(null);
+  const [inviteUserCode, setInviteUserCode] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [invitePreview, setInvitePreview] = useState(null);
+  const [invitePreviewLoading, setInvitePreviewLoading] = useState(false);
+  const [confirmKickUserCode, setConfirmKickUserCode] = useState(null);
+
+  const isOnline = (lastActivityAt) => {
+    if (!lastActivityAt) return false;
+    const diff = (Date.now() - new Date(lastActivityAt).getTime()) / 1000;
+    return diff < 120; // онлайн, если активность была менее 2 минут назад
+  };
+
+  const SPECIALTIES = [
+    { value: 'fullstack', label: 'Фулстек' },
+    { value: 'frontend', label: 'Фронтенд' },
+    { value: 'backend', label: 'Бекенд' },
+    { value: 'design', label: 'Дизайн' },
+    { value: 'mobile', label: 'Мобильный' },
+    { value: 'devops', label: 'Девопс' }
+  ];
+
+  const handleSpecialtyChange = async (specialty) => {
+    try {
+      await api.put('/teams/me/specialty', { specialty });
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
+    } catch (error) {
+      setTeamError(error.response?.data?.error || 'Ошибка обновления');
+    }
+  };
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -32,6 +66,15 @@ const Team = () => {
       }
     };
     fetchTeam();
+    const interval = setInterval(() => {
+      api.get('/teams/me').then((res) => {
+        if (res.data?.team) {
+          setTeam(res.data.team);
+          if (res.data.team) generateLogs(res.data.team);
+        }
+      }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const generateLogs = (teamData) => {
@@ -144,6 +187,68 @@ const Team = () => {
     }
   };
 
+  const handleInviteByUserCode = async (e) => {
+    e.preventDefault();
+    const code = inviteUserCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 6) {
+      setInviteError('Введите 6-значный код (буквы и цифры)');
+      return;
+    }
+    setInviteError('');
+    try {
+      await api.post('/teams/invite', { user_code: code });
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
+      setActiveInviteSlot(null);
+      setInviteUserCode('');
+      setInvitePreview(null);
+      generateLogs(teamResponse.data.team);
+    } catch (error) {
+      setInviteError(error.response?.data?.error || 'Ошибка приглашения');
+    }
+  };
+
+  const fetchInvitePreview = async () => {
+    const code = inviteUserCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 6) return;
+    setInviteError('');
+    setInvitePreview(null);
+    setInvitePreviewLoading(true);
+    try {
+      const res = await api.get(`/teams/preview-invite/${code}`);
+      setInvitePreview(res.data.user);
+    } catch (error) {
+      setInvitePreview(null);
+      setInviteError(error.response?.data?.error || 'Пользователь не найден');
+    } finally {
+      setInvitePreviewLoading(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!confirm('Вы уверены, что хотите выйти из команды?')) return;
+    try {
+      await api.post('/teams/leave');
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
+      setTeamError(null);
+    } catch (error) {
+      setTeamError(error.response?.data?.error || 'Ошибка выхода');
+    }
+  };
+
+  const handleKick = async (userCode) => {
+    try {
+      await api.post('/teams/kick', { user_code: userCode });
+      setConfirmKickUserCode(null);
+      const teamResponse = await api.get('/teams/me');
+      setTeam(teamResponse.data.team);
+      generateLogs(teamResponse.data.team);
+    } catch (error) {
+      setTeamError(error.response?.data?.error || 'Ошибка удаления');
+    }
+  };
+
   const handleCreate = async () => {
     const trimmedName = teamName.trim();
     if (!trimmedName) {
@@ -151,15 +256,18 @@ const Team = () => {
       return;
     }
     setTeamNameError(false);
+    setCreateError(null);
     try {
       await api.post('/teams/create', { name: trimmedName });
       const teamResponse = await api.get('/teams/me');
       setTeam(teamResponse.data.team);
       setTeamName('');
       setTeamError(null);
+      setCreateError(null);
       generateLogs(teamResponse.data.team);
     } catch (error) {
-      setTeamError(error.response?.data?.error || 'Ошибка создания команды');
+      const msg = error.response?.data?.error || 'Ошибка создания команды';
+      setCreateError(msg);
     }
   };
 
@@ -200,72 +308,216 @@ const Team = () => {
         </div>
       ) : team ? (
         <>
+          <h2 className="team-section-title">
+            Текущий состав [{currentMembers.length}/{maxMembers}]
+          </h2>
+          <div className="team-main-row">
           <div className="team-members-section">
-            <h2>
-              Текущий состав [{currentMembers.length}/{maxMembers}]
-            </h2>
             <div className="team-members-grid">
-              {currentMembers.map((member) => (
-                <div key={member.id} className="team-member-card">
-                  <div className="team-member-avatar">
-                    {member.photo_url ? (
-                      <img src={member.photo_url} alt={member.username} />
-                    ) : (
-                      <div className="team-member-avatar-placeholder">
-                        {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
+              {currentMembers.map((member) => {
+                const captain = currentMembers.find(m => m.role === 'captain');
+                const amCaptain = captain && authStore.user?.id === captain.id;
+                const isMe = authStore.user?.id === member.id;
+                const canKick = amCaptain && !isMe && member.role !== 'captain';
+                return (
+                  <div key={member.id} className="team-member-card">
+                    <div className="team-member-avatar-wrapper">
+                      <div className="team-member-avatar">
+                        {member.photo_url ? (
+                          <img src={member.photo_url} alt={member.username} />
+                        ) : (
+                          <div className="team-member-avatar-placeholder">
+                            {(member.first_name?.[0] || member.username?.[0] || 'U').toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="team-member-status"></div>
+                      {isOnline(member.last_activity_at) && <span className="team-member-status" title="Онлайн" />}
+                    </div>
+                    <div className="team-member-name">
+                      {member.first_name && member.last_name
+                        ? `${member.first_name} ${member.last_name}`
+                        : member.username || 'Участник'}
+                    </div>
+                    <div className="team-member-handle">
+                      {member.vk_id ? (
+                        <a href={`https://vk.com/id${member.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">
+                          vk.com/id{member.vk_id}
+                        </a>
+                      ) : (
+                        <>@{member.username || 'user'}</>
+                      )}
+                    </div>
+                    <div className="team-member-roles">
+                      {member.role === 'captain' && (
+                        <span className="team-role-badge">Капитан</span>
+                      )}
+                      {isMe ? (
+                        <select
+                          className="team-specialty-select"
+                          value={member.specialty || 'fullstack'}
+                          onChange={(e) => handleSpecialtyChange(e.target.value)}
+                        >
+                          {SPECIALTIES.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="team-role-badge">
+                          {SPECIALTIES.find(s => s.value === (member.specialty || 'fullstack'))?.label || 'Фулстек'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="team-member-actions">
+                      {isMe && (
+                        <button type="button" className="team-member-leave-btn" onClick={handleLeave}>
+                          Выйти
+                        </button>
+                      )}
+                      {canKick && confirmKickUserCode === member.user_code ? (
+                        <div className="team-member-kick-confirm">
+                          <span className="team-member-kick-confirm-text">Удалить?</span>
+                          <button type="button" className="team-member-kick-btn" onClick={() => handleKick(member.user_code)}>
+                            Да
+                          </button>
+                          <button type="button" className="team-member-leave-btn" onClick={() => setConfirmKickUserCode(null)}>
+                            Отмена
+                          </button>
+                        </div>
+                      ) : canKick && (
+                        <button type="button" className="team-member-kick-btn" onClick={() => setConfirmKickUserCode(member.user_code)}>
+                          Удалить
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="team-member-name">
-                    {member.first_name && member.last_name
-                      ? `${member.first_name} ${member.last_name}`
-                      : member.username || 'Участник'}
-                  </div>
-                  <div className="team-member-handle">
-                    {member.vk_id ? (
-                      <a href={`https://vk.com/id${member.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">
-                        vk.com/id{member.vk_id}
-                      </a>
+                );
+              })}
+              {emptySlots.map((_, idx) => {
+                const captain = currentMembers.find(m => m.role === 'captain');
+                const amCaptain = captain && authStore.user?.id === captain.id;
+                const isEditing = activeInviteSlot === idx;
+                return (
+                  <div
+                    key={`empty-${idx}`}
+                    className="team-member-card team-member-empty"
+                    onClick={amCaptain && !isEditing ? () => setActiveInviteSlot(idx) : undefined}
+                    style={amCaptain && !isEditing ? { cursor: 'pointer' } : {}}
+                  >
+                    {isEditing ? (
+                      <>
+                        <div
+                          className="team-invite-inline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {!invitePreview ? (
+                            <>
+                            <label className="team-invite-label">Код из профиля (6 символов)</label>
+                            <div className="team-invite-input-block">
+                              <input
+                                type="text"
+                                maxLength={6}
+                                placeholder="ABC123"
+                                value={inviteUserCode}
+                                onChange={(e) => { setInviteUserCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')); setInviteError(''); setInvitePreview(null); }}
+                                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), fetchInvitePreview())}
+                                  className="team-invite-inline-input"
+                                  autoFocus
+                                  disabled={invitePreviewLoading}
+                                />
+                                <button
+                                  type="button"
+                                  className="team-invite-find-btn"
+                                  onClick={fetchInvitePreview}
+                                  disabled={invitePreviewLoading || inviteUserCode.length !== 6}
+                                >
+                                  {invitePreviewLoading ? '...' : 'Найти'}
+                                </button>
+                              </div>
+                              {inviteError && <div className="team-invite-error">{inviteError}</div>}
+                            </>
+                          ) : (
+                            <>
+                              <div className="team-invite-preview">
+                                <div className="team-invite-preview-avatar">
+                                  {invitePreview.photo_url ? (
+                                    <img src={invitePreview.photo_url} alt="" />
+                                  ) : (
+                                    <span>{(invitePreview.first_name?.[0] || invitePreview.username?.[0] || 'U').toUpperCase()}</span>
+                                  )}
+                                </div>
+                                <div className="team-invite-preview-name">
+                                  {invitePreview.first_name && invitePreview.last_name
+                                    ? `${invitePreview.first_name} ${invitePreview.last_name}`
+                                    : invitePreview.username || `ID ${invitePreview.id}`}
+                                </div>
+                                <div className="team-invite-preview-handle">
+                                  @{invitePreview.username || `user${invitePreview.id}`}
+                                </div>
+                              </div>
+                              {inviteError && <div className="team-invite-error">{inviteError}</div>}
+                              <div className="team-invite-inline-actions">
+                                <button
+                                  type="button"
+                                  className="team-invite-add-btn"
+                                  onClick={(e) => { e.preventDefault(); handleInviteByUserCode(e); }}
+                                >
+                                  Добавить
+                                </button>
+                                <button
+                                  type="button"
+                                  className="team-invite-back-btn"
+                                  onClick={() => { setInvitePreview(null); setInviteError(''); }}
+                                >
+                                  Назад
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="team-invite-close-btn"
+                          onClick={(e) => { e.stopPropagation(); setActiveInviteSlot(null); setInviteUserCode(''); setInvitePreview(null); setInviteError(''); }}
+                          title="Отмена"
+                        >
+                          ×
+                        </button>
+                      </>
                     ) : (
-                      <>@{member.username || 'user'}</>
+                      <>
+                        <div className="team-member-empty-icon">
+                          <PlusIcon size={32} />
+                        </div>
+                        <div className="team-member-empty-title">Свободный слот</div>
+                      </>
                     )}
                   </div>
-                  <div className="team-member-roles">
-                    {member.role === 'captain' && (
-                      <span className="team-role-badge">TEAM LEAD</span>
-                    )}
-                    <span className="team-role-badge">FULL STACK</span>
-                  </div>
-                </div>
-              ))}
-              {emptySlots.map((_, idx) => (
-                <div key={`empty-${idx}`} className="team-member-card team-member-empty">
-                  <div className="team-member-empty-icon">
-                    <PlusIcon size={32} />
-                  </div>
-                  <div className="team-member-empty-title">Open Slot</div>
-                  <div className="team-member-empty-desc">
-                    Пригласите участника или оставьте для автоподбора.
-                  </div>
-                  <button className="team-invite-btn">ПРИГЛАСИТЬ</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
+          </div>
+          {team.code && (
+            <div className="team-code-section team-code-sidebar">
+              <label>КОД КОМАНДЫ</label>
+              <div className="team-code-display">
+                <span className="team-code-value">{team.code}</span>
+                <button
+                  type="button"
+                  className="team-code-copy"
+                  onClick={() => {
+                    navigator.clipboard.writeText(team.code);
+                    setTeamCodeCopied(true);
+                    setTimeout(() => setTeamCodeCopied(false), 2000);
+                  }}
+                >
+                  {teamCodeCopied ? 'Скопировано' : 'Копировать'}
+                </button>
+              </div>
+              <small>Скиньте код участнику</small>
+            </div>
+          )}
           </div>
 
-          <div className="team-logs">
-            <h3>SYSTEM_LOGS</h3>
-            <div className="team-logs-list">
-              {logs.map((log, idx) => (
-                <div key={idx} className="team-log-entry">
-                  <span className="team-log-time">{log.time}</span>
-                  <span className={`team-log-level team-log-${log.level.toLowerCase()}`}>{log.level}</span>
-                  <span className="team-log-message">{log.message}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </>
       ) : (
         <>
@@ -274,24 +526,33 @@ const Team = () => {
               <div className="team-action-icon">
                 <FolderPlusIcon size={32} />
               </div>
-              <h3>Initialize New Team</h3>
-              <p>Start a fresh repository for your squad. You'll be assigned as the Team Lead automatically.</p>
-              <div className="team-input-group">
-                <label>TEAM NAME</label>
-                <input
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => {
-                    setTeamName(e.target.value);
-                    setTeamNameError(false);
-                  }}
-                  placeholder="e.g. NullPointers"
-                  className={teamNameError ? 'error' : ''}
-                />
+              <h3>Создать новую команду</h3>
+              <p>Внимание! Нецензурные названия команд будут удалены. Название команды должно быть уникальным. </p>
+              <div className="team-input-group team-input-group-create">
+                <label>НАЗВАНИЕ КОМАНДЫ</label>
+                <div className="team-input-wrapper">
+                  <input
+                    type="text"
+                    value={teamName}
+                    onChange={(e) => {
+                      setTeamName(e.target.value);
+                      setTeamNameError(false);
+                      setCreateError(null);
+                    }}
+                    placeholder="например DROP_DATABASE"
+                    className={teamNameError || createError ? 'error' : ''}
+                    title={createError || undefined}
+                  />
+                  {createError && (
+                    <div className="team-input-tooltip" role="alert">
+                      {createError}
+                    </div>
+                  )}
+                </div>
               </div>
               <button onClick={handleCreate} className="team-primary-btn">
                 <FolderPlusIcon size={16} />
-                Create_Team()
+                Создать команду
               </button>
             </div>
 
@@ -299,10 +560,10 @@ const Team = () => {
               <div className="team-action-icon">
                 <LinkIcon size={32} />
               </div>
-              <h3>Join Existing Team</h3>
-              <p>Enter the unique 6-digit hash key provided by your team lead to join the roster.</p>
+              <h3>Присоединиться к команде</h3>
+              <p>Введите 6-значный код команды, который дал вам капитан, чтобы присоединиться к составу.</p>
               <div className="team-input-group">
-                <label>ENTER ACCESS CODE</label>
+                <label>ВВЕДИТЕ КОД КОМАНДЫ</label>
                 <div className="team-code-inputs">
                   {teamCode.map((char, index) => (
                     <input
@@ -321,16 +582,13 @@ const Team = () => {
               </div>
               <button onClick={handleJoin} className="team-secondary-btn">
                 <LinkIcon size={16} />
-                Connect_To_Squad
+                Подключиться
               </button>
-              <div className="team-status-badge">
-                <span>STATUS:</span>
-                <span className="team-status-value">READY_TO_DEPLOY</span>
-              </div>
+
             </div>
           </div>
 
-          {teamError && (
+          {teamError && !createError && (
             <div className="team-error">
               <strong>Ошибка</strong>
               <span>{teamError}</span>
