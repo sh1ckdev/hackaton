@@ -146,13 +146,12 @@ const Login = () => {
     }
   }, [captchaToken, location.search, turnstileSiteKey, processedToken, loginPending]);
 
+  const [showTgWidget, setShowTgWidget] = useState(false);
+
   // Колбэк от Telegram Widget
   useEffect(() => {
     window.onTelegramAuth = async (telegramUser) => {
-      if (!participantCategory) {
-        setError('Выберите категорию участника: студент или школьник.');
-        return;
-      }
+      setShowTgWidget(false);
       setLoginPending(true);
       setError(null);
       try {
@@ -171,9 +170,9 @@ const Login = () => {
     return () => { delete window.onTelegramAuth; };
   }, [participantCategory, captchaToken, navigate]);
 
-  // Вставляем скрытый Telegram Login Widget
+  // Вставляем виджет когда попап открыт
   useEffect(() => {
-    if (!botUsername || !widgetRef.current) return;
+    if (!showTgWidget || !botUsername || !widgetRef.current) return;
     widgetRef.current.innerHTML = '';
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -183,16 +182,15 @@ const Login = () => {
     script.setAttribute('data-request-access', 'write');
     script.async = true;
     widgetRef.current.appendChild(script);
-  }, [botUsername]);
+  }, [showTgWidget, botUsername]);
 
   const handleTelegramClick = () => {
     if (!participantCategory) {
       setError('Выберите категорию: студент или школьник.');
       return;
     }
-    // Кликаем по реальной кнопке виджета внутри скрытого контейнера
-    const btn = widgetRef.current?.querySelector('a, button, iframe');
-    if (btn) btn.click();
+    setError(null);
+    setShowTgWidget(true);
   };
 
   const handleVkRedirect = () => {
@@ -307,23 +305,27 @@ const Login = () => {
               </div>
             ) : (
               <div className="login-auth-buttons">
-                {/* Наша кнопка Telegram с виджетом поверх неё (opacity:0) */}
-                <div className="login-telegram-wrap" style={{ opacity: participantCategory ? 1 : 0.45 }}>
-                  <button className="login-telegram-button" disabled={!participantCategory} tabIndex={-1} aria-hidden="true">
-                    <TelegramIcon />
-                    <span>Войти через Telegram</span>
-                  </button>
-                  <div
-                    ref={widgetRef}
-                    className="login-telegram-widget-overlay"
-                    style={{ pointerEvents: participantCategory ? 'auto' : 'none' }}
-                  />
-                </div>
+                <button onClick={handleTelegramClick} className="login-telegram-button" disabled={!participantCategory}>
+                  <TelegramIcon />
+                  <span>Войти через Telegram</span>
+                </button>
 
                 <button onClick={handleVkRedirect} className="login-vk-button" disabled={!participantCategory}>
                   <VkIcon size={22} />
                   <span>Войти через VK ID</span>
                 </button>
+              </div>
+            )}
+
+            {/* Попап с виджетом Telegram — появляется после клика */}
+            {showTgWidget && (
+              <div className="login-tg-popup-overlay" onClick={() => setShowTgWidget(false)}>
+                <div className="login-tg-popup" onClick={e => e.stopPropagation()}>
+                  <div className="login-tg-popup-title">Войдите через Telegram</div>
+                  <div className="login-tg-popup-sub">Нажмите кнопку ниже для авторизации</div>
+                  <div ref={widgetRef} className="login-tg-popup-widget" />
+                  <button className="login-tg-popup-close" onClick={() => setShowTgWidget(false)}>Отмена</button>
+                </div>
               </div>
             )}
 

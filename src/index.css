@@ -2233,43 +2233,72 @@ code {
   min-width: fit-content;
 }
 
-/* Обёртка: наша кнопка + виджет Telegram поверх */
-.login-telegram-wrap {
-  position: relative;
-  flex: 1;
-  min-width: fit-content;
-  display: flex;
-  transition: opacity 0.2s;
-}
-
-.login-telegram-wrap .login-telegram-button {
-  width: 100%;
-  pointer-events: none;
-}
-
-/* Виджет Telegram растягивается поверх нашей кнопки */
-.login-telegram-widget-overlay {
-  position: absolute;
+/* Попап с Telegram Login Widget */
+.login-tg-popup-overlay {
+  position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  border-radius: 10px;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
 }
 
-/* Сам iframe виджета растягиваем и делаем прозрачным */
-.login-telegram-widget-overlay iframe,
-.login-telegram-widget-overlay > * {
-  opacity: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
-  border: none !important;
-  position: absolute !important;
-  inset: 0 !important;
-  cursor: pointer !important;
+.login-tg-popup {
+  background: #0f1923;
+  border: 1px solid rgba(46, 165, 255, 0.2);
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 280px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(46, 165, 255, 0.08);
+  animation: slideUp 0.2s ease;
+}
+
+.login-tg-popup-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #e8f4fd;
+}
+
+.login-tg-popup-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+}
+
+.login-tg-popup-widget {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.login-tg-popup-close {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.45);
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+
+.login-tg-popup-close:hover {
+  border-color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.7);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .login-telegram-button,
