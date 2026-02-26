@@ -219,7 +219,7 @@ const Landing = () => {
                   <div className="landing-timer-blocks">
                     {/* До начала — ДНИ ЧАС МИН СЕК */}
                     {[
-                      { key: 'days',    label: 'ДНИ', val: countdown.days },
+                      { key: 'days',    label: 'ДНЕЙ', val: countdown.days },
                       { key: 'hours',   label: 'ЧАС', val: countdown.hours },
                       { key: 'minutes', label: 'МИН', val: countdown.minutes },
                       { key: 'seconds', label: 'СЕК', val: countdown.seconds },
