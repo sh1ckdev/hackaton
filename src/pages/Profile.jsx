@@ -4,12 +4,9 @@ import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { EditIcon, RefreshIcon } from '../components/Icons';
 import api from '../utils/api';
-import SupportChat from '../components/SupportChat';
-
 const Profile = () => {
   const user = authStore.user;
   useDocumentTitle('Профиль');
-  const [showSupport, setShowSupport] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
   const [skillsList, setSkillsList] = useState([]);
   const [newLangName, setNewLangName] = useState('');
@@ -298,26 +295,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Кнопка поддержки — фиксированная, правый нижний угол */}
-      <button
-        className={`support-fab${showSupport ? ' support-fab-active' : ''}`}
-        onClick={() => setShowSupport(prev => !prev)}
-        aria-label="Поддержка"
-        title="Поддержка"
-      >
-        {showSupport ? (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        ) : (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-          </svg>
-        )}
-        <span className="support-fab-label">Поддержка</span>
-      </button>
-
-      {showSupport && <SupportChat onClose={() => setShowSupport(false)} />}
     </div>
   );
 };

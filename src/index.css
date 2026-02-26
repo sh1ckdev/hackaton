@@ -4491,9 +4491,9 @@ code {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 20px 0 16px;
-  height: 48px;
-  border-radius: 24px;
+  padding: 0 18px 0 14px;
+  height: 44px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
   border: none;

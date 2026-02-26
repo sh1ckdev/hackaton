@@ -156,13 +156,21 @@ const AdminPanel = () => {
   const CHART_COLORS = ['#60a5fa', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   const exportToCSV = (data, filename, columns) => {
-    const headers = columns.map(c => c.label || c.key).join(',');
-    const rows = data.map(row => columns.map(c => {
-      const v = row[c.key];
-      return typeof v === 'string' && (v.includes(',') || v.includes('"')) ? `"${v.replace(/"/g, '""')}"` : v;
-    }).join(','));
-    const csv = [headers, ...rows].join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    // Оборачиваем каждое значение в кавычки — Excel/LibreOffice читает правильно
+    const escape = (v) => {
+      if (v === null || v === undefined) return '""';
+      const str = String(v).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+    // Разделитель ; — стандарт для Excel в русской локали
+    const sep = ';';
+    const headers = columns.map(c => escape(c.label || c.key)).join(sep);
+    const rows = data.map(row =>
+      columns.map(c => escape(row[c.key])).join(sep)
+    );
+    // BOM + заголовок + строки
+    const csv = '\ufeff' + [headers, ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
