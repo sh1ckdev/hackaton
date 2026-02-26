@@ -267,6 +267,19 @@ code {
   align-items: center;
 }
 
+.landing-hero-logo {
+  width: min(1000px, 95vw);
+  height: auto;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 600px) {
+  .landing-hero-logo {
+    width: 98vw;
+    margin-bottom: 28px;
+  }
+}
+
 .landing-hero-left h1 {
   font-size: clamp(40px, 6vw, 64px);
   line-height: 1;
@@ -586,7 +599,8 @@ code {
   border-radius: 8px;
   padding: 8px 12px;
   background: #3b82f6;
-  white-space: nowrap;
+  white-space: nowrap; /* на десктопе nowrap, на мобиле переопределяется */
+  word-break: break-word;
 }
 
 .landing-timeline-date-active {
@@ -2585,41 +2599,63 @@ code {
     max-width: 100%;
   }
 
+  /* ── Таймлайн мобиль: вертикальная лента слева ── */
   .landing-timeline-list {
     max-width: 100%;
     padding: 20px 0;
+    gap: 36px;
   }
 
+  /* Вертикальная линия — прижата к левому краю */
   .landing-timeline-list::before {
-    left: 20px;
+    left: 8px;
+    transform: none;
   }
 
+  /* Каждый элемент — flex-колонка с отступом от линии */
   .landing-timeline-item {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    display: flex !important;
+    flex-direction: column;
+    grid-template-columns: none;
+    gap: 8px;
+    padding-left: 36px;
+    position: relative;
   }
 
+  /* Контент — всегда слева, text-align left */
   .landing-timeline-item-left .landing-timeline-content,
   .landing-timeline-item-right .landing-timeline-content {
-    grid-column: 1;
+    grid-column: unset;
     text-align: left;
     max-width: 100%;
-    justify-self: start;
-    padding-left: 48px;
+    justify-self: unset;
+    padding-left: 0;
+    order: 2;
   }
 
+  /* Дата — над контентом */
   .landing-timeline-item-left .landing-timeline-date,
   .landing-timeline-item-right .landing-timeline-date {
-    grid-column: 1;
-    justify-self: start;
-    margin-left: 48px;
+    grid-column: unset;
+    justify-self: unset;
+    margin-left: 0;
+    order: 1;
+    white-space: normal;  /* перенос длинных дат */
+    word-break: break-word;
+    display: inline-block;
+    align-self: flex-start;
   }
 
+  /* Точка — абсолютно, по центру линии */
   .landing-timeline-node {
     position: absolute;
-    left: 20px;
-    top: 8px;
-    grid-column: 1;
+    left: 0px;
+    top: 50%;
+    transform: translateY(-50%);
+    grid-column: unset;
+    justify-self: unset;
+    margin: 0;
+    flex-shrink: 0;
   }
 
   .app-content-inner {
@@ -4562,6 +4598,24 @@ code {
   background: rgba(46, 165, 255, 0.06);
   border-bottom: 1px solid rgba(46, 165, 255, 0.12);
   flex-shrink: 0;
+  gap: 8px;
+}
+
+/* Стрелка назад — скрыта на десктопе */
+.support-chat-back {
+  display: none;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.support-chat-back:hover {
+  color: #fff;
 }
 
 .support-chat-header-info {
@@ -4781,20 +4835,6 @@ code {
 .support-chat-send:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-}
-
-@media (max-width: 480px) {
-  .support-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-
-  .support-chat {
-    width: 100%;
-    max-width: 100%;
-    height: 70vh;
-    border-radius: 16px 16px 0 0;
-  }
 }
 
 .profile-stats {
@@ -5723,32 +5763,6 @@ code {
     text-align: center;
   }
 
-  /* Таймлайн — линейный вид */
-  .landing-timeline-list {
-    padding-left: 20px;
-  }
-
-  .landing-timeline-item {
-    display: block !important;
-    padding-left: 20px !important;
-    padding-right: 0 !important;
-    text-align: left !important;
-    margin-bottom: 24px;
-  }
-
-  .landing-timeline-item-left,
-  .landing-timeline-item-right {
-    text-align: left;
-  }
-
-  .landing-timeline-node {
-    left: -20px !important;
-    right: auto !important;
-  }
-
-  .landing-timeline-date {
-    font-size: 12px;
-  }
 }
 
 /* ============================================================
@@ -5834,16 +5848,233 @@ code {
 /* ============================================================
    АДАПТИВ: ПОДДЕРЖКА
    ============================================================ */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  /* Полноэкранный мессенджер на мобиле */
   .support-overlay {
     padding: 0;
-    align-items: flex-end;
+    align-items: stretch;
+    justify-content: stretch;
+    background: rgba(0, 0, 0, 0.85);
   }
 
   .support-chat {
     width: 100%;
     max-width: 100%;
-    height: 75vh;
-    border-radius: 16px 16px 0 0;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+    animation: fadeIn 0.18s ease;
   }
+
+  /* Шапка — нотч/статус-бар */
+  .support-chat-header {
+    padding-top: max(16px, env(safe-area-inset-top, 16px));
+  }
+
+  /* Показываем стрелку назад, скрываем крестик */
+  .support-chat-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .support-chat-close {
+    display: none;
+  }
+
+  /* Пузырьки на всю ширину */
+  .support-msg-bubble {
+    max-width: 88%;
+  }
+
+  /* Поле ввода */
+  .support-chat-footer {
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+
+  .support-chat-input {
+    font-size: 16px; /* предотвращает zoom на iOS */
+  }
+
+  /* FAB скрываем когда чат открыт */
+  .support-fab-hidden {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   404 PAGE
+   ============================================================ */
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.not-found-terminal {
+  width: min(640px, 100%);
+  background: rgba(10, 17, 32, 0.92);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(59, 130, 246, 0.12), 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.not-found-terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.not-found-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.not-found-dot-red    { background: #ef4444; }
+.not-found-dot-yellow { background: #eab308; }
+.not-found-dot-green  { background: #22c55e; }
+
+.not-found-terminal-title {
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.5);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.not-found-terminal-body {
+  padding: 28px 32px 36px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.not-found-line {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.not-found-prompt {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.not-found-cmd {
+  color: #e2e8f0;
+}
+
+.not-found-cursor {
+  display: inline-block;
+  width: 9px;
+  height: 16px;
+  background: #60a5fa;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.not-found-response {
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.not-found-status-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.not-found-code {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.not-found-message {
+  font-size: 15px;
+  color: rgba(248, 113, 113, 0.7);
+}
+
+.not-found-detail {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.65);
+  line-height: 1.6;
+}
+
+.not-found-path {
+  color: #60a5fa;
+}
+
+.not-found-big {
+  font-size: clamp(72px, 20vw, 120px);
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(96, 165, 250, 0.2);
+  text-align: center;
+  line-height: 1;
+  margin: 8px 0 28px;
+  letter-spacing: -4px;
+  user-select: none;
+}
+
+.not-found-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.not-found-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  border: none;
+}
+
+.not-found-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+}
+
+.not-found-btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+}
+
+.not-found-btn-secondary {
+  background: transparent;
+  color: rgba(148, 163, 184, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.not-found-btn-secondary:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
 }

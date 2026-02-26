@@ -80,6 +80,12 @@ const SupportChat = ({ onClose }) => {
     <div className="support-overlay" onClick={onClose}>
       <div className="support-chat" onClick={e => e.stopPropagation()}>
         <div className="support-chat-header">
+          {/* Стрелка назад (видна только на мобиле через CSS) */}
+          <button className="support-chat-back" onClick={onClose} aria-label="Назад">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+          </button>
           <div className="support-chat-header-info">
             <div className="support-chat-avatar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -136,13 +142,15 @@ const SupportChat = ({ onClose }) => {
         <div className="support-chat-footer">
           <textarea
             className="support-chat-input"
-            placeholder="Напишите сообщение... (Enter — отправить)"
+            placeholder="Напишите сообщение..."
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKey}
             rows={2}
             maxLength={2000}
             disabled={sending}
+            inputMode="text"
+            enterKeyHint="send"
           />
           <button
             className="support-chat-send"

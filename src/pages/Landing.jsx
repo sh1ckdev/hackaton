@@ -147,15 +147,10 @@ const Landing = () => {
               alignItems: 'center'
             }}
           >
-            {/* ЛОГО БОЛЬШЕ 640px */}
             <img
               src={codeSprintLogo}
               alt="Code Sprint Logo"
-              style={{
-                width: 'min(1000px, 95vw)',
-                height: 'auto',
-                marginBottom: '40px'
-              }}
+              className="landing-hero-logo"
             />
 
             {/* КНОПКИ */}

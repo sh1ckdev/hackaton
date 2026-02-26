@@ -17,6 +17,7 @@ const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Team = lazy(() => import('./pages/Team'));
 const Info = lazy(() => import('./pages/Info'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
@@ -130,6 +131,7 @@ function App() {
                 }
               />
             </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
         </BackendHealthGuard>
