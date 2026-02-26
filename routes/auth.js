@@ -198,69 +198,108 @@ router.post('/bot', async (req, res) => {
 });
 
 
-// VK ID OAuth
+// VK ID OAuth 2.1 (id.vk.ru) — для приложений, созданных в VK ID
+
+const vkPkceStore = new Map(); // state -> { code_verifier, expires }
+const VK_PKCE_TTL_MS = 10 * 60 * 1000;
+
+const generateCodeVerifier = () => crypto.randomBytes(32).toString('base64url');
+const generateCodeChallenge = (verifier) =>
+  crypto.createHash('sha256').update(verifier).digest('base64url');
+const generateState = () => crypto.randomBytes(24).toString('base64url');
+
 const getVkAuthUrl = () => {
   const clientId = process.env.VK_APP_ID;
-  const clientSecret = process.env.VK_APP_SECRET;
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  if (!clientId || !clientSecret) return null;
+  if (!clientId) return null;
   const redirectUri = `${clientUrl}/auth/vk/callback`;
-  const scope = '0'; // минимальные права: id, имя, фото
-  const v = '5.199';
-  return `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&display=page&v=${v}`;
+  const scope = 'vkid.personal_info'; // минимальные права
+  const state = generateState();
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = generateCodeChallenge(codeVerifier);
+  vkPkceStore.set(state, {
+    code_verifier: codeVerifier,
+    expires: Date.now() + VK_PKCE_TTL_MS
+  });
+  return {
+    url: `https://id.vk.ru/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`,
+    state
+  };
 };
 
-router.get('/vk', (req, res) => {
-  const url = getVkAuthUrl();
-  if (!url) {
-    return res.status(503).json({ error: 'VK OAuth не настроен (VK_APP_ID, VK_APP_SECRET)' });
+// Очистка устаревших записей
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of vkPkceStore.entries()) {
+    if (v.expires < now) vkPkceStore.delete(k);
   }
-  res.redirect(url);
+}, 60 * 1000);
+
+router.get('/vk', (req, res) => {
+  const data = getVkAuthUrl();
+  if (!data) {
+    return res.status(503).json({ error: 'VK ID не настроен (VK_APP_ID)' });
+  }
+  res.redirect(data.url);
 });
 
 router.post('/vk', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, state, device_id } = req.body;
     const clientId = process.env.VK_APP_ID;
-    const clientSecret = process.env.VK_APP_SECRET;
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const redirectUri = `${clientUrl}/auth/vk/callback`;
 
-    if (!clientId || !clientSecret) {
-      return res.status(503).json({ error: 'VK OAuth не настроен' });
+    if (!clientId) {
+      return res.status(503).json({ error: 'VK ID не настроен' });
     }
-    if (!code) {
-      return res.status(400).json({ error: 'Код авторизации отсутствует' });
+    if (!code || !state) {
+      return res.status(400).json({ error: 'Код и state отсутствуют' });
     }
 
-    const tokenRes = await fetch(
-      `https://oauth.vk.com/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${encodeURIComponent(code)}`,
-      { method: 'GET' }
-    );
+    const stored = vkPkceStore.get(state);
+    if (!stored || stored.expires < Date.now()) {
+      vkPkceStore.delete(state);
+      return res.status(400).json({ error: 'Сессия авторизации истекла, повторите вход' });
+    }
+    const { code_verifier } = stored;
+    vkPkceStore.delete(state);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      grant_type: 'authorization_code',
+      code,
+      code_verifier,
+      redirect_uri: redirectUri,
+      state
+    });
+    if (device_id) params.set('device_id', device_id);
+
+    const tokenRes = await fetch('https://id.vk.ru/oauth2/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
     const tokenData = await tokenRes.json();
 
-    if (tokenData.error) {
-      logError('VK OAuth token error', null, { vkError: tokenData });
-      return res.status(400).json({ error: tokenData.error_description || 'Ошибка VK авторизации' });
+    if (tokenData.error || !tokenData.access_token) {
+      logError('VK ID token error', null, { vkError: tokenData });
+      return res.status(400).json({ error: tokenData.error_description || 'Ошибка VK ID авторизации' });
     }
 
     const { access_token: accessToken, user_id: vkUserId } = tokenData;
 
-    const userRes = await fetch(
-      `https://api.vk.com/method/users.get?user_ids=${vkUserId}&fields=photo_100,photo_200&access_token=${accessToken}&v=5.199`,
-      { method: 'GET' }
-    );
-    const userData = await userRes.json();
+    const userInfoRes = await fetch('https://id.vk.ru/oauth2/user_info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ access_token: accessToken, client_id: clientId })
+    });
+    const userInfoData = await userInfoRes.json();
 
-    if (userData.error || !userData.response?.[0]) {
-      logError('VK API users.get error', null, { vkError: userData });
-      return res.status(500).json({ error: 'Не удалось получить данные пользователя VK' });
-    }
-
-    const vkUser = userData.response[0];
-    const firstName = vkUser.first_name || '';
-    const lastName = vkUser.last_name || '';
-    const photoUrl = vkUser.photo_200 || vkUser.photo_100 || null;
+    const vkUser = userInfoData?.user;
+    const firstName = vkUser?.first_name || '';
+    const lastName = vkUser?.last_name || '';
+    const photoUrl = vkUser?.avatar || null;
 
     let result = await pool.query(
       'SELECT * FROM users WHERE vk_id = $1',
