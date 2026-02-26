@@ -1,14 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import api from '../utils/api';
 
 const MySolutions = () => {
   useDocumentTitle('Мои решения');
+  const [team, setTeam] = useState(null);
   
   useEffect(() => {
     solutionsStore.fetchMySolutions();
+  }, []);
+
+  useEffect(() => {
+    let ok = true;
+    api.get('/teams/me').then((res) => {
+      if (ok) setTeam(res.data?.team || null);
+    }).catch(() => { if (ok) setTeam(null); });
+    return () => { ok = false; };
   }, []);
 
   const getStatusBadge = (status) => {
@@ -59,12 +69,24 @@ const MySolutions = () => {
       ) : solutionsStore.solutions.length === 0 ? (
         <div className="text-center py-12 glass rounded-lg">
           <p className="text-gray-400 mb-4">У вас пока нет отправленных решений</p>
-          <Link
-            to="/cases"
-            className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
-          >
-            Выбрать кейс
-          </Link>
+          {team?.assigned_case_id ? (
+            <Link
+              to={`/solutions/submit/${team.assigned_case_id}`}
+              className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-all rounded"
+            >
+              {team.assigned_case_title ? `Отправить решение: ${team.assigned_case_title}` : 'Отправить решение'}
+            </Link>
+          ) : (
+            <>
+              <p className="text-gray-500 text-sm mb-4">Кейс вашей команде ещё не назначен. Ожидайте распределения от организаторов.</p>
+              <Link
+                to="/cases"
+                className="inline-block px-6 py-3 bg-terminal-dark border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all rounded"
+              >
+                К кейсам
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

@@ -212,7 +212,8 @@ const Cases = () => {
       ) : assignedCaseId && !assignedCase && !authStore.isModerator ? (
         <div className="cases-empty">
           <CaseIcon size={44} />
-          <p>Кейс вашей команде еще не назначен</p>
+          <p>Не удалось загрузить назначенный кейс</p>
+          <p className="text-sm text-gray-500 mt-2">Попробуйте обновить страницу</p>
         </div>
       ) : visibleCases.length === 0 ? (
         <div className="cases-empty">
