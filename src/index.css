@@ -552,10 +552,10 @@ code {
 .landing-timeline-date {
   font-size: 12px;
   color: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.5);
   border-radius: 8px;
   padding: 8px 12px;
-  background: rgba(15, 23, 42, 0.7);
+  background: #3b82f6;
   white-space: nowrap;
 }
 
@@ -747,6 +747,12 @@ code {
   letter-spacing: 1px;
 }
 
+.app-brand-logo {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
 .app-brand-icon {
   width: 32px;
   height: 32px;
@@ -777,12 +783,12 @@ code {
 .app-nav-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 8px 14px;
   border-radius: 8px;
   text-decoration: none;
   color: rgba(148, 163, 184, 0.8);
-  font-size: 12px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -811,9 +817,9 @@ code {
   border: 1px solid rgba(148, 163, 184, 0.4);
   background: rgba(15, 23, 42, 0.8);
   color: rgba(248, 250, 252, 0.9);
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   cursor: pointer;
@@ -849,12 +855,12 @@ code {
 .app-user {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: #e2e8f0;
-  font-size: 12px;
+  font-size: 14px;
   text-decoration: none;
 }
 
@@ -862,17 +868,17 @@ code {
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: transparent;
   color: rgba(148, 163, 184, 0.8);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
 .app-login {
   color: #60a5fa;
   text-decoration: none;
-  font-size: 12px;
-  padding: 6px 10px;
+  font-size: 14px;
+  padding: 8px 12px;
   border: 1px solid rgba(96, 165, 250, 0.4);
   border-radius: 8px;
 }
@@ -1550,7 +1556,17 @@ code {
   gap: 14px;
 }
 
-.login-telegram-button {
+.login-auth-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-telegram-button,
+.login-vk-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1572,32 +1588,54 @@ code {
   white-space: nowrap;
 }
 
-.login-telegram-button:hover {
+.login-telegram-button:hover,
+.login-vk-button:hover {
   transform: translateY(-2px);
+}
+
+.login-telegram-button:hover {
   box-shadow: 0 8px 24px rgba(46, 165, 255, 0.5);
   background: #1d8fef;
 }
 
-.login-telegram-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(46, 165, 255, 0.3);
+.login-vk-button:hover {
+  box-shadow: 0 8px 24px rgba(39, 135, 245, 0.5);
+  background: #1a6fd4;
 }
 
-.login-telegram-button:disabled {
+.login-telegram-button:active,
+.login-vk-button:active {
+  transform: translateY(0);
+}
+
+.login-telegram-button:active { box-shadow: 0 2px 8px rgba(46, 165, 255, 0.3); }
+.login-vk-button:active { box-shadow: 0 2px 8px rgba(39, 135, 245, 0.3); }
+
+.login-telegram-button:disabled,
+.login-vk-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.login-telegram-button svg {
+.login-telegram-button svg,
+.login-vk-button svg {
   flex-shrink: 0;
-  stroke: #ffffff;
   width: 22px;
   height: 22px;
 }
 
-.login-telegram-button span {
+.login-telegram-button svg { stroke: #ffffff; }
+.login-vk-button svg { fill: #ffffff; }
+
+.login-telegram-button span,
+.login-vk-button span {
   display: inline-block;
+}
+
+.login-vk-button {
+  background: #2787f5;
+  box-shadow: 0 4px 12px rgba(39, 135, 245, 0.3);
 }
 
 .login-token-block {

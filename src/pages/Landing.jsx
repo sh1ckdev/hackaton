@@ -1,52 +1,54 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CaseIcon, TelegramIcon } from '../components/Icons';
 import AppHeader from '../components/AppHeader';
 import Logo from '../components/Logo';
 import api from '../utils/api';
+import codeSprintLogo from '../assets/codesprintlogo.svg';
 
 const Landing = () => {
   useDocumentTitle('Главная');
   const navigate = useNavigate();
-  const { t } = useTranslation();
+
   const [timeline, setTimeline] = useState([]);
-  const [prizes, setPrizes] = useState([]);
-  const [tracks, setTracks] = useState([]);
-  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [countdown, setCountdown] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
 
   useEffect(() => {
     fetchLandingData();
+  }, []);
+
+  useEffect(() => {
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timeline]);
 
   const fetchLandingData = async () => {
     try {
-      const [timelineRes, prizesRes, tracksRes] = await Promise.all([
-        api.get('/landing/timeline').catch(() => ({ data: { timeline: [] } })),
-        api.get('/landing/prizes').catch(() => ({ data: { prizes: [] } })),
-        api.get('/landing/tracks').catch(() => ({ data: { tracks: [] } }))
+      const [timelineRes] = await Promise.all([
+        api.get('/landing/timeline').catch(() => ({ data: { timeline: [] } }))
       ]);
       setTimeline(timelineRes.data.timeline || []);
-      setPrizes(prizesRes.data.prizes || []);
-      setTracks(tracksRes.data.tracks || []);
     } catch (error) {
       console.error('Ошибка загрузки данных', error);
     }
   };
 
   const updateCountdown = () => {
-    // Получаем дату начала из timeline или используем дефолт
-    const startDate = timeline.find(t => t.type === 'hacking_begins')?.date 
-      || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const startDate = timeline.find(t => t.type === 'hacking_begins')?.date;
+    if (!startDate) return;
+
     const now = new Date();
     const diff = new Date(startDate) - now;
-    
+
     if (diff > 0) {
       setCountdown({
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
@@ -60,7 +62,7 @@ const Landing = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     const month = months[date.getMonth()];
     const day = date.getDate();
     const hours = date.getUTCHours().toString().padStart(2, '0');
@@ -73,28 +75,8 @@ const Landing = () => {
     navigate('/login');
   };
 
-  const defaultTimeline = [
-    { type: 'registration', title: 'Старт регистрации', description: 'Войдите через Telegram, соберите команду и подготовьте рабочее окружение.', date: null, active: true },
-    { type: 'hacking_begins', title: 'Начало хакатона', description: 'Открывается доступ к кейсам. 48 часов непрерывной разработки.', date: null, active: false },
-    { type: 'submission', title: 'Дедлайн сдачи решений', description: 'Залейте финальный код в GitHub. Просроченные решения не принимаются.', date: null, active: false }
-  ];
+  const displayTimeline = timeline;
 
-  const defaultPrizes = [
-    { rank: 2, name: 'Серебряный нод', amount: 5000, benefits: ['Облачные кредиты', 'Лицензия на dev-инструменты', 'Мерч-пак'], featured: false },
-    { rank: 1, name: 'Золотой мастер', amount: 15000, benefits: ['Интро к инвесторам', 'Кредиты на аудит', 'Премиальное железо'], featured: true },
-    { rank: 3, name: 'Бронзовый линк', amount: 2500, benefits: ['API-кредиты', 'Менторская сессия', 'Мерч-пак'], featured: false }
-  ];
-
-  const defaultTracks = [
-    { id: 1, name: 'AI & ML', description: 'Разработка интеллектуальных агентов, моделей предсказания и генеративных систем.', tags: ['Python', 'TensorFlow'] },
-    { id: 2, name: 'Кибербезопасность', description: 'Инструменты защиты, безопасные коммуникации, анализ смарт-контрактов и блокчейна.', tags: ['Rust', 'Cryptography'] },
-    { id: 3, name: 'GameDev / GameFi', description: 'Игровые механики, геймификация и встроенные экономики.', tags: ['Unity', 'Solidity'] }
-  ];
-
-  const displayTimeline = timeline.length > 0 ? timeline : defaultTimeline;
-  const displayPrizes = prizes.length > 0 ? prizes : defaultPrizes;
-  const displayTracks = tracks.length > 0 ? tracks : defaultTracks;
-  
   return (
     <div className="landing-page">
       <AppHeader
@@ -105,114 +87,125 @@ const Landing = () => {
       />
 
       <div className="landing-content">
-        <section className="landing-hero">
-          <div className="landing-hero-left">
-            <h1>
-              {t('landing.title_line1')}
-              <br />
-              <span>{t('landing.title_line2')}</span>
-            </h1>
-            <p>{t('landing.subtitle')}</p>
-            <div className="landing-hero-actions">
+
+        {/* HERO — 100vh */}
+        <section
+          className="landing-hero"
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center',
+            padding: '0 20px'
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            {/* ЛОГО БОЛЬШЕ 640px */}
+            <img
+              src={codeSprintLogo}
+              alt="Code Sprint Logo"
+              style={{
+                width: 'min(1000px, 95vw)',
+                height: 'auto',
+                marginBottom: '40px'
+              }}
+            />
+
+            {/* КНОПКИ */}
+            <div
+              className="landing-hero-actions"
+              style={{
+                display: 'flex',
+                gap: '16px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                marginBottom: '40px'
+              }}
+            >
               {authStore.isAuthenticated ? (
                 <Link to="/cases" className="landing-primary-btn">
                   <CaseIcon size={18} />
-                  {t('landing.primary_cases')}
+                  Перейти к кейсам
                 </Link>
               ) : (
                 <Link to="/login" className="landing-primary-btn">
                   <TelegramIcon size={18} />
-                  {t('landing.primary_auth')}
+                  Войти через Telegram
                 </Link>
               )}
+
               <Link to="/info" className="landing-secondary-btn">
-                {t('landing.secondary')}
+                Подробнее о хакатоне
               </Link>
             </div>
-            <div className="landing-timer">
-              <div>
-                <span>{countdown.days.toString().padStart(2, '0')}</span>
-                  <span>{t('landing.timer_days')}</span>
-              </div>
-              <div>
-                <span>{countdown.hours.toString().padStart(2, '0')}</span>
-                  <span>{t('landing.timer_hours')}</span>
-              </div>
-              <div>
-                <span>{countdown.minutes.toString().padStart(2, '0')}</span>
-                  <span>{t('landing.timer_minutes')}</span>
-              </div>
-              <div>
-                <span>{countdown.seconds.toString().padStart(2, '0')}</span>
-                  <span>{t('landing.timer_seconds')}</span>
-              </div>
-            </div>
-          </div>
-          <div className="landing-hero-right">
-            <div className="landing-terminal">
-              <div className="landing-terminal-header">
-                <span className="dot red"></span>
-                <span className="dot yellow"></span>
-                <span className="dot green"></span>
-                <span>terminal - zsh - 8/20/24</span>
-              </div>
-              <div className="landing-terminal-body">
-                <div className="line">➜ hack_node init</div>
-                <div className="line muted">&gt; Инициализация окружения...</div>
-                <div className="line muted">&gt; Загрузка модулей: [React, Tailwind, Node, Python]</div>
-                <div className="line muted">&gt; ОБНАРУЖЕН СОБЫТИЕ: старт через 48 часов</div>
-                <div className="line muted">&gt; Оптимизация уровня кофеина... Готово.</div>
-                <div className="line accent">&gt; ДОСТУП РАЗРЕШЕН</div>
-                <div className="line cursor">▍</div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="landing-section landing-tracks">
-          <div className="landing-section-title">{t('landing.select_protocol')}</div>
-          <h2>{t('landing.tracks_title')}</h2>
-          <div className="landing-track-grid">
-            {displayTracks.map((track, idx) => (
-              <div key={track.id || idx} className="landing-track-card">
-                <div className="landing-track-header">{String(idx + 1).padStart(2, '0')}. {track.name}</div>
-                <p>{track.description}</p>
-                <div className="landing-tag-row">
-                  {track.tags?.map((tag, tagIdx) => (
-                    <span key={tagIdx}>{tag}</span>
-                  ))}
+            {/* ТАЙМЕР */}
+            <div
+              className="landing-timer"
+              style={{
+                display: 'flex',
+                gap: '32px',
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}
+            >
+              {['days', 'hours', 'minutes', 'seconds'].map((key) => (
+                <div key={key} style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                    {countdown[key].toString().padStart(2, '0')}
+                  </span>
+                  <div>{({ days: 'ДНЕЙ', hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' })[key]}</div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
+        {/* TIMELINE */}
         <section className="landing-section landing-timeline">
-          <div className="landing-section-title">{t('landing.execution_sequence')}</div>
-          <h2>{t('landing.timeline_title')}</h2>
+          <div className="landing-section-title">
+            / последовательность
+          </div>
+          <h2>Таймлайн</h2>
+
           <div className="landing-timeline-list">
             {displayTimeline.map((item, idx) => {
               const isLeft = idx % 2 === 0;
-              const isActive = item.active || false;
+
               return (
-                <div key={item.type || idx} className={`landing-timeline-item ${isLeft ? 'landing-timeline-item-left' : 'landing-timeline-item-right'}`}>
+                <div
+                  key={item.id || item.type || idx}
+                  className={`landing-timeline-item ${
+                    isLeft
+                      ? 'landing-timeline-item-left'
+                      : 'landing-timeline-item-right'
+                  }`}
+                >
                   {isLeft ? (
                     <>
                       <div className="landing-timeline-content">
                         <h3>{item.title}</h3>
                         <p>{item.description}</p>
                       </div>
-                      <div className={`landing-timeline-node ${isActive ? 'landing-timeline-node-active' : ''}`}></div>
-                      <span className={`landing-timeline-date ${isActive ? 'landing-timeline-date-active' : ''}`}>
+                      <div className="landing-timeline-node" />
+                      <span className="landing-timeline-date">
                         {formatDate(item.date)}
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className={`landing-timeline-date ${isActive ? 'landing-timeline-date-active' : ''}`}>
+                      <span className="landing-timeline-date">
                         {formatDate(item.date)}
                       </span>
-                      <div className={`landing-timeline-node ${isActive ? 'landing-timeline-node-active' : ''}`}></div>
+                      <div className="landing-timeline-node" />
                       <div className="landing-timeline-content">
                         <h3>{item.title}</h3>
                         <p>{item.description}</p>
@@ -225,54 +218,12 @@ const Landing = () => {
           </div>
         </section>
 
-        <section className="landing-section landing-prizes">
-          <div className="landing-section-title">{t('landing.bounty_board')}</div>
-          <h2>{t('landing.prizes_title')}</h2>
-          <div className="landing-prize-grid">
-            {displayPrizes.map((prize) => {
-              const rankClass = prize.rank === 1 ? 'landing-prize-rank-gold' : 
-                               prize.rank === 2 ? 'landing-prize-rank-silver' : 
-                               'landing-prize-rank-bronze';
-              const amountClass = prize.rank === 1 ? 'landing-prize-amount-featured' : 
-                                 prize.rank === 3 ? 'landing-prize-amount-bronze' : '';
-              return (
-                <div key={prize.rank} className={`landing-prize-card ${prize.featured ? 'is-featured' : ''}`}>
-                  {prize.featured && <div className="landing-prize-top-label">TOP PRIZE</div>}
-                  <div className={`landing-prize-rank ${rankClass}`}>{prize.rank}</div>
-                  <h3>{prize.name}</h3>
-                  <p className={`landing-prize-amount ${amountClass}`}>${prize.amount.toLocaleString()}</p>
-                  <ul className={`landing-prize-benefits ${prize.featured ? 'landing-prize-benefits-featured' : ''}`}>
-                    {prize.benefits?.map((benefit, idx) => (
-                      <li key={idx}>{benefit}</li>
-                    ))}
-                  </ul>
-                  {prize.featured && (
-                    <Link to="/cases" className="landing-prize-btn">
-                      {t('landing.primary_cases')}
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="landing-section landing-cta">
-          <h2>{t('landing.cta_title')}</h2>
-          <p>{t('landing.cta_text')}</p>
-          <Link to="/login" className="landing-primary-btn">
-            <TelegramIcon size={18} />
-            {t('landing.cta_login')}
-          </Link>
-          <span className="landing-cta-note">
-            Авторизация и вход по Telegram, токены одноразовые.
-          </span>
-        </section>
-
+        {/* FOOTER */}
         <footer className="landing-footer">
           <Logo showVersion={true} asLink={true} />
-          <span>© 2024 System Corp. Все права защищены.</span>
+          <span>© 2026 XTRA development. Все права защищены.</span>
         </footer>
+
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { EditIcon, RefreshIcon } from '../components/Icons';
@@ -9,10 +8,6 @@ import api from '../utils/api';
 const Profile = () => {
   const user = authStore.user;
   useDocumentTitle('Профиль');
-  const { t, i18n } = useTranslation();
-  const [stats, setStats] = useState(null);
-  const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
   const [editingSkills, setEditingSkills] = useState(false);
@@ -22,31 +17,11 @@ const Profile = () => {
   const [newSkillExtension, setNewSkillExtension] = useState('');
 
   useEffect(() => {
-    fetchProfileData();
-  }, []);
-
-  useEffect(() => {
     if (user) {
       setBioText(user.bio || '');
       setSkillsList(user.skills || []);
     }
   }, [user]);
-
-  const fetchProfileData = async () => {
-    setLoading(true);
-    try {
-      const [statsRes, metricsRes] = await Promise.all([
-        api.get('/profile/stats').catch(() => ({ data: null })),
-        api.get('/profile/metrics').catch(() => ({ data: null }))
-      ]);
-      setStats(statsRes.data);
-      setMetrics(metricsRes.data);
-    } catch (error) {
-      console.error('Ошибка загрузки данных профиля', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEditBio = () => {
     setEditingBio(true);
@@ -73,7 +48,6 @@ const Profile = () => {
   const handleResync = async () => {
     try {
       await api.post('/profile/resync');
-      await fetchProfileData();
       await authStore.fetchUser();
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка синхронизации');
@@ -122,18 +96,10 @@ const Profile = () => {
 
   const displayName = user?.first_name && user?.last_name
     ? `${user.first_name} "${user.username}" ${user.last_name}`
-    : user?.first_name || user?.username || t('profile.default_user');
+    : user?.first_name || user?.username || 'Пользователь';
 
   const bio = bioText || user?.bio || '';
   
-  const reputation = stats?.reputation || 0;
-  const attendance = stats?.attendance || 0;
-  const commits = metrics?.commits || 0;
-  const commitsChange = metrics?.commits_change || 0;
-  const hours = metrics?.hours || 0;
-  const currentSession = metrics?.current_session || null;
-  const rank = metrics?.rank || null;
-  const rankPercentile = metrics?.rank_percentile || null;
   const skills = editingSkills ? skillsList : (user?.skills || []);
   const languages = skills.filter(s => s.type === 'language') || [];
   const frameworks = skills.filter(s => s.type === 'framework') || [];
@@ -172,10 +138,10 @@ const Profile = () => {
                   />
                   <div className="profile-bio-edit-actions">
                     <button onClick={handleSaveBio} className="profile-bio-save">
-                      {i18n.language === 'ru' ? 'Сохранить' : 'Save'}
+                      Сохранить
                     </button>
                     <button onClick={handleCancelBio} className="profile-bio-cancel">
-                      {i18n.language === 'ru' ? 'Отмена' : 'Cancel'}
+                      Отмена
                     </button>
                   </div>
                 </div>
@@ -190,69 +156,18 @@ const Profile = () => {
             <div className="profile-actions">
               <button onClick={handleEditBio} className="profile-btn profile-btn-primary">
                 <EditIcon size={16} />
-                {t('profile.edit')}
+                Редактировать
               </button>
               <button onClick={handleResync} className="profile-btn profile-btn-secondary">
                 <RefreshIcon size={16} />
-                {t('profile.resync')}
+                Обновить данные
               </button>
             </div>
 
-            <div className="profile-stats">
-              <h3 className="profile-stats-title">{t('profile.stats_title')}</h3>
-              <div className="profile-stat-item">
-                <div className="profile-stat-header">
-                  <span>{t('profile.reputation')}</span>
-                  <span className="profile-stat-value">
-                    {reputation.toLocaleString()} {i18n.language === 'ru' ? 'очков' : 'pts'}
-                  </span>
-                </div>
-                <div className="profile-progress-bar">
-                  <div className="profile-progress-fill profile-progress-green" style={{ width: `${Math.min((reputation / 1200) * 100, 100)}%` }}></div>
-                </div>
-              </div>
-              <div className="profile-stat-item">
-                <div className="profile-stat-header">
-                  <span>{t('profile.attendance')}</span>
-                  <span className="profile-stat-value">{attendance}%</span>
-                </div>
-                <div className="profile-progress-bar">
-                  <div className="profile-progress-fill profile-progress-blue" style={{ width: `${attendance}%` }}></div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
         <div className="profile-right">
-          <div className="profile-metrics">
-            <div className="profile-metric-card">
-              <div className="profile-metric-label">{t('profile.commits')}</div>
-              <div className="profile-metric-value">{loading ? '...' : commits.toLocaleString()}</div>
-              {commitsChange > 0 && (
-                <div className="profile-metric-change">↑ {commitsChange}% this week</div>
-              )}
-            </div>
-            <div className="profile-metric-card">
-              <div className="profile-metric-label">{t('profile.hours_hacked')}</div>
-              <div className="profile-metric-value">{loading ? '...' : `${hours} h`}</div>
-              {currentSession && (
-                <div className="profile-metric-session">Ongoing Session: {currentSession}</div>
-              )}
-            </div>
-            <div className="profile-metric-card">
-              <div className="profile-metric-label">{t('profile.global_rank')}</div>
-              <div className="profile-metric-value">{loading ? '...' : rank ? `#${rank}` : '—'}</div>
-              {rankPercentile && (
-                <div className="profile-metric-session">
-                  {i18n.language === 'ru'
-                    ? `Топ ${rankPercentile}% участников`
-                    : `Top ${rankPercentile}% of hackers`}
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="profile-skills">
             <div className="profile-skills-header">
               <span className="profile-skills-prompt">user@mainframe:~/skills</span>

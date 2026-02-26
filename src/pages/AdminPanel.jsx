@@ -67,6 +67,7 @@ const AdminPanel = () => {
   const [editingTimelineItem, setEditingTimelineItem] = useState(null);
   const [editingPrize, setEditingPrize] = useState(null);
   const [editingTrack, setEditingTrack] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -194,12 +195,22 @@ const AdminPanel = () => {
 
   const saveTimeline = async (item) => {
     try {
+      const payload = { type: item.type || 'other', title: item.title, description: item.description, date: item.date };
       if (item.id) {
-        await api.put(`/admin/settings/timeline/${item.id}`, item);
+        const res = await api.put(`/admin/settings/timeline/${item.id}`, payload);
+        setHackathonSettings(prev => ({
+          ...prev,
+          timeline: prev.timeline.map(t => t.id === item.id ? res.data.timeline_item : t)
+        }));
       } else {
-        await api.post('/admin/settings/timeline', item);
+        const res = await api.post('/admin/settings/timeline', payload);
+        setHackathonSettings(prev => ({
+          ...prev,
+          timeline: [...prev.timeline, res.data.timeline_item].sort(
+            (a, b) => new Date(a.date) - new Date(b.date)
+          )
+        }));
       }
-      await fetchHackathonSettings();
       setEditingTimelineItem(null);
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка сохранения таймлайна');
@@ -238,7 +249,10 @@ const AdminPanel = () => {
     if (!confirm('Удалить этот пункт таймлайна?')) return;
     try {
       await api.delete(`/admin/settings/timeline/${id}`);
-      await fetchHackathonSettings();
+      setHackathonSettings(prev => ({
+        ...prev,
+        timeline: prev.timeline.filter(t => t.id !== id)
+      }));
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка удаления');
     }
@@ -365,10 +379,10 @@ const AdminPanel = () => {
       pending: 'border-terminal-gray text-terminal-gray',
     };
     const labels = {
-      approved: 'APPROVED',
-      rejected: 'REJECTED',
-      reviewing: 'REVIEWING',
-      pending: 'PENDING',
+      approved: 'Одобрено',
+      rejected: 'Отклонено',
+      reviewing: 'На проверке',
+      pending: 'Ожидает',
     };
     return (
       <span className={`px-2 py-1 text-xs border ${styles[status] || styles.pending}`}>
@@ -380,27 +394,27 @@ const AdminPanel = () => {
   return (
     <div className="admin-page">
       <div className="admin-header">
-        <h1>ADMIN_PANEL</h1>
-        <p>System configuration and moderation interface</p>
+        <h1>ПАНЕЛЬ АДМИНИСТРАТОРА</h1>
+        <p>Интерфейс настройки и модерации</p>
       </div>
 
       {stats && (
         <div className="admin-stats-grid">
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.users}</div>
-            <div className="admin-stat-label">USERS</div>
+            <div className="admin-stat-label">ПОЛЬЗОВАТЕЛЕЙ</div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.cases}</div>
-            <div className="admin-stat-label">CASES</div>
+            <div className="admin-stat-label">КЕЙСОВ</div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.solutions}</div>
-            <div className="admin-stat-label">SOLUTIONS</div>
+            <div className="admin-stat-label">РЕШЕНИЙ</div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.solutionsByStatus?.pending || 0}</div>
-            <div className="admin-stat-label">PENDING</div>
+            <div className="admin-stat-label">ОЖИДАЮТ</div>
           </div>
         </div>
       )}
@@ -412,37 +426,37 @@ const AdminPanel = () => {
               onClick={() => setActiveTab('solutions')}
               className={`admin-nav-tab ${activeTab === 'solutions' ? 'active' : ''}`}
             >
-              SOLUTIONS
+              Решения
             </button>
             <button
               onClick={() => setActiveTab('users')}
               className={`admin-nav-tab ${activeTab === 'users' ? 'active' : ''}`}
             >
-              USERS
+              Пользователи
             </button>
             <button
               onClick={() => setActiveTab('teams')}
               className={`admin-nav-tab ${activeTab === 'teams' ? 'active' : ''}`}
             >
-              TEAMS
+              Команды
             </button>
             <button
               onClick={() => setActiveTab('cases')}
               className={`admin-nav-tab ${activeTab === 'cases' ? 'active' : ''}`}
             >
-              CASES
+              Кейсы
             </button>
             <button
               onClick={() => setActiveTab('broadcast')}
               className={`admin-nav-tab ${activeTab === 'broadcast' ? 'active' : ''}`}
             >
-              BROADCAST
+              Рассылка
             </button>
             <button
               onClick={() => setActiveTab('broadcast-settings')}
               className={`admin-nav-tab ${activeTab === 'broadcast-settings' ? 'active' : ''}`}
             >
-              BROADCAST_SETTINGS
+              Настройки рассылок
             </button>
             <button
               onClick={() => {
@@ -451,7 +465,7 @@ const AdminPanel = () => {
               }}
               className={`admin-nav-tab ${activeTab === 'settings' || activeTab.startsWith('settings-') ? 'active' : ''}`}
             >
-              HACKATHON_CONFIG
+              Настройки хакатона
             </button>
           </nav>
         </div>
@@ -465,11 +479,11 @@ const AdminPanel = () => {
                 onChange={handleFilterChange}
                 className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
               >
-                <option value="">ALL_STATUSES</option>
-                <option value="pending">PENDING</option>
-                <option value="reviewing">REVIEWING</option>
-                <option value="approved">APPROVED</option>
-                <option value="rejected">REJECTED</option>
+                <option value="">Все статусы</option>
+                <option value="pending">Ожидает</option>
+                <option value="reviewing">На проверке</option>
+                <option value="approved">Одобрено</option>
+                <option value="rejected">Отклонено</option>
               </select>
               <select
                 name="case_id"
@@ -477,7 +491,7 @@ const AdminPanel = () => {
                 onChange={handleFilterChange}
                 className="px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
               >
-                <option value="">ALL_CASES</option>
+                <option value="">Все кейсы</option>
                 {casesStore.cases.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.title}
@@ -499,7 +513,9 @@ const AdminPanel = () => {
                         {solution.title}
                       </h3>
                       <p className="text-sm text-white/70">
-                        Пользователь: {solution.first_name} {solution.last_name} ({solution.username}) | Кейс: {solution.case_title}
+                        Пользователь: {solution.first_name} {solution.last_name} ({solution.username ? (
+                        <a href={`https://t.me/${solution.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{solution.username}</a>
+                      ) : '—'}) | Кейс: {solution.case_title}
                       </p>
                     </div>
                     {getStatusBadge(solution.status)}
@@ -571,16 +587,18 @@ const AdminPanel = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`border transition-all p-4 flex items-center justify-between bg-terminal-dark ${
+                    className={`border transition-all p-4 flex items-center justify-between bg-terminal-dark cursor-pointer ${
                       isMainAdmin 
                         ? 'border-terminal-green/50 hover:border-terminal-green' 
                         : 'border-terminal-gray hover:border-terminal-green'
                     }`}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1" onClick={() => setSelectedUser(user)}>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-terminal-green">
-                          {user.first_name} {user.last_name} ({user.username})
+                          {user.first_name} {user.last_name} ({user.username ? (
+                            <a href={`https://t.me/${user.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>@{user.username}</a>
+                          ) : '—'})
                         </p>
                         {isMainAdmin && (
                           <span className="px-2 py-0.5 text-xs rounded border border-terminal-green/50 text-terminal-green bg-terminal-green/10">
@@ -595,7 +613,7 @@ const AdminPanel = () => {
                         }
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       {user.role !== 'admin' && (
                         <button
                           onClick={async () => {
@@ -679,6 +697,147 @@ const AdminPanel = () => {
           </div>
         )}
 
+        {selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedUser(null)}>
+            <div className="glass rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-xl font-semibold mb-4 text-white border-b border-terminal-gray/60 pb-2">
+                Информация о пользователе
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 pb-4 border-b border-terminal-gray/30">
+                  {selectedUser.photo_url ? (
+                    <img src={selectedUser.photo_url} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-terminal-green/50" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-terminal-gray/40 flex items-center justify-center text-2xl font-bold text-terminal-green">
+                      {(selectedUser.first_name?.[0] || selectedUser.username?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-white text-lg">
+                      {selectedUser.first_name} {selectedUser.last_name}
+                    </p>
+                    <p className="text-terminal-cyan">
+                      {selectedUser.username ? (
+                        <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
+                      ) : '—'}
+                    </p>
+                    <p className="text-sm text-white/60 mt-1">ID: {selectedUser.telegram_id}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-white/60">Имя:</span> <span className="text-white">{selectedUser.first_name || '—'}</span></div>
+                  <div><span className="text-white/60">Фамилия:</span> <span className="text-white">{selectedUser.last_name || '—'}</span></div>
+                  <div><span className="text-white/60">Username:</span> <span className="text-white">{selectedUser.username ? (
+                    <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
+                  ) : '—'}</span></div>
+                  <div><span className="text-white/60">Telegram ID:</span> <span className="text-white">{selectedUser.telegram_id || '—'}</span></div>
+                  <div><span className="text-white/60">Телефон:</span> <span className="text-white">{selectedUser.phone || '—'}</span></div>
+                  <div><span className="text-white/60">Роль:</span> <span className="text-white">{
+                    selectedUser.role === 'admin' ? 'Администратор' :
+                    selectedUser.role === 'moderator' ? 'Модератор' : 'Пользователь'
+                  }</span></div>
+                  <div><span className="text-white/60">Решений:</span> <span className="text-white">{selectedUser.solutions_count || 0}</span></div>
+                  <div><span className="text-white/60">Зарегистрирован:</span> <span className="text-white">{selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString('ru-RU') : '—'}</span></div>
+                </div>
+                {selectedUser.bio && (
+                  <div>
+                    <p className="text-white/60 text-sm mb-1">Описание:</p>
+                    <p className="text-white text-sm bg-terminal-dark/40 p-3 rounded">{selectedUser.bio}</p>
+                  </div>
+                )}
+                {selectedUser.skills && Array.isArray(selectedUser.skills) && selectedUser.skills.length > 0 && (
+                  <div>
+                    <p className="text-white/60 text-sm mb-1">Навыки:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedUser.skills.map((s, i) => (
+                        <span key={i} className="px-2 py-1 bg-terminal-green/20 text-terminal-green text-xs rounded">
+                          {s.name}{s.extension ? `.${s.extension}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-terminal-gray/30">
+                  {selectedUser.role !== 'admin' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const newRole = selectedUser.role === 'moderator' ? 'user' : 'moderator';
+                          await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: newRole });
+                          fetchUsers();
+                          setSelectedUser(u => u && u.id === selectedUser.id ? { ...u, role: newRole } : u);
+                        } catch (e) {
+                          alert(e.response?.data?.error || 'Ошибка');
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded transition-colors"
+                    >
+                      {selectedUser.role === 'moderator' ? 'Убрать модератора' : 'Назначить модератором'}
+                    </button>
+                  )}
+                  {selectedUser.role === 'admin' ? (
+                    !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === 1046635419) && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Снять права администратора?')) return;
+                          try {
+                            await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: 'user' });
+                            fetchUsers();
+                            setSelectedUser(null);
+                          } catch (e) {
+                            alert(e.response?.data?.error || 'Ошибка');
+                          }
+                        }}
+                        className="px-3 py-1.5 text-sm border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded transition-colors"
+                      >
+                        Снять админа
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: 'admin' });
+                          fetchUsers();
+                          setSelectedUser(u => u && u.id === selectedUser.id ? { ...u, role: 'admin' } : u);
+                        } catch (e) {
+                          alert(e.response?.data?.error || 'Ошибка');
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded transition-colors"
+                    >
+                      Сделать админом
+                    </button>
+                  )}
+                  {authStore.isAdmin && String(currentTelegramId) !== String(selectedUser.telegram_id) && !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === 1046635419) && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Удалить пользователя ${selectedUser.first_name || ''} ${selectedUser.last_name || ''} (@${selectedUser.username || '—'})?`)) return;
+                        try {
+                          await api.delete(`/admin/users/${selectedUser.telegram_id}`);
+                          fetchUsers();
+                          setSelectedUser(null);
+                        } catch (e) {
+                          alert(e.response?.data?.error || 'Ошибка удаления');
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded transition-colors"
+                    >
+                      Удалить
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="px-4 py-1.5 text-sm border border-terminal-gray text-white/70 hover:border-terminal-green rounded transition-colors ml-auto"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'teams' && (
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -733,7 +892,7 @@ const AdminPanel = () => {
                                 {member.photo_url ? (
                                   <img
                                     src={member.photo_url}
-                                    alt="avatar"
+                                    alt="аватар"
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
@@ -748,7 +907,9 @@ const AdminPanel = () => {
                                   {(!member.first_name && !member.last_name) && (member.username || 'Участник')}
                                 </div>
                                 <div className="text-white/60 text-sm">
-                                  @{member.username || '—'} · {member.role === 'captain' ? 'Капитан' : 'Участник'}
+                                  {member.username ? (
+                                    <a href={`https://t.me/${member.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{member.username}</a>
+                                  ) : '—'} · {member.role === 'captain' ? 'Капитан' : 'Участник'}
                                 </div>
                               </div>
                             </div>
@@ -804,7 +965,7 @@ const AdminPanel = () => {
                       <h3 className="font-semibold text-white mb-1">{caseItem.title}</h3>
                       <p className="text-sm text-white/70 line-clamp-2">{caseItem.description}</p>
                       <div className="mt-2 flex gap-4 text-xs text-white/60">
-                        <span>Сложность: {caseItem.difficulty}</span>
+                        <span>Сложность: {caseItem.difficulty === 'easy' ? 'Лёгкая' : caseItem.difficulty === 'medium' ? 'Средняя' : caseItem.difficulty === 'hard' ? 'Сложная' : caseItem.difficulty}</span>
                         <span>Участников: {caseItem.current_participants}</span>
                         {caseItem.opens_at && (
                           <span>
@@ -1290,9 +1451,9 @@ const AdminPanel = () => {
                   }
                   className="w-full px-4 py-2 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-green focus:outline-none rounded"
                 >
-                  <option value="approved">APPROVED</option>
-                  <option value="rejected">REJECTED</option>
-                  <option value="reviewing">REVIEWING</option>
+                  <option value="approved">Одобрено</option>
+                  <option value="rejected">Отклонено</option>
+                  <option value="reviewing">На проверке</option>
                 </select>
               </div>
               <div>
@@ -1489,7 +1650,7 @@ const AdminPanel = () => {
                                 }}
                                 className="w-4 h-4"
                               />
-                              <span>{role}</span>
+                              <span>{role === 'user' ? 'Пользователь' : role === 'moderator' ? 'Модератор' : 'Администратор'}</span>
                             </label>
                           ))}
                         </div>
@@ -1599,11 +1760,9 @@ const AdminPanel = () => {
                 <button
                   onClick={() => {
                     setEditingTimelineItem({
-                      type: 'registration',
                       title: '',
                       description: '',
-                      date: '',
-                      active: false
+                      date: ''
                     });
                   }}
                   className="admin-btn-primary"
@@ -1618,9 +1777,7 @@ const AdminPanel = () => {
                       <div className="admin-settings-item-title">{item.title}</div>
                       <div className="admin-settings-item-desc">{item.description}</div>
                       <div className="admin-settings-item-meta">
-                        <span>Тип: {item.type}</span>
                         <span>Дата: {item.date ? new Date(item.date).toLocaleString('ru-RU') : 'Не указана'}</span>
-                        {item.active && <span className="admin-badge-active">Активно</span>}
                       </div>
                     </div>
                     <div className="admin-settings-item-actions">
@@ -1648,19 +1805,6 @@ const AdminPanel = () => {
                       e.preventDefault();
                       saveTimeline(editingTimelineItem);
                     }}>
-                      <div className="admin-form-group">
-                        <label>Тип события</label>
-                        <select
-                          value={editingTimelineItem.type}
-                          onChange={(e) => setEditingTimelineItem({...editingTimelineItem, type: e.target.value})}
-                          className="admin-input"
-                        >
-                          <option value="registration">Регистрация</option>
-                          <option value="hacking_begins">Начало хакатона</option>
-                          <option value="submission">Дедлайн отправки</option>
-                          <option value="other">Другое</option>
-                        </select>
-                      </div>
                       <div className="admin-form-group">
                         <label>Название</label>
                         <input
@@ -1690,16 +1834,6 @@ const AdminPanel = () => {
                           className="admin-input"
                           required
                         />
-                      </div>
-                      <div className="admin-form-group">
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={editingTimelineItem.active}
-                            onChange={(e) => setEditingTimelineItem({...editingTimelineItem, active: e.target.checked})}
-                          />
-                          Активное событие
-                        </label>
                       </div>
                       <div className="admin-form-actions">
                         <button type="submit" className="admin-btn-primary">Сохранить</button>
@@ -1743,7 +1877,7 @@ const AdminPanel = () => {
                     <div className="admin-settings-item-content">
                       <div className="admin-settings-item-title">
                         #{prize.rank} - {prize.name}
-                        {prize.featured && <span className="admin-badge-featured">TOP PRIZE</span>}
+                        {prize.featured && <span className="admin-badge-featured">ГЛАВНЫЙ ПРИЗ</span>}
                       </div>
                       <div className="admin-settings-item-meta">
                         <span>Сумма: ${prize.amount.toLocaleString()}</span>
@@ -1824,7 +1958,7 @@ const AdminPanel = () => {
                             benefits: e.target.value.split(',').map(b => b.trim()).filter(b => b)
                           })}
                           className="admin-input"
-                          placeholder="VC Introduction, Audit Credits, Premium Hardware"
+                          placeholder="Знакомство с VC, Аудит, Премиум-оборудование"
                         />
                       </div>
                       <div className="admin-form-group">
@@ -1834,7 +1968,7 @@ const AdminPanel = () => {
                             checked={editingPrize.featured}
                             onChange={(e) => setEditingPrize({...editingPrize, featured: e.target.checked})}
                           />
-                          Главный приз (TOP PRIZE)
+                          Главный приз
                         </label>
                       </div>
                       <div className="admin-form-actions">
@@ -1942,7 +2076,7 @@ const AdminPanel = () => {
                             tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
                           })}
                           className="admin-input"
-                          placeholder="Python, TensorFlow"
+                          placeholder="Python, TensorFlow, AI"
                         />
                       </div>
                       <div className="admin-form-actions">

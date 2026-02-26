@@ -39,6 +39,29 @@ class AuthStore {
     }
   }
 
+  async loginWithVk(code) {
+    if (this.loginInProgress) return false;
+    this.loginInProgress = true;
+    this.loading = true;
+    this.error = null;
+    try {
+      const response = await api.post('/auth/vk', { code });
+      this.token = response.data.token;
+      this.refreshToken = response.data.refresh_token;
+      this.user = response.data.user;
+      localStorage.setItem('token', this.token);
+      localStorage.setItem('refresh_token', this.refreshToken);
+      return true;
+    } catch (error) {
+      this.error = error.response?.data?.error || 'Ошибка входа через VK';
+      return false;
+    } finally {
+      this.loading = false;
+      this.initializing = false;
+      this.loginInProgress = false;
+    }
+  }
+
   async loginWithToken(token, captchaToken) {
     // Предотвращаем одновременные вызовы
     if (this.loginInProgress) {

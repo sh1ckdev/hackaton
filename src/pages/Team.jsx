@@ -1,13 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon } from '../components/Icons';
 
 const Team = () => {
   useDocumentTitle('Команда');
-  const { t } = useTranslation();
   const [team, setTeam] = useState(null);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [teamError, setTeamError] = useState(null);
@@ -173,12 +171,12 @@ const Team = () => {
     <div className="team-page">
       <div className="team-header">
         <div>
-          <h1>{t('team.title')}</h1>
-          <p>{t('team.subtitle')}</p>
+          <h1>Управление командой</h1>
+          <p>Управляйте своим составом, приглашайте участников или присоединяйтесь к существующей команде.</p>
         </div>
         <div className="team-deadline">
           <TimeIcon size={16} />
-          <span>{t('team.deadline_label')}</span>
+          <span>ДЕДЛАЙН: 48:00:00</span>
         </div>
       </div>
 
@@ -204,7 +202,7 @@ const Team = () => {
         <>
           <div className="team-members-section">
             <h2>
-              {t('team.current_members')} [{currentMembers.length}/{maxMembers}]
+              Текущий состав [{currentMembers.length}/{maxMembers}]
             </h2>
             <div className="team-members-grid">
               {currentMembers.map((member) => (
@@ -240,9 +238,9 @@ const Team = () => {
                   </div>
                   <div className="team-member-empty-title">Open Slot</div>
                   <div className="team-member-empty-desc">
-                    {t('team.open_slot_desc')}
+                    Пригласите участника или оставьте для автоподбора.
                   </div>
-                  <button className="team-invite-btn">{t('team.invite_button')}</button>
+                  <button className="team-invite-btn">ПРИГЛАСИТЬ</button>
                 </div>
               ))}
             </div>

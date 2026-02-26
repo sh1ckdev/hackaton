@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 
 const Login = lazy(() => import('./pages/Login'));
+const AuthVkCallback = lazy(() => import('./pages/AuthVkCallback'));
 const Landing = lazy(() => import('./pages/Landing'));
 const Cases = lazy(() => import('./pages/Cases'));
 const CaseDetail = lazy(() => import('./pages/CaseDetail'));
@@ -88,6 +89,7 @@ function App() {
         >
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/vk/callback" element={<AuthVkCallback />} />
             <Route path="/" element={<Landing />} />
             <Route
               path="/"

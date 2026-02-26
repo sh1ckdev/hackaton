@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { useTranslation } from 'react-i18next';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { TelegramIcon } from '../components/Icons';
+import { TelegramIcon, VkIcon } from '../components/Icons';
 import Logo from '../components/Logo';
+
+const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
 
 const Login = () => {
   useDocumentTitle('Вход');
   const navigate = useNavigate();
   const location = useLocation();
-  const { t } = useTranslation();
   const [error, setError] = useState(null);
   const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+  const vkAuthUrl = apiBaseUrl.replace(/\/$/, '') + '/auth/vk';
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   const captchaRef = useRef(null);
   const [captchaToken, setCaptchaToken] = useState('');
@@ -133,6 +134,10 @@ const Login = () => {
     window.location.href = `https://t.me/${botUsername}?start=login`;
   };
 
+  const handleVkRedirect = () => {
+    window.location.href = vkAuthUrl;
+  };
+
   const params = new URLSearchParams(location.search);
   const hasToken = params.get('token');
   const formatSessionId = (token) => {
@@ -184,16 +189,16 @@ const Login = () => {
           </div>
 
           <div className="login-terminal-divider"></div>
-          <div className="login-auth-title">{t('login.auth_required')}</div>
+          <div className="login-auth-title">ТРЕБУЕТСЯ АУТЕНТИФИКАЦИЯ</div>
 
           <div className="login-actions">
             {hasToken ? (
               <div className="login-token-block">
-                <div className="login-token-title">{t('login.almost_done')}</div>
+                <div className="login-token-title">Почти готово!</div>
                 <div className="login-token-text">
                   {turnstileSiteKey
-                    ? t('login.need_captcha')
-                    : t('login.finish_login')}
+                    ? 'Пройдите проверку безопасности для завершения входа'
+                    : 'Завершите вход'}
                 </div>
 
                 {turnstileSiteKey && (
@@ -207,15 +212,21 @@ const Login = () => {
                     <span className="login-dot"></span>
                     <span className="login-dot delay-1"></span>
                     <span className="login-dot delay-2"></span>
-                    <span>{t('login.pending')}</span>
+                    <span>Выполняется вход...</span>
                   </div>
                 )}
               </div>
             ) : (
-              <button onClick={handleTelegramRedirect} className="login-telegram-button">
-                <TelegramIcon size={22} />
-                <span>{t('login.telegram_button')}</span>
-              </button>
+              <div className="login-auth-buttons">
+                <button onClick={handleTelegramRedirect} className="login-telegram-button">
+                  <TelegramIcon size={22} />
+                  <span>Войти через Telegram</span>
+                </button>
+                <button onClick={handleVkRedirect} className="login-vk-button">
+                  <VkIcon size={22} />
+                  <span>Войти через VK ID</span>
+                </button>
+              </div>
             )}
 
             {error && (
