@@ -4521,18 +4521,47 @@ code {
   background: rgba(148, 163, 184, 0.3);
 }
 
-.profile-btn-support {
+/* ===== SUPPORT FAB ===== */
+.support-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 0 16px;
+  height: 48px;
+  border-radius: 24px;
   background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
   color: #fff;
-  box-shadow: 0 4px 16px rgba(8, 145, 178, 0.3),
-              0 0 0 1px rgba(255,255,255,0.08) inset;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  box-shadow: 0 4px 20px rgba(8, 145, 178, 0.45), 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.profile-btn-support:hover {
+.support-fab:hover {
   background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
-  box-shadow: 0 6px 20px rgba(8, 145, 178, 0.45),
-              0 0 0 1px rgba(255,255,255,0.12) inset;
+  box-shadow: 0 6px 28px rgba(8, 145, 178, 0.6), 0 2px 10px rgba(0,0,0,0.3);
   transform: translateY(-2px);
+}
+
+.support-fab-active {
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.45), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.support-fab-active:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+}
+
+.support-fab-label {
+  line-height: 1;
 }
 
 /* ===== SUPPORT CHAT ===== */
@@ -4544,7 +4573,7 @@ code {
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  padding: 24px;
+  padding: 88px 28px 28px;
   z-index: 1100;
   animation: fadeIn 0.15s ease;
 }
