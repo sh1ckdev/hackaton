@@ -56,7 +56,7 @@ const AdminPanel = () => {
   const [newLink, setNewLink] = useState({ label: '', url: '' });
   const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [randomizingTeams, setRandomizingTeams] = useState(false);
-  const currentTelegramId = authStore.user?.telegram_id;
+  const MAIN_ADMIN_TELEGRAM_ID = 1046635419;
   
   // Настройки хакатона
   const [hackathonSettings, setHackathonSettings] = useState({
@@ -315,11 +315,13 @@ const AdminPanel = () => {
   };
 
   const handleDeleteUser = async (user) => {
-    if (!confirm(`Удалить пользователя ${user.first_name || ''} ${user.last_name || ''} (@${user.username || '—'})?`)) {
+    const label = user.vk_id ? `vk.com/id${user.vk_id}` : `@${user.username || '—'}`;
+    if (!confirm(`Удалить пользователя ${user.first_name || ''} ${user.last_name || ''} (${label})?`)) {
       return;
     }
     try {
-      await api.delete(`/admin/users/${user.telegram_id}`);
+      const url = user.vk_id ? `/admin/users/by-id/${user.id}` : `/admin/users/${user.telegram_id}`;
+      await api.delete(url);
       fetchUsers();
     } catch (error) {
       alert(error.response?.data?.error || 'Ошибка удаления пользователя');
@@ -581,8 +583,7 @@ const AdminPanel = () => {
           <div className="p-6">
             <div className="space-y-4">
               {users.map((user) => {
-                const MAIN_ADMIN_ID = 1046635419;
-                const isMainAdmin = user.telegram_id && Number(user.telegram_id) === MAIN_ADMIN_ID;
+                const isMainAdmin = user.telegram_id && Number(user.telegram_id) === MAIN_ADMIN_TELEGRAM_ID;
                 
                 return (
                   <div
@@ -596,7 +597,9 @@ const AdminPanel = () => {
                     <div className="flex-1" onClick={() => setSelectedUser(user)}>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-terminal-green">
-                          {user.first_name} {user.last_name} ({user.username ? (
+                          {user.first_name} {user.last_name} ({user.vk_id ? (
+                            <a href={`https://vk.com/id${user.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>vk.com/id{user.vk_id}</a>
+                          ) : user.username ? (
                             <a href={`https://t.me/${user.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline" onClick={(e) => e.stopPropagation()}>@{user.username}</a>
                           ) : '—'})
                         </p>
@@ -619,7 +622,8 @@ const AdminPanel = () => {
                           onClick={async () => {
                             try {
                               const newRole = user.role === 'moderator' ? 'user' : 'moderator';
-                              const response = await api.put(`/admin/users/${user.telegram_id}/role`, { role: newRole });
+                              const url = user.vk_id ? `/admin/users/by-id/${user.id}/role` : `/admin/users/${user.telegram_id}/role`;
+                              const response = await api.put(url, { role: newRole });
                               if (response.data && response.data.user) {
                                 fetchUsers();
                               } else {
@@ -646,8 +650,9 @@ const AdminPanel = () => {
                               if (!confirm('Вы уверены, что хотите снять права администратора у этого пользователя?')) {
                                 return;
                               }
-                              try {
-                                await api.put(`/admin/users/${user.telegram_id}/role`, { role: 'user' });
+                            try {
+                              const url = user.vk_id ? `/admin/users/by-id/${user.id}/role` : `/admin/users/${user.telegram_id}/role`;
+                              await api.put(url, { role: 'user' });
                                 fetchUsers();
                               } catch (error) {
                                 alert(error.response?.data?.error || 'Ошибка изменения роли');
@@ -670,7 +675,8 @@ const AdminPanel = () => {
                         <button
                           onClick={async () => {
                             try {
-                              await api.put(`/admin/users/${user.telegram_id}/role`, { role: 'admin' });
+                              const url = user.vk_id ? `/admin/users/by-id/${user.id}/role` : `/admin/users/${user.telegram_id}/role`;
+                              await api.put(url, { role: 'admin' });
                               fetchUsers();
                             } catch (error) {
                               alert(error.response?.data?.error || 'Ошибка изменения роли');
@@ -681,7 +687,7 @@ const AdminPanel = () => {
                           Сделать админом
                         </button>
                       )}
-                      {authStore.isAdmin && !isMainAdmin && String(currentTelegramId) !== String(user.telegram_id) && (
+                      {authStore.isAdmin && !isMainAdmin && authStore.user?.id !== user.id && (
                         <button
                           onClick={() => handleDeleteUser(user)}
                           className="px-4 py-2 bg-terminal-dark/40 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-all text-sm font-medium rounded"
@@ -717,20 +723,26 @@ const AdminPanel = () => {
                       {selectedUser.first_name} {selectedUser.last_name}
                     </p>
                     <p className="text-terminal-cyan">
-                      {selectedUser.username ? (
+                      {selectedUser.vk_id ? (
+                        <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a>
+                      ) : selectedUser.username ? (
                         <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
                       ) : '—'}
                     </p>
-                    <p className="text-sm text-white/60 mt-1">ID: {selectedUser.telegram_id}</p>
+                    <p className="text-sm text-white/60 mt-1">ID: {selectedUser.vk_id ? `vk.com/id${selectedUser.vk_id}` : selectedUser.telegram_id}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div><span className="text-white/60">Имя:</span> <span className="text-white">{selectedUser.first_name || '—'}</span></div>
                   <div><span className="text-white/60">Фамилия:</span> <span className="text-white">{selectedUser.last_name || '—'}</span></div>
-                  <div><span className="text-white/60">Username:</span> <span className="text-white">{selectedUser.username ? (
+                  <div><span className="text-white/60">Username:</span> <span className="text-white">{selectedUser.vk_id ? (
+                    <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a>
+                  ) : selectedUser.username ? (
                     <a href={`https://t.me/${selectedUser.username}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">@{selectedUser.username}</a>
                   ) : '—'}</span></div>
                   <div><span className="text-white/60">Telegram ID:</span> <span className="text-white">{selectedUser.telegram_id || '—'}</span></div>
+                  {selectedUser.vk_id && <div><span className="text-white/60">VK ID:</span> <a href={`https://vk.com/id${selectedUser.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">vk.com/id{selectedUser.vk_id}</a></div>}
+                  {selectedUser.email && <div><span className="text-white/60">Email:</span> <span className="text-white">{selectedUser.email}</span></div>}
                   <div><span className="text-white/60">Телефон:</span> <span className="text-white">{selectedUser.phone || '—'}</span></div>
                   <div><span className="text-white/60">Роль:</span> <span className="text-white">{
                     selectedUser.role === 'admin' ? 'Администратор' :
@@ -763,7 +775,8 @@ const AdminPanel = () => {
                       onClick={async () => {
                         try {
                           const newRole = selectedUser.role === 'moderator' ? 'user' : 'moderator';
-                          await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: newRole });
+                          const roleUrl = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}/role` : `/admin/users/${selectedUser.telegram_id}/role`;
+                          await api.put(roleUrl, { role: newRole });
                           fetchUsers();
                           setSelectedUser(u => u && u.id === selectedUser.id ? { ...u, role: newRole } : u);
                         } catch (e) {
@@ -776,12 +789,13 @@ const AdminPanel = () => {
                     </button>
                   )}
                   {selectedUser.role === 'admin' ? (
-                    !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === 1046635419) && (
+                    !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === MAIN_ADMIN_TELEGRAM_ID) && (
                       <button
                         onClick={async () => {
                           if (!confirm('Снять права администратора?')) return;
                           try {
-                            await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: 'user' });
+                            const roleUrl2 = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}/role` : `/admin/users/${selectedUser.telegram_id}/role`;
+                            await api.put(roleUrl2, { role: 'user' });
                             fetchUsers();
                             setSelectedUser(null);
                           } catch (e) {
@@ -797,7 +811,8 @@ const AdminPanel = () => {
                     <button
                       onClick={async () => {
                         try {
-                          await api.put(`/admin/users/${selectedUser.telegram_id}/role`, { role: 'admin' });
+                          const roleUrl3 = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}/role` : `/admin/users/${selectedUser.telegram_id}/role`;
+                          await api.put(roleUrl3, { role: 'admin' });
                           fetchUsers();
                           setSelectedUser(u => u && u.id === selectedUser.id ? { ...u, role: 'admin' } : u);
                         } catch (e) {
@@ -809,12 +824,13 @@ const AdminPanel = () => {
                       Сделать админом
                     </button>
                   )}
-                  {authStore.isAdmin && String(currentTelegramId) !== String(selectedUser.telegram_id) && !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === 1046635419) && (
+                  {authStore.isAdmin && authStore.user?.id !== selectedUser.id && !(selectedUser.telegram_id && Number(selectedUser.telegram_id) === MAIN_ADMIN_TELEGRAM_ID) && (
                     <button
                       onClick={async () => {
                         if (!confirm(`Удалить пользователя ${selectedUser.first_name || ''} ${selectedUser.last_name || ''} (@${selectedUser.username || '—'})?`)) return;
                         try {
-                          await api.delete(`/admin/users/${selectedUser.telegram_id}`);
+                          const deleteUrl = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}` : `/admin/users/${selectedUser.telegram_id}`;
+                          await api.delete(deleteUrl);
                           fetchUsers();
                           setSelectedUser(null);
                         } catch (e) {

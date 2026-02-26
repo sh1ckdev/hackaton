@@ -3017,6 +3017,25 @@ code {
   font-weight: 600;
 }
 
+.profile-vk-link {
+  color: #2787f5;
+  text-decoration: none;
+}
+
+.profile-vk-link:hover {
+  text-decoration: underline;
+}
+
+.profile-contact {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.profile-contact-sep {
+  opacity: 0.6;
+}
+
 .profile-bio-section {
   margin-bottom: 20px;
   padding: 16px;

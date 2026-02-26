@@ -94,9 +94,10 @@ const Profile = () => {
     }
   };
 
+  const isVkUser = Boolean(user?.vk_id);
   const displayName = user?.first_name && user?.last_name
-    ? `${user.first_name} "${user.username}" ${user.last_name}`
-    : user?.first_name || user?.username || 'Пользователь';
+    ? `${user.first_name} ${user.last_name}`
+    : user?.first_name || user?.last_name || user?.username || 'Пользователь';
 
   const bio = bioText || user?.bio || '';
   
@@ -122,7 +123,22 @@ const Profile = () => {
               </div>
               <div className="profile-name-section">
                 <h1 className="profile-name">{displayName}</h1>
-                <div className="profile-username">@{user?.username || 'username'}</div>
+                <div className="profile-username">
+                  {isVkUser ? (
+                    <a href={`https://vk.com/id${user.vk_id}`} target="_blank" rel="noopener noreferrer" className="profile-vk-link">
+                      vk.com/id{user.vk_id}
+                    </a>
+                  ) : (
+                    `@${user?.username || 'user'}`
+                  )}
+                </div>
+                {(user?.email || user?.phone) && (
+                  <div className="profile-contact">
+                    {user?.email && <span>{user.email}</span>}
+                    {user?.email && user?.phone && <span className="profile-contact-sep"> · </span>}
+                    {user?.phone && <span>{user.phone}</span>}
+                  </div>
+                )}
               </div>
             </div>
 

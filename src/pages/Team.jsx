@@ -222,7 +222,15 @@ const Team = () => {
                       ? `${member.first_name} ${member.last_name}`
                       : member.username || 'Участник'}
                   </div>
-                  <div className="team-member-handle">@{member.username || 'user'}</div>
+                  <div className="team-member-handle">
+                    {member.vk_id ? (
+                      <a href={`https://vk.com/id${member.vk_id}`} target="_blank" rel="noopener noreferrer" className="text-terminal-cyan hover:underline">
+                        vk.com/id{member.vk_id}
+                      </a>
+                    ) : (
+                      <>@{member.username || 'user'}</>
+                    )}
+                  </div>
                   <div className="team-member-roles">
                     {member.role === 'captain' && (
                       <span className="team-role-badge">TEAM LEAD</span>
