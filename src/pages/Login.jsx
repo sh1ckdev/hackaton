@@ -169,27 +169,26 @@ const Login = () => {
           <div className="login-terminal-lines">
             <div className="login-line">
               <span className="login-prompt login-prompt-green">sys@hackathon:~$</span>
-              <span> init_sequence --force</span>
+              <span> auth --init</span>
             </div>
             <div className="login-line login-line-muted">
-              <span>&gt; Загрузка модулей ... </span>
+              <span>&gt; Подключение провайдеров ... </span>
               <span className="login-status">[OK]</span>
             </div>
             <div className="login-line login-line-muted">
-              <span>&gt; Установка безопасного соединения ... </span>
-              <span className="login-status">[OK]</span>
+              <span>&gt; Telegram · VK ID</span>
             </div>
-            <div className="login-line login-line-muted">&gt; Готов к вводу пользователем.</div>
+            <div className="login-line login-line-muted">&gt; Выберите способ входа</div>
             <div className="login-line login-line-spacer"></div>
             <div className="login-line">
               <span className="login-prompt login-prompt-blue">user@hackathon:~$</span>
-              <span> войти в систему с помощью Telegram</span>
+              <span> authenticate</span>
               <span className="login-cursor" aria-hidden="true"></span>
             </div>
           </div>
 
           <div className="login-terminal-divider"></div>
-          <div className="login-auth-title">ТРЕБУЕТСЯ АУТЕНТИФИКАЦИЯ</div>
+          <div className="login-auth-title">Войдите одним из способов</div>
 
           <div className="login-actions">
             {hasToken ? (

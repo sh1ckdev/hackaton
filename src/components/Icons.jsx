@@ -472,21 +472,42 @@ export const VkIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-export const TelegramIcon = ({ size = 24, className = '' }) => (
+export const MaxIcon = ({ size = 24, className = '' }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 40 40"
+    viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
   >
     <path
-      d="M18 22L22.0019 29.4855C23.0895 31.008 23.6332 31.7699 24.2215 31.9352C24.7331 32.079 25.2822 31.9805 25.7122 31.6683C26.2068 31.3092 26.4533 30.4062 26.9456 28.601L31.4957 11.9175C31.9152 10.3795 32.1244 9.6106 31.9221 9.08088C31.7457 8.6189 31.3809 8.25406 30.9189 8.07767C30.3892 7.87541 29.6202 8.08576 28.0823 8.50519L11.3985 13.0553C9.59328 13.5476 8.69077 13.7935 8.33169 14.2881C8.01948 14.718 7.92097 15.2672 8.06477 15.7787C8.23015 16.3671 8.99141 16.9102 10.514 17.9978L18 22ZM18 22L22.948 17.0522"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
+      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+      fill="url(#max-gradient)"
     />
+    <path
+      d="M7 8H17V9.5H13.5V16H12V9.5H7V8Z"
+      fill="white"
+    />
+    <defs>
+      <linearGradient id="max-gradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#6B4EFF" />
+        <stop offset="1" stopColor="#A855F7" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+export const TelegramIcon = ({ size = 24, className = '' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="m20.665 3.717-17.73 6.837c-1.21.486-1.203 1.161-.222 1.462l4.552 1.42 10.532-6.645c.498-.303.953-.14.579.192l-8.533 7.701h-.002l.002.001-.314 4.692c.46 0 .663-.211.921-.46l2.211-2.15 4.599 3.397c.848.467 1.457.227 1.668-.785l3.019-14.228c.309-1.239-.473-1.8-1.282-1.434z" />
   </svg>
 );
 
