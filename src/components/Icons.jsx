@@ -472,32 +472,6 @@ export const VkIcon = ({ size = 24, className = '' }) => (
   </svg>
 );
 
-export const MaxIcon = ({ size = 24, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <path
-      d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
-      fill="url(#max-gradient)"
-    />
-    <path
-      d="M7 8H17V9.5H13.5V16H12V9.5H7V8Z"
-      fill="white"
-    />
-    <defs>
-      <linearGradient id="max-gradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#6B4EFF" />
-        <stop offset="1" stopColor="#A855F7" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
-
 export const TelegramIcon = ({ size = 24, className = '' }) => (
   <svg
     width={size}

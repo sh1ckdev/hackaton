@@ -1577,7 +1577,6 @@ code {
 }
 
 .login-telegram-button,
-.login-max-button,
 .login-vk-button {
   display: flex;
   align-items: center;
@@ -1603,7 +1602,6 @@ code {
 
 
 .login-telegram-button:hover,
-.login-max-button:hover,
 .login-vk-button:hover {
   transform: none;
 }
@@ -1613,28 +1611,20 @@ code {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.login-max-button:hover {
-  background: #5b3ff5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 .login-vk-button:hover {
   background: #1a6fd4;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .login-telegram-button:active,
-.login-max-button:active,
 .login-vk-button:active {
   transform: none;
 }
 
 .login-telegram-button:active { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
-.login-max-button:active { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
 .login-vk-button:active { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
 
 .login-telegram-button:disabled,
-.login-max-button:disabled,
 .login-vk-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1642,7 +1632,6 @@ code {
 }
 
 .login-telegram-button svg,
-.login-max-button svg,
 .login-vk-button svg {
   flex-shrink: 0;
   width: 22px;
@@ -1650,18 +1639,11 @@ code {
 }
 
 .login-telegram-button svg { fill: #ffffff; }
-.login-max-button svg { fill: #ffffff; }
 .login-vk-button svg { fill: #ffffff; }
 
 .login-telegram-button span,
-.login-max-button span,
 .login-vk-button span {
   display: inline-block;
-}
-
-.login-max-button {
-  background: #6b4eff;
-  box-shadow: 0 4px 12px rgba(107, 78, 255, 0.3);
 }
 
 .login-vk-button {
