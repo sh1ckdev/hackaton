@@ -175,7 +175,6 @@ async function startServer() {
     await ensureMainAdmin();
     const bot = startBot();
     setBotInstance(bot);
-    
 
     startCaseOpenerScheduler();
     

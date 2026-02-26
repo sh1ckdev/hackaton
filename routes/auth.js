@@ -7,7 +7,7 @@ import { logError } from '../utils/logger.js';
 const router = express.Router();
 
 const signAccessToken = (user) => jwt.sign(
-  { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, role: user.role },
+  { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, max_id: user.max_id ?? null, role: user.role },
   process.env.JWT_SECRET,
   { expiresIn: '15m' }
 );
@@ -178,6 +178,8 @@ router.post('/bot', async (req, res) => {
     const user = {
       id: row.user_id,
       telegram_id: row.telegram_id,
+      vk_id: row.vk_id ?? null,
+      max_id: row.max_id ?? null,
       username: row.username,
       first_name: row.first_name,
       last_name: row.last_name,
@@ -329,6 +331,12 @@ router.post('/vk', async (req, res) => {
       return digits.length >= 10 ? digits : null;
     };
     const phoneNorm = normalizePhone(phone);
+
+    if (!phoneNorm) {
+      return res.status(400).json({
+        error: 'Для входа необходимо разрешить доступ к номеру телефона в VK ID'
+      });
+    }
 
     let result = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkUserId]);
     let user;

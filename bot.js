@@ -90,6 +90,27 @@ export function startBot() {
       const from = msg.from;
       const photoUrl = await getPhotoUrl(from.id);
       const user = await upsertUser(from, photoUrl);
+
+      const userWithPhone = await pool.query(
+        'SELECT phone FROM users WHERE telegram_id = $1',
+        [from.id]
+      );
+
+      if (!userWithPhone.rows[0]?.phone) {
+        await bot.sendMessage(
+          chatId,
+          'Для входа на сайт необходимо поделиться номером телефона. Нажмите кнопку ниже.',
+          {
+            reply_markup: {
+              keyboard: [[{ text: 'Отправить номер телефона', request_contact: true }]],
+              one_time_keyboard: true,
+              resize_keyboard: true
+            }
+          }
+        );
+        return;
+      }
+
       const loginToken = await createLoginToken(user.id);
       const loginUrl = `${clientUrl}/login?token=${loginToken}`;
 
@@ -116,23 +137,6 @@ export function startBot() {
             `Откройте вручную: ${clientUrl}/login?token=${loginToken}`
         );
       }
-
-
-      const userWithPhone = await pool.query(
-        'SELECT phone FROM users WHERE telegram_id = $1',
-        [from.id]
-      );
-      
-
-      if (!userWithPhone.rows[0]?.phone) {
-        await bot.sendMessage(chatId, 'Также можно отправить номер телефона, чтобы он отображался в профиле.', {
-          reply_markup: {
-            keyboard: [[{ text: 'Отправить телефон', request_contact: true }]],
-            one_time_keyboard: true,
-            resize_keyboard: true
-          }
-        });
-      }
     } catch (error) {
       logError('Ошибка /start в боте', error, { chatId: msg.chat.id });
     }
@@ -141,13 +145,34 @@ export function startBot() {
   bot.on('message', async (msg) => {
     if (!msg.contact) return;
     try {
+      const chatId = msg.chat.id;
+      const from = msg.from;
+      const phoneNumber = msg.contact.phone_number;
+
+      const photoUrl = await getPhotoUrl(from.id);
+      const user = await upsertUser(from, photoUrl);
+
       await pool.query(
         'UPDATE users SET phone = $1, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = $2',
-        [msg.contact.phone_number, msg.from.id]
+        [phoneNumber, from.id]
       );
-      await bot.sendMessage(msg.chat.id, 'Телефон сохранен.');
+
+      const loginToken = await createLoginToken(user.id);
+      const loginUrl = `${clientUrl}/login?token=${loginToken}`;
+
+      await bot.sendMessage(chatId, 'Телефон сохранён. Теперь вы можете войти на сайт.');
+
+      if (isHttpsUrl(loginUrl)) {
+        await bot.sendMessage(chatId, 'Нажмите кнопку ниже для входа.', {
+          reply_markup: {
+            inline_keyboard: [[{ text: 'Войти на сайт', url: loginUrl }]]
+          }
+        });
+      } else {
+        await bot.sendMessage(chatId, `Ваш одноразовый токен: ${loginToken}\nОткройте: ${loginUrl}`);
+      }
     } catch (error) {
-      logError('Ошибка сохранения телефона в боте', error, { telegramId: msg.from.id });
+      logError('Ошибка сохранения телефона в боте', error, { telegramId: msg.from?.id });
     }
   });
 
