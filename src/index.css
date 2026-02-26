@@ -2233,6 +2233,45 @@ code {
   min-width: fit-content;
 }
 
+/* Обёртка: наша кнопка + виджет Telegram поверх */
+.login-telegram-wrap {
+  position: relative;
+  flex: 1;
+  min-width: fit-content;
+  display: flex;
+  transition: opacity 0.2s;
+}
+
+.login-telegram-wrap .login-telegram-button {
+  width: 100%;
+  pointer-events: none;
+}
+
+/* Виджет Telegram растягивается поверх нашей кнопки */
+.login-telegram-widget-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+/* Сам iframe виджета растягиваем и делаем прозрачным */
+.login-telegram-widget-overlay iframe,
+.login-telegram-widget-overlay > * {
+  opacity: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  border: none !important;
+  position: absolute !important;
+  inset: 0 !important;
+  cursor: pointer !important;
+}
+
 .login-telegram-button,
 .login-vk-button {
   display: flex;

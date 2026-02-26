@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
@@ -6,44 +6,51 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { VkIcon } from '../components/Icons';
 import Logo from '../components/Logo';
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
-
 const TelegramIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/>
   </svg>
 );
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
+
 const Login = () => {
   useDocumentTitle('Вход');
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState(null);
-  const [loginPending, setLoginPending] = useState(false);
-  const widgetRef = useRef(null);
+  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
   const vkAuthUrl = apiBaseUrl.replace(/\/$/, '') + '/auth/vk';
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   const captchaRef = useRef(null);
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaReady, setCaptchaReady] = useState(false);
-  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
-
-  const CATEGORY_STORAGE_KEY = 'hackathon_participant_category';
+  const [loginPending, setLoginPending] = useState(false);
+  const [processedToken, setProcessedToken] = useState(null);
+  const widgetRef = useRef(null);
   const [participantCategory, setParticipantCategory] = useState(() => {
     try {
-      const s = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      const s = localStorage.getItem('hackathon_participant_category');
       return (s === 'student' || s === 'school') ? s : '';
     } catch { return ''; }
   });
+  const loginAttemptRef = useRef(false);
+
+  const CATEGORY_STORAGE_KEY = 'hackathon_participant_category';
 
   useEffect(() => {
-    if (authStore.isAuthenticated) navigate('/');
+    if (authStore.isAuthenticated) {
+      navigate('/');
+    }
   }, [navigate]);
 
-  // Turnstile captcha
+
   useEffect(() => {
     if (!turnstileSiteKey) return;
-    if (window.turnstile) { setCaptchaReady(true); return; }
+    if (window.turnstile) {
+      setCaptchaReady(true);
+      return;
+    }
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true;
@@ -58,19 +65,92 @@ const Login = () => {
     window.turnstile.render(captchaRef.current, {
       sitekey: turnstileSiteKey,
       callback: (token) => setCaptchaToken(token),
-      'expired-callback': () => setCaptchaToken(''),
+      'expired-callback': () => setCaptchaToken('')
     });
   }, [turnstileSiteKey, captchaReady]);
 
-  // Callback который Telegram вызывает после авторизации в виджете
+  const handleTokenLogin = useCallback(async (tokenFromUrl = null, captchaTokenFromCallback = null) => {
+    const params = new URLSearchParams(location.search);
+    const token = tokenFromUrl || params.get('token');
+    const captcha = captchaTokenFromCallback || captchaToken;
+    
+    // Предотвращаем повторные вызовы
+    if (loginAttemptRef.current) {
+      return;
+    }
+    
+    // Требуем капчу только если Turnstile настроен
+    if (turnstileSiteKey && !captcha) {
+      setError('Пройдите капчу.');
+      return;
+    }
+    if (!token) {
+      setError('Токен входа не найден.');
+      return;
+    }
+    if (!participantCategory) {
+      setError('Выберите категорию участника: студент или школьник.');
+      return;
+    }
+    
+    // Проверяем, не обрабатывали ли мы уже этот токен
+    if (processedToken === token && loginPending) {
+      return;
+    }
+    
+    loginAttemptRef.current = true;
+    setProcessedToken(token);
+    setLoginPending(true);
+    setError(null);
+    
+    try {
+      const ok = await authStore.loginWithToken(token, captcha || '', participantCategory);
+      if (ok) {
+        navigate('/profile');
+      } else {
+        setError(authStore.error || 'Ошибка входа');
+        // Сбрасываем флаг только при ошибке, чтобы можно было повторить
+        loginAttemptRef.current = false;
+      }
+    } catch (err) {
+      setError('Ошибка входа');
+      loginAttemptRef.current = false;
+    } finally {
+      setLoginPending(false);
+    }
+  }, [location.search, captchaToken, navigate, turnstileSiteKey, processedToken, loginPending, participantCategory]);
+
+
+  useEffect(() => {
+    // Если уже авторизован, не делаем ничего
+    if (authStore.isAuthenticated) {
+      return;
+    }
+    
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    
+    // Если токена нет или уже обработан, не делаем ничего
+    if (!token || processedToken === token) {
+      return;
+    }
+    
+    // Если уже идет попытка входа, не делаем ничего
+    if (loginPending || loginAttemptRef.current) {
+      return;
+    }
+    
+    // Если Turnstile не настроен, можно входить сразу без капчи
+    if (!turnstileSiteKey || captchaToken) {
+      handleTokenLogin(token, captchaToken);
+    }
+  }, [captchaToken, location.search, turnstileSiteKey, processedToken, loginPending]);
+
+  // Колбэк от Telegram Widget
   useEffect(() => {
     window.onTelegramAuth = async (telegramUser) => {
       if (!participantCategory) {
         setError('Выберите категорию участника: студент или школьник.');
-        return;
-      }
-      if (turnstileSiteKey && !captchaToken) {
-        setError('Пройдите капчу.');
         return;
       }
       setLoginPending(true);
@@ -89,12 +169,11 @@ const Login = () => {
       }
     };
     return () => { delete window.onTelegramAuth; };
-  }, [participantCategory, captchaToken, navigate, turnstileSiteKey]);
+  }, [participantCategory, captchaToken, navigate]);
 
-  // Вставляем Telegram Login Widget кнопку
+  // Вставляем скрытый Telegram Login Widget
   useEffect(() => {
     if (!botUsername || !widgetRef.current) return;
-    // Очищаем предыдущий виджет
     widgetRef.current.innerHTML = '';
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -106,6 +185,16 @@ const Login = () => {
     widgetRef.current.appendChild(script);
   }, [botUsername]);
 
+  const handleTelegramClick = () => {
+    if (!participantCategory) {
+      setError('Выберите категорию: студент или школьник.');
+      return;
+    }
+    // Кликаем по реальной кнопке виджета внутри скрытого контейнера
+    const btn = widgetRef.current?.querySelector('a, button, iframe');
+    if (btn) btn.click();
+  };
+
   const handleVkRedirect = () => {
     if (!participantCategory) {
       setError('Выберите категорию: студент или школьник.');
@@ -115,10 +204,15 @@ const Login = () => {
     window.location.href = vkAuthUrl;
   };
 
-  const handleCategoryChange = (val) => {
-    setParticipantCategory(val);
-    try { localStorage.setItem(CATEGORY_STORAGE_KEY, val); } catch (e) {}
+  const params = new URLSearchParams(location.search);
+  const hasToken = params.get('token');
+  const formatSessionId = (token) => {
+    if (!token) return '8f9a-2b3c-4d5e';
+    const compact = token.replace(/[^a-zA-Z0-9]/g, '');
+    if (compact.length < 12) return compact || '8f9a-2b3c-4d5e';
+    return `${compact.slice(0, 4)}-${compact.slice(4, 8)}-${compact.slice(-4)}`;
   };
+  const sessionId = formatSessionId(hasToken);
 
   return (
     <section className="login-surface">
@@ -154,7 +248,7 @@ const Login = () => {
             <div className="login-line login-line-spacer"></div>
             <div className="login-line">
               <span className="login-prompt login-prompt-blue">user@hackathon:~$</span>
-              <span> authenticate</span>
+              <span> authentication</span>
               <span className="login-cursor" aria-hidden="true"></span>
             </div>
           </div>
@@ -170,7 +264,7 @@ const Login = () => {
                 name="participant_category"
                 value="student"
                 checked={participantCategory === 'student'}
-                onChange={(e) => handleCategoryChange(e.target.value)}
+                onChange={(e) => setParticipantCategory(e.target.value)}
               />
               <span>Студент</span>
             </label>
@@ -180,50 +274,56 @@ const Login = () => {
                 name="participant_category"
                 value="school"
                 checked={participantCategory === 'school'}
-                onChange={(e) => handleCategoryChange(e.target.value)}
+                onChange={(e) => setParticipantCategory(e.target.value)}
               />
               <span>Школьник</span>
             </label>
           </div>
 
-          {turnstileSiteKey && (
-            <div className="login-captcha" style={{ marginBottom: 16 }}>
-              <div ref={captchaRef}></div>
-            </div>
-          )}
-
           <div className="login-actions">
-            <div className="login-auth-buttons">
-              {/* Telegram Login Widget */}
-              <div
-                ref={widgetRef}
-                className="login-telegram-widget-wrap"
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  opacity: participantCategory ? 1 : 0.45,
-                  pointerEvents: participantCategory ? 'auto' : 'none',
-                  transition: 'opacity 0.2s',
-                }}
-              />
+            {hasToken ? (
+              <div className="login-token-block">
+                <div className="login-token-title">Почти готово!</div>
+                <div className="login-token-text">
+                  {turnstileSiteKey
+                    ? 'Пройдите проверку безопасности для завершения входа'
+                    : 'Завершите вход'}
+                </div>
 
-              {/* VK */}
-              <button
-                onClick={handleVkRedirect}
-                className="login-vk-button"
-                disabled={!participantCategory}
-              >
-                <VkIcon size={22} />
-                <span>Войти через VK ID</span>
-              </button>
-            </div>
+                {turnstileSiteKey && (
+                  <div className="login-captcha">
+                    <div ref={captchaRef}></div>
+                  </div>
+                )}
 
-            {loginPending && (
-              <div className="login-pending">
-                <span className="login-dot"></span>
-                <span className="login-dot delay-1"></span>
-                <span className="login-dot delay-2"></span>
-                <span>Выполняется вход...</span>
+                {loginPending && (
+                  <div className="login-pending">
+                    <span className="login-dot"></span>
+                    <span className="login-dot delay-1"></span>
+                    <span className="login-dot delay-2"></span>
+                    <span>Выполняется вход...</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="login-auth-buttons">
+                {/* Наша кнопка Telegram с виджетом поверх неё (opacity:0) */}
+                <div className="login-telegram-wrap" style={{ opacity: participantCategory ? 1 : 0.45 }}>
+                  <button className="login-telegram-button" disabled={!participantCategory} tabIndex={-1} aria-hidden="true">
+                    <TelegramIcon />
+                    <span>Войти через Telegram</span>
+                  </button>
+                  <div
+                    ref={widgetRef}
+                    className="login-telegram-widget-overlay"
+                    style={{ pointerEvents: participantCategory ? 'auto' : 'none' }}
+                  />
+                </div>
+
+                <button onClick={handleVkRedirect} className="login-vk-button" disabled={!participantCategory}>
+                  <VkIcon size={22} />
+                  <span>Войти через VK ID</span>
+                </button>
               </div>
             )}
 
@@ -237,7 +337,7 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="login-terminal-note">Доступ разрешён только авторизованным участникам хакатона.</div>
+      <div className="login-terminal-note">Доступ разрешен только авторизованным участникам хакатона.</div>
     </section>
   );
 };

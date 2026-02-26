@@ -200,34 +200,38 @@ const Landing = () => {
                 <>
                   <div className="landing-timer-title">Соревнования идут!</div>
                   <div className="landing-timer-blocks">
-                    {['hours', 'minutes', 'seconds'].map((key) => {
-                      const totalHours = competitionCountdown.days * 24 + competitionCountdown.hours;
-                      const val = key === 'hours' ? totalHours : competitionCountdown[key];
-                      const label = { hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' }[key];
-                      return (
-                        <div key={key} className="landing-timer-block">
-                          <span className="landing-timer-value">{val.toString().padStart(2, '0')}</span>
-                          <div>{label}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="landing-timer-sub">до окончания хакатона</div>
-                </>
-              ) : (
-                <div className="landing-timer-blocks">
-                  {['hours', 'minutes', 'seconds'].map((key) => {
-                    const totalHours = countdown.days * 24 + countdown.hours;
-                    const val = key === 'hours' ? totalHours : countdown[key];
-                    const label = { hours: 'ЧАС', minutes: 'МИН', seconds: 'СЕК' }[key];
-                    return (
+                    {/* 48ч выполнения — только ЧАС МИН СЕК, дни переводим в часы */}
+                    {[
+                      { key: 'hours',   label: 'ЧАС', val: competitionCountdown.days * 24 + competitionCountdown.hours },
+                      { key: 'minutes', label: 'МИН', val: competitionCountdown.minutes },
+                      { key: 'seconds', label: 'СЕК', val: competitionCountdown.seconds },
+                    ].map(({ key, label, val }) => (
                       <div key={key} className="landing-timer-block">
                         <span className="landing-timer-value">{val.toString().padStart(2, '0')}</span>
                         <div>{label}</div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                  <div className="landing-timer-sub">до окончания хакатона</div>
+                </>
+              ) : (
+                <>
+                  <div className="landing-timer-blocks">
+                    {/* До начала — ДНИ ЧАС МИН СЕК */}
+                    {[
+                      { key: 'days',    label: 'ДНИ', val: countdown.days },
+                      { key: 'hours',   label: 'ЧАС', val: countdown.hours },
+                      { key: 'minutes', label: 'МИН', val: countdown.minutes },
+                      { key: 'seconds', label: 'СЕК', val: countdown.seconds },
+                    ].map(({ key, label, val }) => (
+                      <div key={key} className="landing-timer-block">
+                        <span className="landing-timer-value">{val.toString().padStart(2, '0')}</span>
+                        <div>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="landing-timer-sub">до начала хакатона</div>
+                </>
               )}
             </div>
           </div>
