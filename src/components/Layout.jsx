@@ -1,20 +1,35 @@
 import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import AppHeader from './AppHeader';
 import SupportChat from './SupportChat';
 import { useHeartbeat } from '../hooks/useHeartbeat';
 
+const MOBILE_BREAKPOINT = 768;
+
 const Layout = () => {
   useHeartbeat();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showSupport, setShowSupport] = useState(false);
 
   const handleLogout = () => {
     authStore.logout();
     navigate('/login');
   };
+
+  const handleSupportClick = () => {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+      // На мобиле — переходим на отдельную страницу
+      navigate('/support');
+    } else {
+      setShowSupport(prev => !prev);
+    }
+  };
+
+  // Не показываем FAB на самой странице /support
+  const isSupportPage = location.pathname === '/support';
 
   return (
     <div className="app-shell">
@@ -31,12 +46,12 @@ const Layout = () => {
         </div>
       </main>
 
-      {/* FAB поддержки — только для авторизованных */}
-      {authStore.isAuthenticated && (
+      {/* FAB поддержки — только для авторизованных, не на странице /support */}
+      {authStore.isAuthenticated && !isSupportPage && (
         <>
           <button
             className={`support-fab${showSupport ? ' support-fab-active support-fab-hidden' : ''}`}
-            onClick={() => setShowSupport(prev => !prev)}
+            onClick={handleSupportClick}
             aria-label="Поддержка"
             title="Поддержка"
           >
@@ -46,6 +61,7 @@ const Layout = () => {
             <span className="support-fab-label">Поддержка</span>
           </button>
 
+          {/* Десктоп попап */}
           {showSupport && <SupportChat onClose={() => setShowSupport(false)} />}
         </>
       )}

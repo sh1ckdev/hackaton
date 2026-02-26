@@ -82,6 +82,11 @@ const AdminPanel = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [analytics, setAnalytics] = useState(null);
 
+  // Страница Инфо
+  const [infoContent, setInfoContent] = useState('');
+  const [infoSaving, setInfoSaving] = useState(false);
+  const [infoSaved, setInfoSaved] = useState(false);
+
   useEffect(() => {
     fetchStats();
     fetchUsers();
@@ -94,6 +99,9 @@ const AdminPanel = () => {
     }
     if (activeTab === 'settings') {
       fetchHackathonSettings();
+    }
+    if (activeTab === 'info') {
+      api.get('/info').then(r => setInfoContent(r.data.content || '')).catch(() => {});
     }
     if (activeTab === 'analytics') {
       fetchAnalytics();
@@ -149,6 +157,20 @@ const AdminPanel = () => {
       setAnalytics(response.data);
     } catch (error) {
       setAnalytics(null);
+    }
+  };
+
+  const handleSaveInfo = async () => {
+    setInfoSaving(true);
+    setInfoSaved(false);
+    try {
+      await api.put('/info', { content: infoContent });
+      setInfoSaved(true);
+      setTimeout(() => setInfoSaved(false), 2500);
+    } catch (e) {
+      alert('Ошибка сохранения');
+    } finally {
+      setInfoSaving(false);
     }
   };
 
@@ -548,6 +570,12 @@ const AdminPanel = () => {
               className={`admin-nav-tab ${activeTab === 'settings' || activeTab.startsWith('settings-') ? 'active' : ''}`}
             >
               Настройки хакатона
+            </button>
+            <button
+              onClick={() => setActiveTab('info')}
+              className={`admin-nav-tab ${activeTab === 'info' ? 'active' : ''}`}
+            >
+              Страница Инфо
             </button>
           </nav>
         </div>
@@ -2223,6 +2251,36 @@ const AdminPanel = () => {
                 </div>
               )}
             </div>
+        </div>
+      )}
+
+      {/* ── Страница Инфо ── */}
+      {activeTab === 'info' && (
+        <div className="p-6">
+          <h2 className="text-xl font-semibold text-white mb-2">Страница «Информация»</h2>
+          <p className="text-white/50 text-sm mb-5">
+            Содержимое отображается на странице /info для всех участников. Поддерживается Markdown.
+          </p>
+          <textarea
+            value={infoContent}
+            onChange={e => setInfoContent(e.target.value)}
+            rows={20}
+            placeholder="# Правила хакатона&#10;&#10;Напишите текст в формате Markdown..."
+            className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded font-mono text-sm resize-y"
+            style={{ minHeight: 320 }}
+          />
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              onClick={handleSaveInfo}
+              disabled={infoSaving}
+              className="px-6 py-2 bg-terminal-blue text-white rounded font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {infoSaving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+            {infoSaved && (
+              <span className="text-green-400 text-sm font-medium">✓ Сохранено</span>
+            )}
+          </div>
         </div>
       )}
     </div>

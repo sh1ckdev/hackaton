@@ -25,15 +25,24 @@ const Team = () => {
   const [editingMemberId, setEditingMemberId] = useState(null);
   const [deadlineDate, setDeadlineDate] = useState(null);
   const [deadlineLeft, setDeadlineLeft] = useState(null);
+  // hackathonStarted = true когда хакатон уже начался (48ч идут)
+  const [hackathonStarted, setHackathonStarted] = useState(false);
 
   useEffect(() => {
     api.get('/landing/deadline').then((res) => {
-      setDeadlineDate(res.data?.target_date || null);
+      const d = res.data?.target_date || null;
+      setDeadlineDate(d);
+      if (d) {
+        // Если дедлайн > текущего времени + 48ч — значит это дата старта, хакатон ещё не начался
+        // Если дедлайн <= текущего + 48ч — хакатон уже идёт
+        const startTime = new Date(d).getTime() - 48 * 60 * 60 * 1000;
+        setHackathonStarted(Date.now() >= startTime);
+      }
     }).catch(() => setDeadlineDate(null));
   }, []);
 
   useEffect(() => {
-    if (!deadlineDate) return;
+    if (!deadlineDate || !hackathonStarted) return;
     const update = () => {
       const diff = new Date(deadlineDate) - new Date();
       if (diff <= 0) {
@@ -51,7 +60,7 @@ const Team = () => {
     update();
     const t = setInterval(update, 1000);
     return () => clearInterval(t);
-  }, [deadlineDate]);
+  }, [deadlineDate, hackathonStarted]);
 
   const formatDeadline = () => {
     if (!deadlineLeft || deadlineLeft.expired) return 'Завершено';
@@ -319,10 +328,12 @@ const Team = () => {
           <h1>Управление командой{team?.name ? `: ${team.name}` : ''}</h1>
           <p>Управляйте своим составом, приглашайте участников или присоединяйтесь к существующей команде.</p>
         </div>
-        <div className="team-deadline">
-          <TimeIcon size={16} />
-          <span>ДЕДЛАЙН: {deadlineDate ? formatDeadline() : '—'}</span>
-        </div>
+        {hackathonStarted && (
+          <div className="team-deadline">
+            <TimeIcon size={16} />
+            <span>ДЕДЛАЙН: {deadlineLeft?.expired ? 'Завершено' : formatDeadline()}</span>
+          </div>
+        )}
       </div>
 
       {loadingTeam ? (

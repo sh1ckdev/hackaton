@@ -18,6 +18,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Team = lazy(() => import('./pages/Team'));
 const Info = lazy(() => import('./pages/Info'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
 
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
@@ -122,6 +123,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="info" element={<Info />} />
+              <Route path="support" element={<SupportPage />} />
               <Route
                 path="admin"
                 element={

@@ -421,8 +421,61 @@ code {
   color: #60a5fa;
 }
 
+/* Info page markdown */
+.info-markdown {
+  color: rgba(255,255,255,0.85);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.info-markdown h1 { font-size: 26px; font-weight: 700; color: #fff; margin: 0 0 18px; }
+.info-markdown h2 { font-size: 20px; font-weight: 700; color: #fff; margin: 28px 0 12px; }
+.info-markdown h3 { font-size: 17px; font-weight: 600; color: #fff; margin: 20px 0 8px; }
+.info-markdown p  { margin: 0 0 14px; }
+.info-markdown ul, .info-markdown ol { padding-left: 22px; margin: 0 0 14px; }
+.info-markdown li { margin-bottom: 6px; }
+.info-markdown a  { color: #60a5fa; text-decoration: underline; }
+.info-markdown a:hover { color: #93c5fd; }
+.info-markdown code {
+  background: rgba(96,165,250,0.12);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: #93c5fd;
+}
+.info-markdown pre {
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(96,165,250,0.2);
+  border-radius: 8px;
+  padding: 14px 18px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+}
+.info-markdown pre code {
+  background: none;
+  padding: 0;
+  color: #e2e8f0;
+}
+.info-markdown blockquote {
+  border-left: 3px solid #60a5fa;
+  padding-left: 14px;
+  color: rgba(255,255,255,0.6);
+  margin: 0 0 14px;
+  font-style: italic;
+}
+.info-markdown hr {
+  border: none;
+  border-top: 1px solid rgba(148,163,184,0.2);
+  margin: 24px 0;
+}
+.info-markdown strong { color: #fff; font-weight: 700; }
+.info-markdown em { color: rgba(255,255,255,0.75); }
+
 .landing-section {
   padding: 40px 0;
+}
+.landing-timeline {
+  padding-top: 0;
 }
 
 .landing-section-title {
@@ -552,15 +605,7 @@ code {
 }
 
 .landing-timeline-node::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(148, 163, 184, 0.6);
+  display: none;
 }
 
 .landing-timeline-node-active {
@@ -3195,6 +3240,7 @@ code {
   align-items: center;
   text-align: center;
   gap: 12px;
+  overflow: hidden;
 }
 
 .team-member-edit-btn {
@@ -3668,20 +3714,21 @@ code {
 }
 .team-member-empty .team-invite-close-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 40px;
-  height: 40px;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  background: transparent;
-  border: none;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
   color: #f87171;
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   transition: all 0.2s;
+  z-index: 2;
 }
 .team-member-empty .team-invite-close-btn:hover {
   color: #ef4444;
@@ -4250,11 +4297,19 @@ code {
   }
 
   .admin-nav-tabs {
+    flex-wrap: nowrap;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-nav-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .admin-nav-tab {
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .admin-settings-item {
@@ -4938,6 +4993,54 @@ code {
   color: #60a5fa;
 }
 
+.profile-assigned-case {
+  width: 100%;
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.7) 50%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 20px;
+  padding: 22px 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 0 20px rgba(96, 165, 250, 0.05);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile-assigned-case-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.profile-assigned-case-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.profile-assigned-case-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+.profile-assigned-case-desc {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.85);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.profile-assigned-case-meta {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.profile-assigned-case-meta span {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
 .profile-skills {
   width: 100%;
   background: linear-gradient(160deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.7) 50%, rgba(15, 23, 42, 0.9) 100%);
@@ -4952,6 +5055,8 @@ code {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
@@ -5033,7 +5138,8 @@ code {
 
 .profile-skills-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .profile-skills-save-btn {
@@ -5192,13 +5298,15 @@ code {
 
 @media (max-width: 560px) {
   .profile-skills-add-form {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: nowrap;
   }
-  .profile-skills-add-form .profile-skills-add-input,
-  .profile-skills-add-ext {
+  .profile-skills-add-form .profile-skills-add-input {
     min-width: 0;
-    width: 100%;
+    flex: 1;
+  }
+  .profile-skills-add-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
@@ -6100,4 +6208,39 @@ code {
 .not-found-btn-secondary:hover {
   border-color: rgba(96, 165, 250, 0.4);
   color: #60a5fa;
+}
+
+/* ============================================================
+   SUPPORT PAGE (/support) — отдельная страница чата
+   ============================================================ */
+
+/* На десктопе: isPage — без тёмного оверлея, чат в углу */
+.support-overlay-page {
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+.support-overlay-page .support-chat {
+  pointer-events: all;
+}
+
+/* На мобиле: страница — полный экран как нативный мессенджер */
+@media (max-width: 768px) {
+  .support-overlay-page {
+    background: #0b1520;
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .support-overlay-page .support-chat {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    animation: none;
+  }
 }

@@ -1,15 +1,32 @@
+import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import api from '../utils/api';
 
 const Info = () => {
   useDocumentTitle('Информация');
-  
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/info')
+      .then(r => setContent(r.data.content || ''))
+      .catch(() => setContent(''))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="px-4 py-6">
       <div className="glass rounded-xl p-6">
-        <h1 className="text-2xl font-semibold text-white mb-3">Информация</h1>
-        <p className="text-white/70">
-          Здесь можно разместить правила хакатона, сроки, критерии оценки и полезные ссылки.
-        </p>
+        {loading ? (
+          <div className="text-white/50 text-sm">Загрузка...</div>
+        ) : content ? (
+          <div className="info-markdown">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="text-white/50">Информация пока не добавлена.</p>
+        )}
       </div>
     </div>
   );

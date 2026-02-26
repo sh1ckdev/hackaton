@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -10,14 +10,38 @@ const Profile = () => {
   const [editingSkills, setEditingSkills] = useState(false);
   const [skillsList, setSkillsList] = useState([]);
   const [newLangName, setNewLangName] = useState('');
-  const [newLangExtension, setNewLangExtension] = useState('');
   const [newFrameworkName, setNewFrameworkName] = useState('');
+
+  // Назначенный кейс команды
+  const [assignedCase, setAssignedCase] = useState(null);
+
+  // Easter egg: счётчик кликов по аватарке
+  const avatarClickCount = useRef(0);
 
   useEffect(() => {
     if (user) {
       setSkillsList(user.skills || []);
     }
   }, [user]);
+
+  useEffect(() => {
+    api.get('/teams/me').then(res => {
+      const team = res.data?.team;
+      if (team?.assigned_case_id) {
+        api.get(`/cases/${team.assigned_case_id}`).then(r => {
+          setAssignedCase(r.data?.case || null);
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleAvatarClick = () => {
+    avatarClickCount.current += 1;
+    if (avatarClickCount.current >= 20) {
+      avatarClickCount.current = 0;
+      window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+    }
+  };
 
   const handleResync = async () => {
     try {
@@ -46,11 +70,9 @@ const Profile = () => {
     const skill = {
       name: newLangName.trim(),
       type: 'language',
-      extension: newLangExtension.trim() || null
     };
     setSkillsList([...skillsList, skill]);
     setNewLangName('');
-    setNewLangExtension('');
   };
 
   const handleAddFramework = () => {
@@ -95,7 +117,7 @@ const Profile = () => {
         <div className="profile-left">
           <div className="profile-card">
             <div className="profile-avatar-section">
-              <div className="profile-avatar">
+              <div className="profile-avatar" onClick={handleAvatarClick} style={{ cursor: 'pointer' }} title="">
                 {user?.photo_url ? (
                   <img src={user.photo_url} alt={user.username} />
                 ) : (
@@ -143,6 +165,25 @@ const Profile = () => {
         </div>
 
         <div className="profile-right">
+          {assignedCase && (
+            <div className="profile-assigned-case">
+              <div className="profile-assigned-case-label">
+                <span className="profile-skills-prompt">user@mainframe:~/case</span>
+              </div>
+              <div className="profile-assigned-case-body">
+                <div className="profile-assigned-case-title">{assignedCase.title}</div>
+                {assignedCase.description && (
+                  <div className="profile-assigned-case-desc">{assignedCase.description}</div>
+                )}
+                {assignedCase.participant_category && (
+                  <div className="profile-assigned-case-meta">
+                    Категория: <span>{assignedCase.participant_category === 'school' ? 'Школьники' : 'Студенты'}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="profile-skills">
             <div className="profile-skills-header">
               <span className="profile-skills-prompt">user@mainframe:~/skills</span>
@@ -192,7 +233,6 @@ const Profile = () => {
                     </div>
                     <div className="profile-skills-add">
                       <div className="profile-skills-add-form">
-                        <span className="profile-skills-add-label">Язык:</span>
                         <input
                           type="text"
                           placeholder="JavaScript, Python…"
@@ -200,15 +240,6 @@ const Profile = () => {
                           onChange={(e) => setNewLangName(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
                           className="profile-skills-add-input"
-                        />
-                        <input
-                          type="text"
-                          placeholder=".js"
-                          value={newLangExtension}
-                          onChange={(e) => setNewLangExtension(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
-                          className="profile-skills-add-ext"
-                          title="Расширение файла"
                         />
                         <button type="button" onClick={handleAddLanguage} className="profile-skills-add-btn">
                           Добавить

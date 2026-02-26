@@ -131,7 +131,7 @@ const Landing = () => {
         <section
           className="landing-hero"
           style={{
-            minHeight: '100vh',
+            minHeight: '80vh',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',

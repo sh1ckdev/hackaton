@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../utils/api';
 
-const SupportChat = ({ onClose }) => {
+const SupportChat = ({ onClose, isPage = false }) => {
   const [messages, setMessages] = useState([]);
   const [ticketId, setTicketId] = useState(null);
   const [text, setText] = useState('');
@@ -77,7 +77,7 @@ const SupportChat = ({ onClose }) => {
   }, {});
 
   return (
-    <div className="support-overlay" onClick={onClose}>
+    <div className={`support-overlay${isPage ? ' support-overlay-page' : ''}`} onClick={isPage ? undefined : onClose}>
       <div className="support-chat" onClick={e => e.stopPropagation()}>
         <div className="support-chat-header">
           {/* Стрелка назад (видна только на мобиле через CSS) */}
