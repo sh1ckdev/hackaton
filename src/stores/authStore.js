@@ -39,13 +39,13 @@ class AuthStore {
     }
   }
 
-  async loginWithVk(code) {
+  async loginWithVk(code, state, deviceId) {
     if (this.loginInProgress) return false;
     this.loginInProgress = true;
     this.loading = true;
     this.error = null;
     try {
-      const response = await api.post('/auth/vk', { code });
+      const response = await api.post('/auth/vk', { code, state, device_id: deviceId });
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;

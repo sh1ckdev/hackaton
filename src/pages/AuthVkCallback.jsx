@@ -9,16 +9,39 @@ const AuthVkCallback = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const code = searchParams.get('code');
     const vkError = searchParams.get('error');
-
     if (vkError) {
-      setError(searchParams.get('error_description') || 'Ошибка авторизации VK');
+      setError(searchParams.get('error_description') || searchParams.get('error') || 'Ошибка авторизации VK');
       setLoading(false);
       return;
     }
 
-    if (!code) {
+    // VK ID возвращает code, state, device_id в payload или в отдельных параметрах
+    let code, state, device_id;
+    const payloadParam = searchParams.get('payload');
+    if (payloadParam) {
+      try {
+        let parsed;
+        try {
+          parsed = JSON.parse(decodeURIComponent(payloadParam));
+        } catch {
+          parsed = JSON.parse(atob(payloadParam));
+        }
+        code = parsed.code;
+        state = parsed.state;
+        device_id = parsed.device_id;
+      } catch {
+        code = searchParams.get('code');
+        state = searchParams.get('state');
+        device_id = searchParams.get('device_id');
+      }
+    } else {
+      code = searchParams.get('code');
+      state = searchParams.get('state');
+      device_id = searchParams.get('device_id');
+    }
+
+    if (!code || !state) {
       setError('Код авторизации не получен');
       setLoading(false);
       return;
@@ -26,7 +49,7 @@ const AuthVkCallback = () => {
 
     (async () => {
       try {
-        const ok = await authStore.loginWithVk(code);
+        const ok = await authStore.loginWithVk(code, state, device_id);
         if (ok) {
           navigate('/profile', { replace: true });
         } else {
