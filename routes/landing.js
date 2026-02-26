@@ -9,7 +9,6 @@ router.get('/timeline', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT * FROM hackathon_timeline
-      WHERE active = TRUE
       ORDER BY date ASC, created_at ASC
     `);
     res.json({ timeline: result.rows });

@@ -7,7 +7,7 @@ import { logError } from '../utils/logger.js';
 const router = express.Router();
 
 const signAccessToken = (user) => jwt.sign(
-  { id: user.id, telegram_id: user.telegram_id, role: user.role },
+  { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, role: user.role },
   process.env.JWT_SECRET,
   { expiresIn: '15m' }
 );
@@ -197,6 +197,131 @@ router.post('/bot', async (req, res) => {
   }
 });
 
+
+// VK ID OAuth
+const getVkAuthUrl = () => {
+  const clientId = process.env.VK_APP_ID;
+  const clientSecret = process.env.VK_APP_SECRET;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  if (!clientId || !clientSecret) return null;
+  const redirectUri = `${clientUrl}/auth/vk/callback`;
+  const scope = '0'; // минимальные права: id, имя, фото
+  const v = '5.199';
+  return `https://oauth.vk.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&display=page&v=${v}`;
+};
+
+router.get('/vk', (req, res) => {
+  const url = getVkAuthUrl();
+  if (!url) {
+    return res.status(503).json({ error: 'VK OAuth не настроен (VK_APP_ID, VK_APP_SECRET)' });
+  }
+  res.redirect(url);
+});
+
+router.post('/vk', async (req, res) => {
+  try {
+    const { code } = req.body;
+    const clientId = process.env.VK_APP_ID;
+    const clientSecret = process.env.VK_APP_SECRET;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const redirectUri = `${clientUrl}/auth/vk/callback`;
+
+    if (!clientId || !clientSecret) {
+      return res.status(503).json({ error: 'VK OAuth не настроен' });
+    }
+    if (!code) {
+      return res.status(400).json({ error: 'Код авторизации отсутствует' });
+    }
+
+    const tokenRes = await fetch(
+      `https://oauth.vk.com/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${encodeURIComponent(code)}`,
+      { method: 'GET' }
+    );
+    const tokenData = await tokenRes.json();
+
+    if (tokenData.error) {
+      logError('VK OAuth token error', null, { vkError: tokenData });
+      return res.status(400).json({ error: tokenData.error_description || 'Ошибка VK авторизации' });
+    }
+
+    const { access_token: accessToken, user_id: vkUserId } = tokenData;
+
+    const userRes = await fetch(
+      `https://api.vk.com/method/users.get?user_ids=${vkUserId}&fields=photo_100,photo_200&access_token=${accessToken}&v=5.199`,
+      { method: 'GET' }
+    );
+    const userData = await userRes.json();
+
+    if (userData.error || !userData.response?.[0]) {
+      logError('VK API users.get error', null, { vkError: userData });
+      return res.status(500).json({ error: 'Не удалось получить данные пользователя VK' });
+    }
+
+    const vkUser = userData.response[0];
+    const firstName = vkUser.first_name || '';
+    const lastName = vkUser.last_name || '';
+    const photoUrl = vkUser.photo_200 || vkUser.photo_100 || null;
+
+    let result = await pool.query(
+      'SELECT * FROM users WHERE vk_id = $1',
+      [vkUserId]
+    );
+
+    let user;
+    if (result.rows.length === 0) {
+      result = await pool.query(
+        `INSERT INTO users (vk_id, first_name, last_name, photo_url, username)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [vkUserId, firstName, lastName, photoUrl, `vk${vkUserId}`]
+      );
+      user = result.rows[0];
+    } else {
+      result = await pool.query(
+        `UPDATE users
+         SET first_name = $1, last_name = $2, photo_url = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE vk_id = $4
+         RETURNING *`,
+        [firstName, lastName, photoUrl, vkUserId]
+      );
+      user = result.rows[0];
+    }
+
+    if (user.skills && typeof user.skills === 'string') {
+      try {
+        user.skills = JSON.parse(user.skills);
+      } catch (e) {
+        user.skills = [];
+      }
+    } else if (!user.skills) {
+      user.skills = [];
+    }
+
+    const accessTokenJwt = signAccessToken(user);
+    const refresh = await createRefreshToken(user.id);
+
+    const userResponse = {
+      id: user.id,
+      telegram_id: user.telegram_id,
+      vk_id: user.vk_id,
+      username: user.username,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      photo_url: user.photo_url,
+      phone: user.phone,
+      role: user.role,
+      bio: user.bio || null,
+      skills: user.skills,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    };
+
+    res.json({ token: accessTokenJwt, refresh_token: refresh.token, user: userResponse });
+  } catch (error) {
+    logError('Ошибка VK OAuth', error);
+    res.status(500).json({ error: 'Ошибка сервера при входе через VK' });
+  }
+});
 
 router.post('/refresh', async (req, res) => {
   try {

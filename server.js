@@ -55,20 +55,23 @@ const limiter = rateLimit({
   windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
   max: Number(process.env.RATE_LIMIT_MAX || 300),
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS'
 });
 
 const authLimiter = rateLimit({
   windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
   max: Number(process.env.AUTH_RATE_LIMIT_MAX || 60),
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS'
 });
 
 const speedLimiter = slowDown({
   windowMs: Number(process.env.SLOWDOWN_WINDOW_MS || 10 * 60 * 1000),
   delayAfter: Number(process.env.SLOWDOWN_AFTER || 100),
-  delayMs: (hits) => Math.min((hits - 100) * 100, 2000)
+  delayMs: (hits) => Math.min((hits - 100) * 100, 2000),
+  skip: (req) => req.method === 'OPTIONS'
 });
 
 app.use(limiter);

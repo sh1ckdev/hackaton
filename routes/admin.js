@@ -36,7 +36,7 @@ router.use(authenticateToken);
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
     const [usersCount, casesCount, solutionsCount, solutionsByStatus] = await Promise.all([
-      pool.query('SELECT COUNT(*) as count FROM users'),
+      pool.query("SELECT COUNT(*) as count FROM users WHERE COALESCE(role, 'user') NOT IN ('admin', 'moderator')"),
       pool.query('SELECT COUNT(*) as count FROM cases'),
       pool.query('SELECT COUNT(*) as count FROM solutions'),
       pool.query(`

@@ -403,6 +403,54 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле skills в таблицу users');
     }
 
+    // vk_id для входа через VK ID
+    const usersVkIdExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'vk_id'
+      )
+    `);
+
+    if (!usersVkIdExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN vk_id BIGINT UNIQUE');
+      try {
+        await pool.query('ALTER TABLE users ALTER COLUMN telegram_id DROP NOT NULL');
+      } catch (e) {
+        if (!e.message.includes('does not exist') && !e.message.includes('is not nullable')) {
+          logWarn('telegram_id DROP NOT NULL', { error: e.message });
+        }
+      }
+      try {
+        await pool.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_has_auth');
+        await pool.query(`
+          ALTER TABLE users ADD CONSTRAINT users_has_auth
+          CHECK (telegram_id IS NOT NULL OR vk_id IS NOT NULL)
+        `);
+      } catch (e) {
+        if (!e.message.includes('already exists')) logWarn('users_has_auth constraint', { error: e.message });
+      }
+      logInfo('Добавлено поле vk_id в таблицу users');
+    }
+
+    // Индекс для vk_id
+    const idxVkIdExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM pg_indexes 
+        WHERE schemaname = 'public' 
+        AND indexname = 'idx_users_vk_id'
+      )
+    `);
+    if (!idxVkIdExists.rows[0].exists) {
+      try {
+        await pool.query('CREATE INDEX idx_users_vk_id ON users(vk_id)');
+        logInfo('Создан индекс idx_users_vk_id');
+      } catch (e) {
+        if (!e.message.includes('already exists')) logWarn('Индекс idx_users_vk_id', { error: e.message });
+      }
+    }
+
     // Проверка существования таблицы hackathon_timeline
     const timelineExists = await pool.query(`
       SELECT EXISTS (
