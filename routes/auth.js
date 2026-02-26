@@ -200,6 +200,23 @@ router.post('/bot', async (req, res) => {
 
 // VK ID OAuth 2.1 (id.vk.ru) — для приложений, созданных в VK ID
 
+const latToCyrMap = {
+  a: 'а', b: 'б', v: 'в', g: 'г', d: 'д', e: 'е', ž: 'ж', z: 'з', i: 'и', j: 'й', k: 'к', l: 'л', m: 'м', n: 'н', o: 'о', p: 'п', r: 'р', s: 'с', t: 'т', u: 'у', f: 'ф', h: 'х', c: 'ц', č: 'ч', š: 'ш', ŝ: 'щ', y: 'ы', ė: 'э', ju: 'ю', ja: 'я',
+  A: 'А', B: 'Б', V: 'В', G: 'Г', D: 'Д', E: 'Е', Ž: 'Ж', Z: 'З', I: 'И', J: 'Й', K: 'К', L: 'Л', M: 'М', N: 'Н', O: 'О', P: 'П', R: 'Р', S: 'С', T: 'Т', U: 'У', F: 'Ф', H: 'Х', C: 'Ц', Č: 'Ч', Š: 'Ш', Ŝ: 'Щ', Y: 'Ы', Ė: 'Э',
+  ā: 'а', ē: 'е', ī: 'и', ō: 'о', ū: 'у', ļ: 'л', Ļ: 'Л', ņ: 'н', Ņ: 'Н', ķ: 'к', Ķ: 'К', ģ: 'г', Ģ: 'Г', Ā: 'А', Ē: 'Е', Ī: 'И', Ō: 'О', Ū: 'У'
+};
+
+const transliterateToCyrillic = (str) => {
+  if (!str || typeof str !== 'string') return str;
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    const mapped = latToCyrMap[c];
+    out += mapped !== undefined ? mapped : c;
+  }
+  return out;
+};
+
 const vkPkceStore = new Map(); // state -> { code_verifier, expires }
 const VK_PKCE_TTL_MS = 10 * 60 * 1000;
 
@@ -222,7 +239,7 @@ const getVkAuthUrl = () => {
     expires: Date.now() + VK_PKCE_TTL_MS
   });
   return {
-    url: `https://id.vk.ru/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`,
+    url: `https://id.vk.ru/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256&lang_id=0`,
     state
   };
 };
@@ -297,33 +314,66 @@ router.post('/vk', async (req, res) => {
     const userInfoData = await userInfoRes.json();
 
     const vkUser = userInfoData?.user;
-    const firstName = vkUser?.first_name || '';
-    const lastName = vkUser?.last_name || '';
+    const rawFirst = vkUser?.first_name || '';
+    const rawLast = vkUser?.last_name || '';
+    const hasCyrillic = (s) => /[\u0400-\u04FF]/.test(s);
+    const firstName = rawFirst && !hasCyrillic(rawFirst) ? transliterateToCyrillic(rawFirst) : rawFirst;
+    const lastName = rawLast && !hasCyrillic(rawLast) ? transliterateToCyrillic(rawLast) : rawLast;
     const photoUrl = vkUser?.avatar || null;
     const phone = vkUser?.phone || null;
     const email = vkUser?.email || null;
 
-    let result = await pool.query(
-      'SELECT * FROM users WHERE vk_id = $1',
-      [vkUserId]
-    );
+    const normalizePhone = (p) => {
+      if (!p || typeof p !== 'string') return null;
+      const digits = p.replace(/\D/g, '');
+      return digits.length >= 10 ? digits : null;
+    };
+    const phoneNorm = normalizePhone(phone);
 
+    let result = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkUserId]);
     let user;
-    if (result.rows.length === 0) {
+
+    if (result.rows.length > 0) {
+      result = await pool.query(
+        `UPDATE users
+         SET first_name = $1, last_name = $2, photo_url = COALESCE(NULLIF($3, ''), photo_url),
+             phone = COALESCE($4, phone), email = COALESCE($5, email), updated_at = CURRENT_TIMESTAMP
+         WHERE vk_id = $6
+         RETURNING *`,
+        [firstName, lastName, photoUrl, phone, email, vkUserId]
+      );
+      user = result.rows[0];
+    } else if (phoneNorm) {
+      result = await pool.query(
+        `SELECT * FROM users WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') = $1 LIMIT 1`,
+        [phoneNorm]
+      );
+      if (result.rows.length > 0) {
+        const existing = result.rows[0];
+        result = await pool.query(
+          `UPDATE users
+           SET vk_id = $1,
+               first_name = COALESCE(NULLIF(TRIM(first_name), ''), $2),
+               last_name = COALESCE(NULLIF(TRIM(last_name), ''), $3),
+               photo_url = COALESCE(photo_url, $4),
+               phone = COALESCE(phone, $5),
+               email = COALESCE(email, $6),
+               username = COALESCE(NULLIF(TRIM(username), ''), $7),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $8
+           RETURNING *`,
+          [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`, existing.id]
+        );
+        user = result.rows[0];
+      }
+    }
+
+    if (!user) {
       result = await pool.query(
         `INSERT INTO users (vk_id, first_name, last_name, photo_url, phone, email, username)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
         [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`]
-      );
-      user = result.rows[0];
-    } else {
-      result = await pool.query(
-        `UPDATE users
-         SET first_name = $1, last_name = $2, photo_url = $3, phone = $4, email = $5, updated_at = CURRENT_TIMESTAMP
-         WHERE vk_id = $6
-         RETURNING *`,
-        [firstName, lastName, photoUrl, phone, email, vkUserId]
       );
       user = result.rows[0];
     }
