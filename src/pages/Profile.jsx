@@ -4,10 +4,12 @@ import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { EditIcon, RefreshIcon } from '../components/Icons';
 import api from '../utils/api';
+import SupportChat from '../components/SupportChat';
 
 const Profile = () => {
   const user = authStore.user;
   useDocumentTitle('Профиль');
+  const [showSupport, setShowSupport] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
   const [skillsList, setSkillsList] = useState([]);
   const [newLangName, setNewLangName] = useState('');
@@ -137,6 +139,12 @@ const Profile = () => {
               <button onClick={handleResync} className="profile-btn profile-btn-primary">
                 <RefreshIcon size={16} />
                 Обновить данные
+              </button>
+              <button onClick={() => setShowSupport(true)} className="profile-btn profile-btn-support">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                </svg>
+                Поддержка
               </button>
             </div>
 
@@ -296,6 +304,7 @@ const Profile = () => {
         </div>
       </div>
 
+      {showSupport && <SupportChat onClose={() => setShowSupport(false)} />}
     </div>
   );
 };
