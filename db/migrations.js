@@ -135,9 +135,8 @@ async function applySchemaChanges() {
 
 
   if (currentVersion === schemaHash && !forceMigrate) {
-    logInfo('Схема БД актуальна, миграции не требуются');
-    return;
-  }
+    logInfo('Схема БД актуальна, миграции schema.sql не требуются');
+  } else {
 
   if (forceMigrate) {
     logInfo('Принудительное применение миграций (FORCE_DB_MIGRATE=true)');
@@ -182,9 +181,9 @@ async function applySchemaChanges() {
 
   await applyAdditionalMigrations();
 
-
-  await saveMigrationVersion(schemaHash, `Схема обновлена: ${new Date().toISOString()}`);
-  logInfo('Миграции схемы применены успешно');
+    await saveMigrationVersion(schemaHash, `Схема обновлена: ${new Date().toISOString()}`);
+    logInfo('Миграции схемы применены успешно');
+  }
 }
 
 
@@ -465,54 +464,6 @@ async function ensureNewFieldsExist() {
       }
     }
 
-    // max_id для входа через MAX мессенджер
-    const usersMaxIdExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_schema = 'public' 
-        AND table_name = 'users' 
-        AND column_name = 'max_id'
-      )
-    `);
-
-    if (!usersMaxIdExists.rows[0].exists) {
-      await pool.query('ALTER TABLE users ADD COLUMN max_id BIGINT UNIQUE');
-      try {
-        await pool.query('ALTER TABLE users ALTER COLUMN telegram_id DROP NOT NULL');
-      } catch (e) {
-        if (!e.message.includes('does not exist') && !e.message.includes('is not nullable')) {
-          logWarn('telegram_id DROP NOT NULL', { error: e.message });
-        }
-      }
-      try {
-        await pool.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_has_auth');
-        await pool.query(`
-          ALTER TABLE users ADD CONSTRAINT users_has_auth
-          CHECK (telegram_id IS NOT NULL OR vk_id IS NOT NULL OR max_id IS NOT NULL)
-        `);
-      } catch (e) {
-        if (!e.message.includes('already exists')) logWarn('users_has_auth constraint', { error: e.message });
-      }
-      logInfo('Добавлено поле max_id в таблицу users');
-    }
-
-    // Индекс для max_id
-    const idxMaxIdExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM pg_indexes 
-        WHERE schemaname = 'public' 
-        AND indexname = 'idx_users_max_id'
-      )
-    `);
-    if (!idxMaxIdExists.rows[0].exists) {
-      try {
-        await pool.query('CREATE INDEX idx_users_max_id ON users(max_id)');
-        logInfo('Создан индекс idx_users_max_id');
-      } catch (e) {
-        if (!e.message.includes('already exists')) logWarn('Индекс idx_users_max_id', { error: e.message });
-      }
-    }
-
     // Проверка существования таблицы hackathon_timeline
     const timelineExists = await pool.query(`
       SELECT EXISTS (
@@ -687,6 +638,8 @@ export async function runMigrations() {
   try {
     await ensureMigrationsTable();
     await applySchemaChanges();
+    // Всегда применяем дополнительные миграции (vk_id и др.) — они добавляют отсутствующие столбцы
+    await applyAdditionalMigrations();
   } catch (error) {
     logError('Ошибка при выполнении миграций', error);
     throw error;

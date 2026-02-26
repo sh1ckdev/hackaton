@@ -7,7 +7,7 @@ import { logError } from '../utils/logger.js';
 const router = express.Router();
 
 const signAccessToken = (user) => jwt.sign(
-  { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, max_id: user.max_id ?? null, role: user.role },
+  { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, role: user.role },
   process.env.JWT_SECRET,
   { expiresIn: '15m' }
 );
@@ -179,7 +179,6 @@ router.post('/bot', async (req, res) => {
       id: row.user_id,
       telegram_id: row.telegram_id,
       vk_id: row.vk_id ?? null,
-      max_id: row.max_id ?? null,
       username: row.username,
       first_name: row.first_name,
       last_name: row.last_name,
