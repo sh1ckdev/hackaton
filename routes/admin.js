@@ -35,8 +35,10 @@ router.use(authenticateToken);
 
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
-    const [usersCount, casesCount, solutionsCount, solutionsByStatus] = await Promise.all([
+    const [usersCount, studentsCount, schoolCount, casesCount, solutionsCount, solutionsByStatus] = await Promise.all([
       pool.query("SELECT COUNT(*) as count FROM users WHERE COALESCE(role, 'user') NOT IN ('admin', 'moderator')"),
+      pool.query("SELECT COUNT(*) as count FROM users WHERE COALESCE(role, 'user') NOT IN ('admin', 'moderator') AND participant_category = 'student'"),
+      pool.query("SELECT COUNT(*) as count FROM users WHERE COALESCE(role, 'user') NOT IN ('admin', 'moderator') AND participant_category = 'school'"),
       pool.query('SELECT COUNT(*) as count FROM cases'),
       pool.query('SELECT COUNT(*) as count FROM solutions'),
       pool.query(`
@@ -48,6 +50,8 @@ router.get('/stats', requireAdmin, async (req, res) => {
 
     res.json({
       users: parseInt(usersCount.rows[0].count),
+      participants_students: parseInt(studentsCount.rows[0].count),
+      participants_school: parseInt(schoolCount.rows[0].count),
       cases: parseInt(casesCount.rows[0].count),
       solutions: parseInt(solutionsCount.rows[0].count),
       solutionsByStatus: solutionsByStatus.rows.reduce((acc, row) => {
@@ -61,16 +65,64 @@ router.get('/stats', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/analytics', requireAdmin, async (req, res) => {
+  try {
+    const [solutionsByStatus, solutionsByCase, usersByDate, solutionsByDate] = await Promise.all([
+      pool.query(`
+        SELECT status, COUNT(*) as count FROM solutions GROUP BY status ORDER BY count DESC
+      `),
+      pool.query(`
+        SELECT c.id, c.title, COUNT(s.id) as count
+        FROM cases c
+        LEFT JOIN solutions s ON s.case_id = c.id
+        GROUP BY c.id, c.title
+        ORDER BY count DESC
+      `),
+      pool.query(`
+        SELECT DATE(created_at) as date, COUNT(*) as count
+        FROM users
+        WHERE COALESCE(role, 'user') NOT IN ('admin', 'moderator')
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `),
+      pool.query(`
+        SELECT DATE(created_at) as date, COUNT(*) as count
+        FROM solutions
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+      `)
+    ]);
+
+    res.json({
+      solutionsByStatus: solutionsByStatus.rows.map(r => ({ name: r.status, value: parseInt(r.count) })),
+      solutionsByCase: solutionsByCase.rows.map(r => ({ name: r.title || 'Без кейса', count: parseInt(r.count) })),
+      usersByDate: usersByDate.rows.map(r => ({ date: r.date, count: parseInt(r.count) })),
+      solutionsByDate: solutionsByDate.rows.map(r => ({ date: r.date, count: parseInt(r.count) }))
+    });
+  } catch (error) {
+    logError('Ошибка получения аналитики', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT u.*, COUNT(s.id) as solutions_count
+    const { participant_category } = req.query;
+    let query = `
+      SELECT u.*, COUNT(s.id) as solutions_count
        FROM users u
        LEFT JOIN solutions s ON u.id = s.user_id
-       GROUP BY u.id
-       ORDER BY u.created_at DESC`
-    );
+    `;
+    const params = [];
+    if (participant_category === 'student' || participant_category === 'school') {
+      params.push(participant_category);
+      query += ` WHERE u.participant_category = $1`;
+    }
+    query += ` GROUP BY u.id ORDER BY u.created_at DESC`;
+    const result = params.length
+      ? await pool.query(query, params)
+      : await pool.query(query);
     res.json({ users: result.rows });
   } catch (error) {
     logError('Ошибка получения пользователей', error);
@@ -295,7 +347,30 @@ router.put('/users/by-id/:userId/role', requireAdmin, adminOperationLimiter, asy
     res.json({ user: result.rows[0] });
   } catch (error) {
     logError('Ошибка изменения роли (by-id)', error);
-    res.status(500).json({ error: 'Ошибка сервера при изменении роли' });
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.put('/users/by-id/:userId/participant-category', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const { participant_category } = req.body;
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : null;
+    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    const result = await pool.query(
+      'UPDATE users SET participant_category = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [cat, userId]
+    );
+    res.json({ user: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка изменения категории участника', error);
+    res.status(500).json({ error: 'Ошибка сервера при изменении категории' });
   }
 });
 
@@ -572,17 +647,19 @@ router.get('/settings/timeline', requireModerator, async (req, res) => {
 // Создать пункт таймлайна
 router.post('/settings/timeline', requireModerator, async (req, res) => {
   try {
-    const { type, title, description, date, active } = req.body;
+    const { type, title, description, date, date_to, active, show_countdown } = req.body;
     
-    if (!type || !title || !description || !date) {
-      return res.status(400).json({ error: 'Все поля обязательны' });
+    if (!type || !title || !description) {
+      return res.status(400).json({ error: 'Название, тип и описание обязательны' });
     }
 
+    const dateFrom = date && date.trim() ? date : new Date().toISOString();
+
     const result = await pool.query(`
-      INSERT INTO hackathon_timeline (type, title, description, date, active)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO hackathon_timeline (type, title, description, date, date_to, active, show_countdown)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
-    `, [type, title, description, date, active || false]);
+    `, [type, title, description, dateFrom, date_to || null, active || false, !!show_countdown]);
 
     logInfo('Создан пункт таймлайна', { id: result.rows[0].id, title });
     res.json({ timeline_item: result.rows[0] });
@@ -596,7 +673,7 @@ router.post('/settings/timeline', requireModerator, async (req, res) => {
 router.put('/settings/timeline/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, title, description, date, active } = req.body;
+    const { type, title, description, date, date_to, active, show_countdown } = req.body;
 
     const updates = [];
     const values = [];
@@ -616,11 +693,19 @@ router.put('/settings/timeline/:id', requireModerator, async (req, res) => {
     }
     if (date !== undefined) {
       updates.push(`date = $${paramIndex++}`);
-      values.push(date);
+      values.push(date && String(date).trim() ? date : new Date().toISOString());
+    }
+    if (date_to !== undefined) {
+      updates.push(`date_to = $${paramIndex++}`);
+      values.push(date_to || null);
     }
     if (active !== undefined) {
       updates.push(`active = $${paramIndex++}`);
       values.push(active);
+    }
+    if (show_countdown !== undefined) {
+      updates.push(`show_countdown = $${paramIndex++}`);
+      values.push(!!show_countdown);
     }
 
     if (updates.length === 0) {

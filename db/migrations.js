@@ -447,6 +447,94 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле vk_id в таблицу users');
     }
 
+    // user_code — 6-значный буквенно-цифровой код пользователя
+    const usersUserCodeExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'user_code'
+      )
+    `);
+    if (!usersUserCodeExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN user_code VARCHAR(6) UNIQUE');
+      const genCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      };
+      const rows = (await pool.query('SELECT id FROM users WHERE user_code IS NULL')).rows;
+      for (const row of rows) {
+        let code;
+        for (let i = 0; i < 20; i++) {
+          code = genCode();
+          const taken = await pool.query('SELECT 1 FROM users WHERE user_code = $1', [code]);
+          if (taken.rows.length === 0) break;
+        }
+        await pool.query('UPDATE users SET user_code = $1 WHERE id = $2', [code, row.id]);
+      }
+      try {
+        await pool.query('ALTER TABLE users ALTER COLUMN user_code SET NOT NULL');
+      } catch (e) {
+        logWarn('user_code NOT NULL', { error: e.message });
+      }
+      logInfo('Добавлено поле user_code в users');
+    }
+
+    // participant_category — студент / школьник для разделения команд
+    const usersParticipantCategoryExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'participant_category'
+      )
+    `);
+    if (!usersParticipantCategoryExists.rows[0].exists) {
+      await pool.query(`ALTER TABLE users ADD COLUMN participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL)`);
+      logInfo('Добавлено поле participant_category в users');
+    }
+
+    const teamsParticipantCategoryExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'teams' 
+        AND column_name = 'participant_category'
+      )
+    `);
+    if (!teamsParticipantCategoryExists.rows[0].exists) {
+      await pool.query(`ALTER TABLE teams ADD COLUMN participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL)`);
+      logInfo('Добавлено поле participant_category в teams');
+    }
+
+    // last_activity_at — время последней активности на сайте (для статуса онлайн)
+    const usersLastActivityAtExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'last_activity_at'
+      )
+    `);
+    if (!usersLastActivityAtExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN last_activity_at TIMESTAMP');
+      logInfo('Добавлено поле last_activity_at в users');
+    }
+
+    // specialty в team_members (fullstack, frontend, backend, design, mobile, devops)
+    const teamMembersSpecialtyExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'team_members' 
+        AND column_name = 'specialty'
+      )
+    `);
+    if (!teamMembersSpecialtyExists.rows[0].exists) {
+      await pool.query(`ALTER TABLE team_members ADD COLUMN specialty VARCHAR(30) DEFAULT 'fullstack'`);
+      logInfo('Добавлено поле specialty в team_members');
+    }
+
     // Индекс для vk_id
     const idxVkIdExists = await pool.query(`
       SELECT EXISTS (
@@ -487,6 +575,32 @@ async function ensureNewFieldsExist() {
         )
       `);
       logInfo('Создана таблица hackathon_timeline');
+    }
+
+    // date_to и show_countdown для таймлайна (от/до, таймер на главной)
+    const timelineDateToExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_timeline' 
+        AND column_name = 'date_to'
+      )
+    `);
+    if (!timelineDateToExists.rows[0].exists) {
+      await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN date_to TIMESTAMP');
+      logInfo('Добавлено поле date_to в hackathon_timeline');
+    }
+    const timelineShowCountdownExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_timeline' 
+        AND column_name = 'show_countdown'
+      )
+    `);
+    if (!timelineShowCountdownExists.rows[0].exists) {
+      await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN show_countdown BOOLEAN DEFAULT FALSE');
+      logInfo('Добавлено поле show_countdown в hackathon_timeline');
     }
 
     // Проверка существования таблицы hackathon_prizes

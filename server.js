@@ -3,8 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import slowDown from 'express-slow-down';
 import compression from 'compression';
 import { sanitizeInput } from './middleware/security.js';
 import { logInfo, logError, logWarn } from './utils/logger.js';
@@ -51,31 +49,6 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-const limiter = rateLimit({
-  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
-  max: Number(process.env.RATE_LIMIT_MAX || 300),
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS'
-});
-
-const authLimiter = rateLimit({
-  windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000),
-  max: Number(process.env.AUTH_RATE_LIMIT_MAX || 60),
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === 'OPTIONS'
-});
-
-const speedLimiter = slowDown({
-  windowMs: Number(process.env.SLOWDOWN_WINDOW_MS || 10 * 60 * 1000),
-  delayAfter: Number(process.env.SLOWDOWN_AFTER || 100),
-  delayMs: (hits) => Math.min((hits - 100) * 100, 2000),
-  skip: (req) => req.method === 'OPTIONS'
-});
-
-app.use(limiter);
-app.use(speedLimiter);
 app.use(cors({
   origin: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((v) => v.trim()) : 'http://localhost:5173',
   credentials: true
@@ -90,7 +63,7 @@ app.use(sanitizeInput);
 app.use('/uploads', express.static(uploadsDir));
 
 
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/cases', casesRoutes);
 app.use('/api/solutions', solutionsRoutes);
 app.use('/api/admin', adminRoutes);
@@ -100,6 +73,10 @@ app.use('/api/landing', landingRoutes);
 
 
 app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/api/healthcheck', (req, res) => {
   res.json({ status: 'ok' });
 });
 

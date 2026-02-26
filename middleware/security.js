@@ -1,6 +1,4 @@
 
-
-import rateLimit from 'express-rate-limit';
 import pool from '../db/index.js';
 import { logSecurity, logError } from '../utils/logger.js';
 
@@ -79,44 +77,11 @@ export const validateFieldLength = (field, maxLength, fieldName) => {
 };
 
 
-export const solutionCreationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5, // максимум 5 решений за 15 минут
-  message: 'Слишком много попыток создания решений. Попробуйте позже.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-
-    return req.user && (req.user.role === 'admin' || req.user.role === 'moderator');
-  }
-});
-
-
-export const teamCreationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 час
-  max: 3, // максимум 3 команды в час
-  message: 'Слишком много попыток создания команд. Попробуйте позже.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-
-export const teamJoinLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 минут
-  max: 10, // максимум 10 попыток вступления в 10 минут
-  message: 'Слишком много попыток вступления в команды. Попробуйте позже.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-
-export const adminOperationLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 минута
-  max: 20, // максимум 20 операций в минуту
-  message: 'Слишком много операций. Подождите немного.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const noopLimiter = (req, res, next) => next();
+export const solutionCreationLimiter = noopLimiter;
+export const teamCreationLimiter = noopLimiter;
+export const teamJoinLimiter = noopLimiter;
+export const adminOperationLimiter = noopLimiter;
 
 
 export const logSuspiciousActivity = async (req, activity, details = {}) => {

@@ -2,6 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import crypto from 'crypto';
 import pool from './db/index.js';
 import { logError, logWarn, logInfo } from './utils/logger.js';
+import { generateUniqueUserCode } from './utils/userCode.js';
 
 export function startBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -18,16 +19,18 @@ export function startBot() {
     const telegramId = from.id;
     const existing = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
     if (existing.rows.length === 0) {
+      const userCode = await generateUniqueUserCode(pool);
       const result = await pool.query(
-        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
         [
           telegramId,
           from.username || null,
           from.first_name || null,
           from.last_name || null,
-          photoUrl
+          photoUrl,
+          userCode
         ]
       );
       return result.rows[0];

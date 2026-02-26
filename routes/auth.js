@@ -1,5 +1,7 @@
 import express from 'express';
+import { generateUniqueUserCode } from '../utils/userCode.js';
 import jwt from 'jsonwebtoken';
+import { authenticateToken } from '../middleware/auth.js';
 import crypto from 'crypto';
 import pool from '../db/index.js';
 import { logError } from '../utils/logger.js';
@@ -70,17 +72,18 @@ router.post('/telegram', async (req, res) => {
 
     let user;
     if (result.rows.length === 0) {
-
+      const userCode = await generateUniqueUserCode(pool);
       result = await pool.query(
-        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING *`,
         [
           telegramId,
           telegramUser.username || null,
           telegramUser.first_name || null,
           telegramUser.last_name || null,
-          telegramUser.photo_url || null
+          telegramUser.photo_url || null,
+          userCode
         ]
       );
       user = result.rows[0];
@@ -126,7 +129,7 @@ router.post('/telegram', async (req, res) => {
 
 router.post('/bot', async (req, res) => {
   try {
-    const { token, captcha_token } = req.body;
+    const { token, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
     if (!captchaOk) {
       return res.status(400).json({ error: 'Капча не пройдена' });
@@ -162,6 +165,12 @@ router.post('/bot', async (req, res) => {
       [row.auth_id]
     );
 
+    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : null;
+    if (cat && !row.participant_category) {
+      await pool.query('UPDATE users SET participant_category = $1 WHERE id = $2', [cat, row.user_id]);
+      row.participant_category = cat;
+    }
+
     const jwtToken = signAccessToken(row);
     const refresh = await createRefreshToken(row.user_id);
 
@@ -177,6 +186,7 @@ router.post('/bot', async (req, res) => {
 
     const user = {
       id: row.user_id,
+      participant_category: row.participant_category || null,
       telegram_id: row.telegram_id,
       vk_id: row.vk_id ?? null,
       username: row.username,
@@ -263,7 +273,7 @@ router.get('/vk', (req, res) => {
 
 router.post('/vk', async (req, res) => {
   try {
-    const { code, state, device_id } = req.body;
+    const { code, state, device_id, participant_category } = req.body;
     const clientId = process.env.VK_APP_ID;
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const redirectUri = `${clientUrl}/auth/vk/callback`;
@@ -340,14 +350,19 @@ router.post('/vk', async (req, res) => {
     let result = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkUserId]);
     let user;
 
+    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : null;
     if (result.rows.length > 0) {
+      const existing = result.rows[0];
+      const catToSet = existing.participant_category || cat;
       result = await pool.query(
         `UPDATE users
          SET first_name = $1, last_name = $2, photo_url = COALESCE(NULLIF($3, ''), photo_url),
-             phone = COALESCE($4, phone), email = COALESCE($5, email), updated_at = CURRENT_TIMESTAMP
-         WHERE vk_id = $6
+             phone = COALESCE($4, phone), email = COALESCE($5, email),
+             participant_category = COALESCE($6, participant_category),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE vk_id = $7
          RETURNING *`,
-        [firstName, lastName, photoUrl, phone, email, vkUserId]
+        [firstName, lastName, photoUrl, phone, email, catToSet, vkUserId]
       );
       user = result.rows[0];
     } else if (phoneNorm) {
@@ -357,6 +372,7 @@ router.post('/vk', async (req, res) => {
       );
       if (result.rows.length > 0) {
         const existing = result.rows[0];
+        const catToSet = existing.participant_category || cat;
         result = await pool.query(
           `UPDATE users
            SET vk_id = $1,
@@ -366,21 +382,23 @@ router.post('/vk', async (req, res) => {
                phone = COALESCE(phone, $5),
                email = COALESCE(email, $6),
                username = COALESCE(NULLIF(TRIM(username), ''), $7),
+               participant_category = COALESCE($8, participant_category),
                updated_at = CURRENT_TIMESTAMP
-           WHERE id = $8
+           WHERE id = $9
            RETURNING *`,
-          [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`, existing.id]
+          [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`, catToSet, existing.id]
         );
         user = result.rows[0];
       }
     }
 
     if (!user) {
+      const userCode = await generateUniqueUserCode(pool);
       result = await pool.query(
-        `INSERT INTO users (vk_id, first_name, last_name, photo_url, phone, email, username)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO users (vk_id, first_name, last_name, photo_url, phone, email, username, user_code, participant_category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
-        [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`]
+        [vkUserId, firstName, lastName, photoUrl, phone, email, `vk${vkUserId}`, userCode, cat]
       );
       user = result.rows[0];
     }
@@ -400,6 +418,8 @@ router.post('/vk', async (req, res) => {
 
     const userResponse = {
       id: user.id,
+      participant_category: user.participant_category || null,
+      user_code: user.user_code,
       telegram_id: user.telegram_id,
       vk_id: user.vk_id,
       username: user.username,
@@ -482,6 +502,16 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+
+router.post('/heartbeat', authenticateToken, async (req, res) => {
+  try {
+    await pool.query('UPDATE users SET last_activity_at = NOW() WHERE id = $1', [req.user.id]);
+    res.json({ ok: true });
+  } catch (error) {
+    logError('Ошибка heartbeat', error, { userId: req.user?.id });
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
 router.get('/me', async (req, res) => {
   try {
