@@ -283,6 +283,27 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
 });
 
 
+// Получить решение конкретной команды
+router.get('/teams/:id/solution', requireModerator, async (req, res) => {
+  try {
+    const teamId = parseInt(req.params.id);
+    const result = await pool.query(
+      `SELECT s.*, u.first_name, u.last_name, u.username
+       FROM solutions s
+       JOIN users u ON s.user_id = u.id
+       JOIN team_members tm ON tm.user_id = s.user_id
+       WHERE tm.team_id = $1
+       ORDER BY s.created_at DESC
+       LIMIT 1`,
+      [teamId]
+    );
+    res.json({ solution: result.rows[0] || null });
+  } catch (error) {
+    logError('Ошибка получения решения команды', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 router.post('/broadcast', requireModerator, async (req, res) => {
   try {
     const { message } = req.body;
