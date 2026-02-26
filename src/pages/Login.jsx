@@ -279,20 +279,21 @@ const Login = () => {
           </div>
 
           <div className="login-actions">
+            {/* Капча — показывается всегда если Turnstile настроен */}
+            {turnstileSiteKey && (
+              <div className="login-captcha">
+                <div ref={captchaRef}></div>
+              </div>
+            )}
+
             {hasToken ? (
               <div className="login-token-block">
                 <div className="login-token-title">Почти готово!</div>
                 <div className="login-token-text">
                   {turnstileSiteKey
-                    ? 'Пройдите проверку безопасности для завершения входа'
+                    ? 'Пройдите проверку безопасности и завершите вход'
                     : 'Завершите вход'}
                 </div>
-
-                {turnstileSiteKey && (
-                  <div className="login-captcha">
-                    <div ref={captchaRef}></div>
-                  </div>
-                )}
 
                 {loginPending && (
                   <div className="login-pending">
@@ -305,12 +306,20 @@ const Login = () => {
               </div>
             ) : (
               <div className="login-auth-buttons">
-                <button onClick={handleTelegramClick} className="login-telegram-button" disabled={!participantCategory}>
+                <button
+                  onClick={handleTelegramClick}
+                  className="login-telegram-button"
+                  disabled={!participantCategory || (turnstileSiteKey && !captchaToken)}
+                >
                   <TelegramIcon />
                   <span>Войти через Telegram</span>
                 </button>
 
-                <button onClick={handleVkRedirect} className="login-vk-button" disabled={!participantCategory}>
+                <button
+                  onClick={handleVkRedirect}
+                  className="login-vk-button"
+                  disabled={!participantCategory || (turnstileSiteKey && !captchaToken)}
+                >
                   <VkIcon size={22} />
                   <span>Войти через VK ID</span>
                 </button>
