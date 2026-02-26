@@ -277,6 +277,7 @@ code {
   .landing-hero-logo {
     width: 98vw;
     margin-bottom: 28px;
+    margin-top: -15vh; /* поднимаем лого выше центра */
   }
 }
 
@@ -580,24 +581,25 @@ code {
 
 .landing-timeline-content h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #fff;
 }
 
 .landing-timeline-content p {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   color: rgba(148, 163, 184, 0.8);
 }
 
 .landing-timeline-date {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #fff;
   border: 1px solid rgba(59, 130, 246, 0.5);
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   background: #3b82f6;
   white-space: nowrap; /* на десктопе nowrap, на мобиле переопределяется */
   word-break: break-word;
@@ -2606,56 +2608,59 @@ code {
     gap: 36px;
   }
 
-  /* Вертикальная линия — прижата к левому краю */
+  /* Вертикальная линия — прижата к левому краю (по центру точки 8px) */
   .landing-timeline-list::before {
     left: 8px;
     transform: none;
   }
 
-  /* Каждый элемент — flex-колонка с отступом от линии */
+  /* Каждый элемент: grid 2 колонки — точка (16px) | правая часть */
   .landing-timeline-item {
-    display: flex !important;
-    flex-direction: column;
-    grid-template-columns: none;
-    gap: 8px;
-    padding-left: 36px;
+    display: grid !important;
+    grid-template-columns: 16px 1fr !important;
+    grid-template-rows: auto auto;
+    column-gap: 20px;
+    row-gap: 6px;
+    padding-left: 0;
     position: relative;
   }
 
-  /* Контент — всегда слева, text-align left */
-  .landing-timeline-item-left .landing-timeline-content,
-  .landing-timeline-item-right .landing-timeline-content {
-    grid-column: unset;
-    text-align: left;
-    max-width: 100%;
-    justify-self: unset;
-    padding-left: 0;
-    order: 2;
+  /* Точка — grid col 1, занимает обе строки, выравнивается по верху */
+  .landing-timeline-node {
+    position: static !important;
+    transform: none !important;
+    left: auto !important;
+    top: auto !important;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: start;
+    margin-top: 4px;
+    justify-self: center;
   }
 
-  /* Дата — над контентом */
+  /* Дата — grid col 2, row 1 */
   .landing-timeline-item-left .landing-timeline-date,
   .landing-timeline-item-right .landing-timeline-date {
-    grid-column: unset;
-    justify-self: unset;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
     margin-left: 0;
-    order: 1;
-    white-space: normal;  /* перенос длинных дат */
+    white-space: normal;
     word-break: break-word;
     display: inline-block;
-    align-self: flex-start;
+    align-self: start;
+    max-width: 100%;
   }
 
-  /* Точка — абсолютно, по центру линии */
-  .landing-timeline-node {
-    position: absolute;
-    left: 0px;
-    top: 50%;
-    transform: translateY(-50%);
-    grid-column: unset;
-    justify-self: unset;
-    margin: 0;
-    flex-shrink: 0;
+  /* Контент (h3 + p) — grid col 2, row 2 */
+  .landing-timeline-item-left .landing-timeline-content,
+  .landing-timeline-item-right .landing-timeline-content {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: left;
+    max-width: 100%;
+    justify-self: start;
+    padding-left: 0;
   }
 
   .app-content-inner {
@@ -5867,16 +5872,34 @@ code {
     animation: fadeIn 0.18s ease;
   }
 
-  /* Шапка — нотч/статус-бар */
+  /* Шапка — нотч + центрирование названия */
   .support-chat-header {
     padding-top: max(16px, env(safe-area-inset-top, 16px));
+    position: relative;
+    justify-content: flex-start;
   }
 
-  /* Показываем стрелку назад, скрываем крестик */
+  /* Название + тикет — по центру шапки абсолютно */
+  .support-chat-header-info {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  /* Показываем стрелку назад */
   .support-chat-back {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  /* Название и статус — по центру текста */
+  .support-chat-name,
+  .support-chat-status {
+    text-align: center;
   }
 
   .support-chat-close {
