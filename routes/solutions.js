@@ -8,7 +8,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { uploadToS3, buildKey, isS3Configured } from '../utils/s3.js';
+import { uploadToS3, buildKey, isS3Configured, decodeFilename } from '../utils/s3.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -209,13 +209,14 @@ router.post('/',
 
     let presentationUrl = null;
     if (req.file) {
+      const originalName = decodeFilename(req.file.originalname);
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       if (isS3Configured()) {
-        const key = buildKey('presentations', req.file.originalname, uniqueSuffix);
+        const key = buildKey('presentations', originalName, uniqueSuffix);
         presentationUrl = await uploadToS3(req.file.buffer, key, req.file.mimetype);
       }
       if (!presentationUrl) {
-        const filename = `presentation-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+        const filename = `presentation-${uniqueSuffix}${path.extname(originalName)}`;
         fs.writeFileSync(path.join(uploadsDir, filename), req.file.buffer);
         presentationUrl = `/uploads/${filename}`;
       }

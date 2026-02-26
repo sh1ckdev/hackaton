@@ -8,7 +8,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { uploadToS3, buildKey, isS3Configured } from '../utils/s3.js';
+import { uploadToS3, buildKey, isS3Configured, decodeFilename } from '../utils/s3.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -172,18 +172,19 @@ router.post('/',
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        const originalName = decodeFilename(file.originalname);
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         let url;
         if (isS3Configured()) {
-          const key = buildKey('cases', file.originalname, uniqueSuffix);
+          const key = buildKey('cases', originalName, uniqueSuffix);
           url = await uploadToS3(file.buffer, key, file.mimetype);
         }
         if (!url) {
-          const filename = `case-${uniqueSuffix}${path.extname(file.originalname)}`;
+          const filename = `case-${uniqueSuffix}${path.extname(originalName)}`;
           fs.writeFileSync(path.join(uploadsCasesDir, filename), file.buffer);
           url = `/uploads/cases/${filename}`;
         }
-        attachments.push({ name: file.originalname, url });
+        attachments.push({ name: originalName, url });
       }
     }
 
@@ -260,18 +261,19 @@ router.put('/:id',
     const newAttachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        const originalName = decodeFilename(file.originalname);
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         let url;
         if (isS3Configured()) {
-          const key = buildKey('cases', file.originalname, uniqueSuffix);
+          const key = buildKey('cases', originalName, uniqueSuffix);
           url = await uploadToS3(file.buffer, key, file.mimetype);
         }
         if (!url) {
-          const filename = `case-${uniqueSuffix}${path.extname(file.originalname)}`;
+          const filename = `case-${uniqueSuffix}${path.extname(originalName)}`;
           fs.writeFileSync(path.join(uploadsCasesDir, filename), file.buffer);
           url = `/uploads/cases/${filename}`;
         }
-        newAttachments.push({ name: file.originalname, url });
+        newAttachments.push({ name: originalName, url });
       }
     }
 
@@ -296,7 +298,11 @@ router.put('/:id',
 
     const allAttachments = [...preservedAttachments, ...newAttachments];
 
-    const cat = participant_category === 'student' || participant_category === 'school' ? participant_category : participant_category === '' || participant_category === null ? null : undefined;
+    const cat = participant_category === 'student' || participant_category === 'school'
+      ? participant_category
+      : (participant_category === '' || participant_category === null || participant_category === undefined)
+        ? null
+        : undefined;
 
     const updates = [];
     const params = [];
@@ -315,7 +321,7 @@ router.put('/:id',
     if (requirements !== undefined) {
       paramCount++;
       updates.push(`requirements = $${paramCount}`);
-      params.push(requirements);
+      params.push(requirements || null);
     }
     if (cat !== undefined) {
       paramCount++;
@@ -327,15 +333,26 @@ router.put('/:id',
       updates.push(`links = $${paramCount}::jsonb`);
       params.push(JSON.stringify(linksArray));
     }
-    if (allAttachments.length > 0 || preservedAttachments.length === 0) {
+
+    // Обновляем вложения если: есть новые файлы, явно переданы сохраняемые вложения, или флаг что вложения редактировались
+    const attachmentsEdited = req.body.attachments_updated === '1';
+    if (req.files?.length > 0 || Object.keys(req.body).some(k => k.startsWith('attachment_url_')) || attachmentsEdited) {
       paramCount++;
       updates.push(`attachments = $${paramCount}::jsonb`);
       params.push(JSON.stringify(allAttachments));
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    if (updates.length === 1) {
+      // Только updated_at — нечего обновлять
+      const currentResult = await pool.query('SELECT * FROM cases WHERE id = $1', [id]);
+      if (currentResult.rows.length === 0) return res.status(404).json({ error: 'Кейс не найден' });
+      return res.json({ case: currentResult.rows[0] });
+    }
+
+    // id идёт только в WHERE, не в SET
     paramCount++;
-    updates.push(`id = $${paramCount}`);
     params.push(id);
 
     const result = await pool.query(

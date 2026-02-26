@@ -69,3 +69,20 @@ export function buildKey(prefix, originalName, uniqueSuffix) {
   const safeName = (originalName || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
   return `${prefix}/${uniqueSuffix}-${safeName}`.replace(/\/+/g, '/');
 }
+
+/**
+ * Multer получает originalname в latin1 (ISO-8859-1) из HTTP заголовков,
+ * но браузеры фактически шлют UTF-8. Эта функция исправляет кодировку.
+ */
+export function decodeFilename(name) {
+  if (!name) return 'file';
+  try {
+    // Декодируем latin1→utf8: Buffer.from(str, 'latin1') восстанавливает байты
+    const decoded = Buffer.from(name, 'latin1').toString('utf8');
+    // Если декодирование дало валидный UTF-8 с не-ASCII символами — используем его
+    // Иначе (файл был чисто ASCII) оба варианта одинаковы
+    return decoded;
+  } catch {
+    return name;
+  }
+}
