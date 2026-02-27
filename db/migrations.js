@@ -764,6 +764,7 @@ async function ensureNewFieldsExist() {
 async function ensureIndexesExist() {
   const requiredIndexes = [
     { name: 'idx_users_telegram_id', table: 'users', column: 'telegram_id', unique: false },
+    { name: 'idx_users_phone', table: 'users', column: 'phone', unique: false },
     { name: 'idx_solutions_user_id', table: 'solutions', column: 'user_id', unique: false },
     { name: 'idx_solutions_case_id', table: 'solutions', column: 'case_id', unique: false },
     { name: 'idx_solutions_status', table: 'solutions', column: 'status', unique: false },

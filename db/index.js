@@ -12,27 +12,44 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'hackathon_db',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
+function parseConnectionConfig() {
+  if (process.env.DATABASE_URL) {
+    return { connectionString: process.env.DATABASE_URL };
+  }
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'hackathon_db',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+  };
+}
+
+const pool = new Pool(parseConnectionConfig());
 
 
 export async function initDB() {
-  const dbName = process.env.DB_NAME || 'hackathon_db';
-  const dbUser = process.env.DB_USER || 'postgres';
-  const dbPassword = process.env.DB_PASSWORD || 'postgres';
-  const dbHost = process.env.DB_HOST || 'localhost';
-  const dbPort = process.env.DB_PORT || 5432;
+  let dbName, dbUser, dbPassword, dbHost, dbPort;
 
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    dbHost = url.hostname;
+    dbPort = url.port || 5432;
+    dbUser = url.username;
+    dbPassword = url.password;
+    dbName = url.pathname.replace(/^\//, '');
+  } else {
+    dbName = process.env.DB_NAME || 'hackathon_db';
+    dbUser = process.env.DB_USER || 'postgres';
+    dbPassword = process.env.DB_PASSWORD || 'postgres';
+    dbHost = process.env.DB_HOST || 'localhost';
+    dbPort = process.env.DB_PORT || 5432;
+  }
 
   const adminPool = new Pool({
     host: dbHost,
     port: dbPort,
-    database: 'postgres', // Подключаемся к системной БД
+    database: 'postgres',
     user: dbUser,
     password: dbPassword,
   });

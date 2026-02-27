@@ -8,52 +8,22 @@ services:
       - ".env"
     environment:
       PORT: ${PORT:-3001}
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_NAME: ${DB_NAME:-hackathon_db}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@hackathon-db:5432/hackathon_db}
       JWT_SECRET: ${JWT_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       CLIENT_URL: ${CLIENT_URL:-https://chermanx.ru}
       NODE_ENV: ${NODE_ENV:-production}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       MAIN_ADMIN_TELEGRAM_ID: ${MAIN_ADMIN_TELEGRAM_ID:-}
-
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - "${BACKEND_PORT:-5000}:3001"
     networks:
-      - internal
+      - hackathon-db-network
       - dokploy-network
-  db:
-    image: postgres:16-alpine
-    container_name: hackathon-db
-    env_file:
-      - ".env"
-    environment:
-      POSTGRES_DB: ${DB_NAME:-hackathon_db}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
-    volumes:
-      - hackathon_db:/var/lib/postgresql/data
-      - ./db/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-    networks:
-      - internal
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  hackathon_db:
+    restart: unless-stopped
 
 networks:
-  internal:
-    driver: bridge
+  hackathon-db-network:
+    external: true
   dokploy-network:
     external: true

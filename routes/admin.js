@@ -1,7 +1,7 @@
 import express from 'express';
 import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
-import { broadcastMessage } from '../bot.js';
+import { broadcastMessage, sendMessageToUser } from '../bot.js';
 import { adminOperationLimiter, logSuspiciousActivity } from '../middleware/security.js';
 import { validateIdParam } from '../middleware/validation.js';
 import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
@@ -283,6 +283,29 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
 });
 
 
+// Удалить команду
+router.delete('/teams/:id', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const teamId = parseInt(req.params.id, 10);
+    if (isNaN(teamId) || teamId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID команды' });
+    }
+
+    const teamCheck = await pool.query('SELECT id, name FROM teams WHERE id = $1', [teamId]);
+    if (teamCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Команда не найдена' });
+    }
+
+    await pool.query('DELETE FROM teams WHERE id = $1', [teamId]);
+
+    logInfo('[Admin] Команда удалена', { teamId, teamName: teamCheck.rows[0].name, adminId: req.user?.id });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления команды', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Получить решение конкретной команды
 router.get('/teams/:id/solution', requireModerator, async (req, res) => {
   try {
@@ -392,6 +415,47 @@ router.put('/users/by-id/:userId/participant-category', requireAdmin, adminOpera
   } catch (error) {
     logError('Ошибка изменения категории участника', error);
     res.status(500).json({ error: 'Ошибка сервера при изменении категории' });
+  }
+});
+
+router.post('/users/by-id/:userId/message', requireModerator, adminOperationLimiter, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const { message } = req.body;
+
+    if (isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+
+    if (!message || !String(message).trim()) {
+      return res.status(400).json({ error: 'Сообщение обязательно' });
+    }
+
+    const userRow = (await pool.query(
+      'SELECT id, telegram_id, first_name, last_name FROM users WHERE id = $1',
+      [userId]
+    )).rows[0];
+
+    if (!userRow) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    if (!userRow.telegram_id) {
+      return res.status(400).json({ error: 'У пользователя нет привязанного Telegram аккаунта' });
+    }
+
+    await sendMessageToUser(userRow.telegram_id, String(message).trim());
+
+    logInfo('[Admin] Личное сообщение отправлено пользователю', {
+      userId,
+      telegramId: userRow.telegram_id,
+      adminId: req.user?.id
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка отправки личного сообщения', error);
+    res.status(500).json({ error: 'Ошибка отправки сообщения через Telegram' });
   }
 });
 

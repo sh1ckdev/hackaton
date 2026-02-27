@@ -14,20 +14,158 @@ export function startBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  // /start — приветствие
+  // /start — приветствие + запрос телефона
   bot.onText(/\/start/, async (msg) => {
     try {
-      await bot.sendMessage(
-        msg.chat.id,
-        `Добро пожаловать!\n\nЗдесь вы можете написать в поддержку — просто отправьте сообщение.\n\nДля входа в личный кабинет используйте сайт.\n\n🌐 ${clientUrl}/login`,
-        {
-          reply_markup: {
-            inline_keyboard: [[{ text: 'Перейти на сайт', url: clientUrl + '/login' }]]
+      const telegramId = String(msg.from.id);
+
+      // Проверяем, есть ли уже телефон у пользователя в БД
+      const userRow = (await pool.query(
+        `SELECT id, phone FROM users WHERE telegram_id = $1 LIMIT 1`,
+        [telegramId]
+      )).rows[0];
+
+      if (userRow && userRow.phone) {
+        // Пользователь уже есть и телефон привязан
+        await bot.sendMessage(
+          msg.chat.id,
+          `Добро пожаловать!\n\nЗдесь вы можете написать в поддержку — просто отправьте сообщение.\n\nДля входа в личный кабинет используйте сайт.\n\n🌐 ${clientUrl}/login`,
+          {
+            reply_markup: {
+              inline_keyboard: [[{ text: 'Перейти на сайт', url: clientUrl + '/login' }]]
+            }
           }
-        }
-      );
+        );
+      } else {
+        // Запрашиваем телефон — нужен для связки с VK аккаунтом
+        await bot.sendMessage(
+          msg.chat.id,
+          `Добро пожаловать!\n\nЧтобы связать ваш Telegram с аккаунтом на платформе, пожалуйста, поделитесь номером телефона.\n\nЭто нужно для того, чтобы вход через Telegram и VK ID открывал один и тот же профиль.`,
+          {
+            reply_markup: {
+              keyboard: [[{ text: '📱 Поделиться номером телефона', request_contact: true }]],
+              one_time_keyboard: true,
+              resize_keyboard: true
+            }
+          }
+        );
+      }
     } catch (error) {
       logError('Ошибка /start в боте', error, { chatId: msg.chat.id });
+    }
+  });
+
+  // Обработка контакта (телефона) от пользователя
+  bot.on('contact', async (msg) => {
+    try {
+      if (!msg.contact) return;
+
+      // Telegram позволяет пересылать чужие контакты — проверяем, что это свой номер
+      if (String(msg.contact.user_id) !== String(msg.from.id)) {
+        await bot.sendMessage(
+          msg.chat.id,
+          'Пожалуйста, поделитесь именно своим номером телефона, а не чужим контактом.',
+          { reply_markup: { remove_keyboard: true } }
+        );
+        return;
+      }
+
+      const telegramId = String(msg.from.id);
+      const rawPhone = msg.contact.phone_number;
+      const digits = rawPhone.replace(/\D/g, '');
+      const phone = digits.length >= 10 ? digits : null;
+
+      if (!phone) {
+        await bot.sendMessage(msg.chat.id, 'Не удалось распознать номер телефона.', {
+          reply_markup: { remove_keyboard: true }
+        });
+        return;
+      }
+
+      // Ищем пользователя по telegram_id
+      const byTg = (await pool.query(
+        `SELECT id, phone FROM users WHERE telegram_id = $1 LIMIT 1`,
+        [telegramId]
+      )).rows[0];
+
+      // Ищем пользователя по номеру телефона (мог зайти через VK раньше)
+      const byPhone = (await pool.query(
+        `SELECT id, telegram_id FROM users WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') = $1 LIMIT 1`,
+        [phone]
+      )).rows[0];
+
+      if (byTg && byPhone && byTg.id !== byPhone.id) {
+        // Два разных аккаунта — сливаем: оставляем тот, что с VK (byPhone), привязываем telegram_id
+        await pool.query(
+          `UPDATE users SET telegram_id = $1, phone = COALESCE(phone, $2), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [telegramId, phone, byPhone.id]
+        );
+        // Удаляем дубликат аккаунта от Telegram (без VK)
+        if (!byTg.phone) {
+          await pool.query(`DELETE FROM users WHERE id = $1`, [byTg.id]);
+        }
+        await bot.sendMessage(
+          msg.chat.id,
+          `✅ Ваш Telegram успешно привязан к существующему аккаунту!\n\nТеперь вы можете входить на платформу и через Telegram, и через VK ID — это будет один профиль.\n\n🌐 ${clientUrl}/login`,
+          {
+            reply_markup: {
+              remove_keyboard: true,
+              inline_keyboard: [[{ text: 'Войти на сайте', url: clientUrl + '/login' }]]
+            }
+          }
+        );
+      } else if (byTg) {
+        // Аккаунт уже есть по telegram_id — просто сохраняем телефон
+        await pool.query(
+          `UPDATE users SET phone = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [phone, byTg.id]
+        );
+        await bot.sendMessage(
+          msg.chat.id,
+          `✅ Номер телефона сохранён!\n\nТеперь если вы войдёте через VK с этим же номером — аккаунты будут объединены.\n\n🌐 ${clientUrl}/login`,
+          {
+            reply_markup: {
+              remove_keyboard: true,
+              inline_keyboard: [[{ text: 'Войти на сайте', url: clientUrl + '/login' }]]
+            }
+          }
+        );
+      } else if (byPhone) {
+        // Аккаунт есть по телефону (VK) — привязываем telegram_id
+        await pool.query(
+          `UPDATE users SET telegram_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [telegramId, byPhone.id]
+        );
+        await bot.sendMessage(
+          msg.chat.id,
+          `✅ Telegram привязан к вашему аккаунту!\n\nТеперь вы можете входить через Telegram — это тот же профиль что и в VK.\n\n🌐 ${clientUrl}/login`,
+          {
+            reply_markup: {
+              remove_keyboard: true,
+              inline_keyboard: [[{ text: 'Войти на сайте', url: clientUrl + '/login' }]]
+            }
+          }
+        );
+      } else {
+        // Новый пользователь — сохраняем телефон, аккаунт создастся при входе через сайт
+        await bot.sendMessage(
+          msg.chat.id,
+          `✅ Номер телефона получен!\n\nТеперь зайдите на сайт через Telegram Login — ваш профиль будет создан, а при последующем входе через VK аккаунты объединятся автоматически.\n\n🌐 ${clientUrl}/login`,
+          {
+            reply_markup: {
+              remove_keyboard: true,
+              inline_keyboard: [[{ text: 'Войти на сайте', url: clientUrl + '/login' }]]
+            }
+          }
+        );
+      }
+    } catch (error) {
+      logError('Ошибка обработки контакта в боте', error, { chatId: msg.chat.id });
+      try {
+        await bot.sendMessage(msg.chat.id, 'Произошла ошибка. Попробуйте позже.', {
+          reply_markup: { remove_keyboard: true }
+        });
+      } catch (e) { /* игнорируем */ }
     }
   });
 
@@ -202,6 +340,17 @@ export function setBotInstance(bot) {
 
 export function getBotInstance() {
   return botInstance;
+}
+
+
+export async function sendMessageToUser(telegramId, message) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error('TELEGRAM_BOT_TOKEN не задан');
+  }
+
+  const bot = botInstance || new TelegramBot(token);
+  await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
 }
 
 

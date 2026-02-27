@@ -463,6 +463,158 @@ router.post('/vk', async (req, res) => {
   }
 });
 
+// POST /auth/link-vk — привязать VK к уже залогиненному аккаунту (через Telegram)
+router.post('/link-vk', authenticateToken, async (req, res) => {
+  try {
+    const { code, state, device_id } = req.body;
+    const clientId = process.env.VK_APP_ID;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const redirectUri = `${clientUrl}/auth/vk/callback`;
+
+    if (!clientId) return res.status(503).json({ error: 'VK ID не настроен' });
+    if (!code || !state) return res.status(400).json({ error: 'Код и state отсутствуют' });
+
+    const stored = vkPkceStore.get(state);
+    if (!stored || stored.expires < Date.now()) {
+      vkPkceStore.delete(state);
+      return res.status(400).json({ error: 'Сессия авторизации истекла, повторите вход' });
+    }
+    const { code_verifier } = stored;
+    vkPkceStore.delete(state);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      grant_type: 'authorization_code',
+      code,
+      code_verifier,
+      redirect_uri: redirectUri,
+      state
+    });
+    if (device_id) params.set('device_id', device_id);
+
+    const tokenRes = await fetch('https://id.vk.ru/oauth2/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
+    const tokenData = await tokenRes.json();
+    if (tokenData.error || !tokenData.access_token) {
+      return res.status(400).json({ error: tokenData.error_description || 'Ошибка VK ID' });
+    }
+
+    const { access_token: accessToken, user_id: vkUserId } = tokenData;
+    const userInfoRes = await fetch('https://id.vk.ru/oauth2/user_info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ access_token: accessToken, client_id: clientId })
+    });
+    const userInfoData = await userInfoRes.json();
+    const vkUser = userInfoData?.user;
+    const phone = vkUser?.phone || null;
+    const email = vkUser?.email || null;
+
+    // Проверяем, не привязан ли этот VK к другому аккаунту
+    const existingVk = (await pool.query(
+      `SELECT id FROM users WHERE vk_id = $1 AND id != $2 LIMIT 1`,
+      [vkUserId, req.user.id]
+    )).rows[0];
+
+    if (existingVk) {
+      return res.status(409).json({ error: 'Этот VK аккаунт уже привязан к другому профилю' });
+    }
+
+    const normalizePhone = (p) => {
+      if (!p || typeof p !== 'string') return null;
+      const digits = p.replace(/\D/g, '');
+      return digits.length >= 10 ? digits : null;
+    };
+    const phoneNorm = normalizePhone(phone);
+
+    // Если есть другой аккаунт с таким же телефоном — сливаем
+    if (phoneNorm) {
+      const byPhone = (await pool.query(
+        `SELECT id FROM users WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') = $1 AND id != $2 LIMIT 1`,
+        [phoneNorm, req.user.id]
+      )).rows[0];
+
+      if (byPhone) {
+        // Удаляем дубликат (другой аккаунт без telegram_id или менее полный)
+        await pool.query(`DELETE FROM users WHERE id = $1`, [byPhone.id]);
+      }
+    }
+
+    await pool.query(
+      `UPDATE users SET vk_id = $1, phone = COALESCE(phone, $2), email = COALESCE(email, $3), updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+      [vkUserId, phone, email, req.user.id]
+    );
+
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const user = userResult.rows[0];
+    if (user.skills && typeof user.skills === 'string') {
+      try { user.skills = JSON.parse(user.skills); } catch (e) { user.skills = []; }
+    } else if (!user.skills) { user.skills = []; }
+
+    const newAccessToken = signAccessToken(user);
+    const refresh = await createRefreshToken(user.id);
+
+    res.json({ token: newAccessToken, refresh_token: refresh.token, user });
+  } catch (error) {
+    logError('Ошибка привязки VK', error);
+    res.status(500).json({ error: 'Ошибка сервера при привязке VK' });
+  }
+});
+
+// POST /auth/link-telegram — привязать Telegram к уже залогиненному аккаунту (через VK)
+router.post('/link-telegram', authenticateToken, async (req, res) => {
+  try {
+    const { telegramData } = req.body;
+
+    if (!telegramData || !telegramData.id || !telegramData.hash) {
+      return res.status(400).json({ error: 'Данные Telegram отсутствуют' });
+    }
+    if (!verifyTelegramWidget(telegramData)) {
+      return res.status(401).json({ error: 'Подпись Telegram недействительна' });
+    }
+
+    const telegramId = String(telegramData.id);
+
+    // Проверяем, не привязан ли этот Telegram к другому аккаунту
+    const existingTg = (await pool.query(
+      `SELECT id FROM users WHERE telegram_id = $1 AND id != $2 LIMIT 1`,
+      [telegramId, req.user.id]
+    )).rows[0];
+
+    if (existingTg) {
+      // Удаляем старый дубликат-аккаунт Telegram (если у него нет VK)
+      const oldTgUser = (await pool.query(`SELECT vk_id FROM users WHERE id = $1`, [existingTg.id])).rows[0];
+      if (!oldTgUser?.vk_id) {
+        await pool.query(`DELETE FROM users WHERE id = $1`, [existingTg.id]);
+      } else {
+        return res.status(409).json({ error: 'Этот Telegram аккаунт уже привязан к другому профилю' });
+      }
+    }
+
+    await pool.query(
+      `UPDATE users SET telegram_id = $1, username = COALESCE(username, $2), photo_url = COALESCE(photo_url, $3), updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+      [telegramId, telegramData.username || null, telegramData.photo_url || null, req.user.id]
+    );
+
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const user = userResult.rows[0];
+    if (user.skills && typeof user.skills === 'string') {
+      try { user.skills = JSON.parse(user.skills); } catch (e) { user.skills = []; }
+    } else if (!user.skills) { user.skills = []; }
+
+    const newAccessToken = signAccessToken(user);
+    const refresh = await createRefreshToken(user.id);
+
+    res.json({ token: newAccessToken, refresh_token: refresh.token, user });
+  } catch (error) {
+    logError('Ошибка привязки Telegram', error);
+    res.status(500).json({ error: 'Ошибка сервера при привязке Telegram' });
+  }
+});
+
 router.post('/refresh', async (req, res) => {
   try {
     const { refresh_token } = req.body;
