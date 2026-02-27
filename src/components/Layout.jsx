@@ -30,9 +30,10 @@ const Layout = () => {
 
   // Не показываем FAB на самой странице /support
   const isSupportPage = location.pathname === '/support';
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
-    <div className={`app-shell${isSupportPage ? ' app-shell-support' : ''}`}>
+    <div className={`app-shell${isSupportPage ? ' app-shell-support' : ''}${isAdminPage ? ' app-shell-admin' : ''}`}>
       <AppHeader
         isAuthenticated={authStore.isAuthenticated}
         user={authStore.user}
@@ -41,13 +42,13 @@ const Layout = () => {
       />
 
       <main className="app-content">
-        <div className="app-content-inner">
+        <div className={isAdminPage ? 'app-content-admin' : 'app-content-inner'}>
           <Outlet />
         </div>
       </main>
 
-      {/* FAB поддержки — только для авторизованных, не на странице /support */}
-      {authStore.isAuthenticated && !isSupportPage && (
+      {/* FAB поддержки — только для авторизованных, не на странице /support и не в админке */}
+      {authStore.isAuthenticated && !isSupportPage && !isAdminPage && (
         <>
           <button
             className={`support-fab${showSupport ? ' support-fab-active support-fab-hidden' : ''}`}

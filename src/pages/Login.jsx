@@ -39,8 +39,36 @@ const Login = () => {
     } catch { return ''; }
   });
   const loginAttemptRef = useRef(false);
+  const [devLoading, setDevLoading] = useState(false);
 
   const CATEGORY_STORAGE_KEY = 'hackathon_participant_category';
+
+  const handleDevLogin = async (role = 'admin') => {
+    setDevLoading(true);
+    setError(null);
+    try {
+      const serverUrl = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${serverUrl}/auth/dev-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`Сервер вернул не JSON: ${text.slice(0, 100)}`); }
+      if (!res.ok) throw new Error(data.error || 'Ошибка');
+      authStore.token = data.token;
+      authStore.refreshToken = data.refresh_token;
+      authStore.user = data.user;
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      navigate('/');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDevLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (authStore.isAuthenticated) {
@@ -152,16 +180,44 @@ const Login = () => {
 
   const [showTgWidget, setShowTgWidget] = useState(false);
 
+  const [needsPhone, setNeedsPhone] = useState(false);
+  const [savedTelegramUser, setSavedTelegramUser] = useState(null);
+
+  // Повторный вход после того как пользователь поделился телефоном
+  const handleRetryLogin = async () => {
+    if (!savedTelegramUser) return;
+    setLoginPending(true);
+    setError(null);
+    try {
+      const ok = await authStore.login(savedTelegramUser, captchaToken || '', participantCategory);
+      if (ok) {
+        navigate('/profile');
+      } else if (authStore.needsPhone) {
+        setNeedsPhone(true);
+      } else {
+        setError(authStore.error || 'Ошибка входа');
+      }
+    } catch {
+      setError('Ошибка входа');
+    } finally {
+      setLoginPending(false);
+    }
+  };
+
   // Колбэк от Telegram Widget
   useEffect(() => {
     window.onTelegramAuth = async (telegramUser) => {
       setShowTgWidget(false);
       setLoginPending(true);
       setError(null);
+      setNeedsPhone(false);
       try {
         const ok = await authStore.login(telegramUser, captchaToken || '', participantCategory);
         if (ok) {
           navigate('/profile');
+        } else if (authStore.needsPhone) {
+          setSavedTelegramUser(telegramUser);
+          setNeedsPhone(true);
         } else {
           setError(authStore.error || 'Ошибка входа');
         }
@@ -296,7 +352,38 @@ const Login = () => {
               </div>
             )}
 
-            {hasToken ? (
+            {needsPhone ? (
+              <div className="login-token-block">
+                <div className="login-token-title">Нужен номер телефона</div>
+                <div className="login-token-text">
+                  Откройте бота и нажмите кнопку <b>«Поделиться номером телефона»</b>, затем вернитесь и нажмите «Войти».
+                </div>
+                <a
+                  href={`https://t.me/${botUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="login-telegram-button"
+                  style={{ display: 'inline-flex', textDecoration: 'none', marginTop: '12px' }}
+                >
+                  <TelegramIcon />
+                  <span>Открыть бота</span>
+                </a>
+                <button
+                  onClick={handleRetryLogin}
+                  disabled={loginPending}
+                  className="login-telegram-button"
+                  style={{ marginTop: '8px', opacity: loginPending ? 0.6 : 1 }}
+                >
+                  {loginPending ? 'Проверяем...' : '✓ Я поделился — войти'}
+                </button>
+                <button
+                  onClick={() => { setNeedsPhone(false); setSavedTelegramUser(null); }}
+                  style={{ marginTop: '8px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  ← Назад
+                </button>
+              </div>
+            ) : hasToken ? (
               <div className="login-token-block">
                 <div className="login-token-title">Почти готово!</div>
                 <div className="login-token-text">
@@ -333,6 +420,38 @@ const Login = () => {
                   <VkIcon size={22} />
                   <span>Войти через VK ID</span>
                 </button>
+              </div>
+            )}
+
+            {/* DEV: быстрый вход без авторизации (только localhost/dev) */}
+            {import.meta.env.DEV && (
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>
+                  DEV — быстрый вход
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => handleDevLogin('admin')}
+                    disabled={devLoading}
+                    style={{ flex: 1, padding: '8px 12px', background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, color: '#60a5fa', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: devLoading ? 0.5 : 1 }}
+                  >
+                    👑 admin
+                  </button>
+                  <button
+                    onClick={() => handleDevLogin('moderator')}
+                    disabled={devLoading}
+                    style={{ flex: 1, padding: '8px 12px', background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', borderRadius: 8, color: '#c084fc', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: devLoading ? 0.5 : 1 }}
+                  >
+                    🛡 модератор
+                  </button>
+                  <button
+                    onClick={() => handleDevLogin('user')}
+                    disabled={devLoading}
+                    style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: '#4ade80', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: devLoading ? 0.5 : 1 }}
+                  >
+                    👤 участник
+                  </button>
+                </div>
               </div>
             )}
 

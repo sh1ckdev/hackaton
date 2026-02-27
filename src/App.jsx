@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import authStore from './stores/authStore';
 import backendHealthStore from './stores/backendHealthStore';
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import BackendDownPage from './components/BackendDownPage';
 
@@ -13,12 +14,22 @@ const AuthVkCallback = lazy(() => import('./pages/AuthVkCallback'));
 const Landing = lazy(() => import('./pages/Landing'));
 const MySolutions = lazy(() => import('./pages/MySolutions'));
 const SubmitSolution = lazy(() => import('./pages/SubmitSolution'));
-const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Team = lazy(() => import('./pages/Team'));
 const Info = lazy(() => import('./pages/Info'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
+
+const AdminSolutions = lazy(() => import('./pages/admin/AdminSolutions'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminTeams = lazy(() => import('./pages/admin/AdminTeams'));
+const AdminCases = lazy(() => import('./pages/admin/AdminCases'));
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
+const AdminBroadcast = lazy(() => import('./pages/admin/AdminBroadcast'));
+const AdminBroadcastSettings = lazy(() => import('./pages/admin/AdminBroadcastSettings'));
+const AdminHackathon = lazy(() => import('./pages/admin/AdminHackathon'));
+const AdminInfo = lazy(() => import('./pages/admin/AdminInfo'));
+const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
 
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
@@ -128,10 +139,22 @@ function App() {
                 path="admin"
                 element={
                   <AdminRoute>
-                    <AdminPanel />
+                    <AdminLayout />
                   </AdminRoute>
                 }
-              />
+              >
+                <Route index element={<Navigate to="solutions" replace />} />
+                <Route path="solutions" element={<AdminSolutions />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="teams" element={<AdminTeams />} />
+                <Route path="cases" element={<AdminCases />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="broadcast" element={<AdminBroadcast />} />
+                <Route path="broadcast-settings" element={<AdminBroadcastSettings />} />
+                <Route path="hackathon" element={<AdminHackathon />} />
+                <Route path="info" element={<AdminInfo />} />
+                <Route path="support" element={<AdminSupport />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

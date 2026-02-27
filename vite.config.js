@@ -21,6 +21,14 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: `http://localhost:${process.env.BACKEND_PORT || 3001}`,
+        changeOrigin: true,
+      },
+    },
+  },
   preview: {
     host: '0.0.0.0',
     port: Number(process.env.FRONTEND_PORT ?? process.env.PORT) || 4173,
