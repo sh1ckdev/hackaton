@@ -1152,4 +1152,132 @@ router.post('/cases/assign-random', requireModerator, adminOperationLimiter, asy
   }
 });
 
+// ── Support chats ─────────────────────────────────────────────────────────────
+
+// Список всех тикетов (с последним сообщением и данными пользователя)
+router.get('/support/chats', requireModerator, async (req, res) => {
+  try {
+    const { status = 'open', search = '' } = req.query;
+    const rows = (await pool.query(
+      `SELECT
+         st.id AS ticket_id,
+         st.status,
+         st.created_at,
+         st.updated_at,
+         u.id           AS user_id,
+         u.first_name,
+         u.last_name,
+         u.username,
+         u.telegram_id,
+         u.photo_url,
+         (SELECT text FROM support_messages sm
+          WHERE sm.ticket_id = st.id
+          ORDER BY sm.created_at DESC LIMIT 1) AS last_message,
+         (SELECT sender FROM support_messages sm
+          WHERE sm.ticket_id = st.id
+          ORDER BY sm.created_at DESC LIMIT 1) AS last_sender,
+         (SELECT created_at FROM support_messages sm
+          WHERE sm.ticket_id = st.id
+          ORDER BY sm.created_at DESC LIMIT 1) AS last_message_at,
+         (SELECT COUNT(*) FROM support_messages sm
+          WHERE sm.ticket_id = st.id AND sm.sender = 'user'
+            AND sm.created_at > COALESCE(
+              (SELECT MAX(sm2.created_at) FROM support_messages sm2
+               WHERE sm2.ticket_id = st.id AND sm2.sender = 'admin'),
+              '1970-01-01'
+            )
+         ) AS unread_count
+       FROM support_tickets st
+       JOIN users u ON u.id = st.user_id
+       WHERE ($1 = 'all' OR st.status = $1)
+         AND ($2 = '' OR u.first_name ILIKE '%' || $2 || '%'
+              OR u.last_name ILIKE '%' || $2 || '%'
+              OR u.username ILIKE '%' || $2 || '%')
+       ORDER BY last_message_at DESC NULLS LAST, st.updated_at DESC`,
+      [status, search]
+    )).rows;
+    res.json({ chats: rows });
+  } catch (error) {
+    logError('Ошибка получения чатов поддержки', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Сообщения конкретного тикета
+router.get('/support/chats/:ticketId/messages', requireModerator, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const ticket = (await pool.query(
+      `SELECT st.*, u.id AS user_id, u.first_name, u.last_name, u.username, u.telegram_id, u.photo_url
+       FROM support_tickets st JOIN users u ON u.id = st.user_id WHERE st.id = $1`,
+      [ticketId]
+    )).rows[0];
+    if (!ticket) return res.status(404).json({ error: 'Тикет не найден' });
+
+    const messages = (await pool.query(
+      `SELECT id, sender, text, created_at FROM support_messages WHERE ticket_id = $1 ORDER BY created_at ASC`,
+      [ticketId]
+    )).rows;
+
+    res.json({ ticket, messages });
+  } catch (error) {
+    logError('Ошибка получения сообщений тикета', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Ответить в тикет от имени поддержки
+router.post('/support/chats/:ticketId/reply', requireModerator, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { text } = req.body;
+    if (!text || !String(text).trim()) return res.status(400).json({ error: 'Текст не может быть пустым' });
+
+    const ticket = (await pool.query(
+      `SELECT st.id, u.telegram_id FROM support_tickets st JOIN users u ON u.id = st.user_id WHERE st.id = $1`,
+      [ticketId]
+    )).rows[0];
+    if (!ticket) return res.status(404).json({ error: 'Тикет не найден' });
+
+    const message = (await pool.query(
+      `INSERT INTO support_messages (ticket_id, sender, text) VALUES ($1, 'admin', $2) RETURNING *`,
+      [ticketId, String(text).trim()]
+    )).rows[0];
+
+    await pool.query(`UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [ticketId]);
+
+    // Отправить пользователю в Telegram если есть telegram_id
+    if (ticket.telegram_id) {
+      try {
+        await sendMessageToUser(ticket.telegram_id, `💬 Ответ от поддержки\n\n${String(text).trim()}`);
+      } catch (tgErr) {
+        logError('Ошибка отправки ответа в Telegram', tgErr);
+      }
+    }
+
+    res.json({ message });
+  } catch (error) {
+    logError('Ошибка ответа в тикет', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Закрыть / переоткрыть тикет
+router.put('/support/chats/:ticketId/status', requireModerator, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { status } = req.body;
+    if (!['open', 'closed'].includes(status)) return res.status(400).json({ error: 'Некорректный статус' });
+    const ticket = (await pool.query(
+      `UPDATE support_tickets SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      [status, ticketId]
+    )).rows[0];
+    if (!ticket) return res.status(404).json({ error: 'Тикет не найден' });
+    res.json({ ticket });
+  } catch (error) {
+    logError('Ошибка изменения статуса тикета', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 export default router;

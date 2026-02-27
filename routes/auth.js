@@ -138,13 +138,17 @@ router.post('/telegram', async (req, res) => {
       user.skills = [];
     }
 
-    const accessToken = signAccessToken(user);
-    const refresh = await createRefreshToken(user.id);
-
-    // Если телефон не привязан — просим поделиться через бота
+    // Если телефон не привязан — блокируем вход и просим поделиться через бота
     if (!user.phone) {
       requestPhoneFromUser(telegramId).catch(() => {});
+      return res.status(403).json({
+        needs_phone: true,
+        error: 'Для входа необходимо поделиться номером телефона через бота'
+      });
     }
+
+    const accessToken = signAccessToken(user);
+    const refresh = await createRefreshToken(user.id);
 
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {
@@ -792,6 +796,55 @@ router.get('/me', async (req, res) => {
     res.json({ user });
   } catch (error) {
     res.status(401).json({ error: 'Недействительный токен' });
+  }
+});
+
+// ── DEV ONLY: мгновенный вход без Telegram/VK ──────────────────────────────
+// Работает ТОЛЬКО при NODE_ENV=development
+router.post('/dev-login', async (req, res) => {
+  if (process.env.NODE_ENV !== 'development') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  try {
+    const { role = 'admin' } = req.body;
+
+    // Сначала ищем пользователя с нужной ролью, иначе берём любого
+    let result = await pool.query(
+      `SELECT * FROM users WHERE role = $1 ORDER BY id LIMIT 1`,
+      [role]
+    );
+    if (result.rows.length === 0) {
+      result = await pool.query(`SELECT * FROM users ORDER BY id LIMIT 1`);
+    }
+
+    let user = result.rows[0];
+    if (!user) {
+      // Создаём admin-пользователя из MAIN_ADMIN_TELEGRAM_ID
+      const adminTgId = process.env.MAIN_ADMIN_TELEGRAM_ID;
+      if (!adminTgId) {
+        return res.status(500).json({ error: 'В БД нет пользователей и MAIN_ADMIN_TELEGRAM_ID не задан в .env' });
+      }
+      const userCode = await generateUniqueUserCode(pool);
+      const inserted = await pool.query(
+        `INSERT INTO users (telegram_id, first_name, last_name, role, participant_category, user_code, created_at)
+         VALUES ($1, 'Admin', 'Dev', 'admin', 'student', $2, NOW())
+         ON CONFLICT (telegram_id) DO UPDATE SET role = 'admin'
+         RETURNING *`,
+        [adminTgId, userCode]
+      );
+      user = inserted.rows[0];
+    }
+
+    // Выдаём токен с запрошенной ролью (не меняем роль в БД)
+    const tokenUser = { ...user, role };
+    const accessToken = signAccessToken(tokenUser);
+    const { token: refreshToken } = await createRefreshToken(user.id);
+
+    res.json({ token: accessToken, refresh_token: refreshToken, user: tokenUser });
+  } catch (error) {
+    logError('Ошибка dev-login', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
