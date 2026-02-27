@@ -5,7 +5,6 @@ import { authenticateToken } from '../middleware/auth.js';
 import crypto from 'crypto';
 import pool from '../db/index.js';
 import { logError } from '../utils/logger.js';
-import { requestPhoneFromUser } from '../bot.js';
 
 const router = express.Router();
 
@@ -136,15 +135,6 @@ router.post('/telegram', async (req, res) => {
       try { user.skills = JSON.parse(user.skills); } catch (e) { user.skills = []; }
     } else if (!user.skills) {
       user.skills = [];
-    }
-
-    // Если телефон не привязан — блокируем вход и просим поделиться через бота
-    if (!user.phone) {
-      requestPhoneFromUser(telegramId).catch(() => {});
-      return res.status(403).json({
-        needs_phone: true,
-        error: 'Для входа необходимо поделиться номером телефона через бота'
-      });
     }
 
     const accessToken = signAccessToken(user);

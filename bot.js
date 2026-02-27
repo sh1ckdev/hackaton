@@ -14,42 +14,18 @@ export function startBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  // /start — приветствие + запрос телефона
+  // /start — приветствие
   bot.onText(/\/start/, async (msg) => {
     try {
-      const telegramId = String(msg.from.id);
-
-      // Проверяем, есть ли уже телефон у пользователя в БД
-      const userRow = (await pool.query(
-        `SELECT id, phone FROM users WHERE telegram_id = $1 LIMIT 1`,
-        [telegramId]
-      )).rows[0];
-
-      if (userRow && userRow.phone) {
-        // Пользователь уже есть и телефон привязан
-        await bot.sendMessage(
-          msg.chat.id,
-          `Добро пожаловать!\n\nЗдесь вы можете написать в поддержку — просто отправьте сообщение.\n\nДля входа в личный кабинет используйте сайт.\n\n🌐 ${clientUrl}/login`,
-          {
-            reply_markup: {
-              inline_keyboard: [[{ text: 'Перейти на сайт', url: clientUrl + '/login' }]]
-            }
+      await bot.sendMessage(
+        msg.chat.id,
+        `Добро пожаловать!\n\nЗдесь вы можете написать в поддержку — просто отправьте сообщение.\n\nДля входа в личный кабинет используйте сайт.\n\n🌐 ${clientUrl}/login`,
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: 'Перейти на сайт', url: clientUrl + '/login' }]]
           }
-        );
-      } else {
-        // Запрашиваем телефон — нужен для связки с VK аккаунтом
-        await bot.sendMessage(
-          msg.chat.id,
-          `Добро пожаловать!\n\nЧтобы связать ваш Telegram с аккаунтом на платформе, пожалуйста, поделитесь номером телефона.\n\nЭто нужно для того, чтобы вход через Telegram и VK ID открывал один и тот же профиль.`,
-          {
-            reply_markup: {
-              keyboard: [[{ text: '📱 Поделиться номером телефона', request_contact: true }]],
-              one_time_keyboard: true,
-              resize_keyboard: true
-            }
-          }
-        );
-      }
+        }
+      );
     } catch (error) {
       logError('Ошибка /start в боте', error, { chatId: msg.chat.id });
     }
