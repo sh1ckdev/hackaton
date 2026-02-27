@@ -13,8 +13,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "${FRONTEND_PORT:-4173}:4173"
     networks:
       - frontend-network
       - dokploy-network
@@ -23,17 +21,15 @@ services:
       - "traefik.http.routers.frontend.rule=Host(`chermanx.ru`)"
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=4173"
-      - "traefik.http.routers.frontend.service=frontend"
+      # - "traefik.http.routers.frontend.service=frontend"
 
-      # HTTP to HTTPS redirect
-      - "traefik.http.routers.frontend.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      # - "traefik.http.routers.frontend.middlewares=redirect-to-https"
+      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
-      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.average=100"
-      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.period=1s"
-      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.burst=200"
+      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.average=100"
+      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.period=1s"
+      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.burst=200"
 networks:
   frontend-network:
     name: hackathon-frontend
