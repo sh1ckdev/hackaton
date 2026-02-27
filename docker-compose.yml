@@ -16,6 +16,13 @@ services:
     networks:
       - frontend-network
       - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.period=1s"
+      - "traefik.http.middlewares.frontend-ratelimit.ratelimit.burst=200"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-frontend.middlewares=frontend-ratelimit"
+
 networks:
   frontend-network:
     name: hackathon-frontend
