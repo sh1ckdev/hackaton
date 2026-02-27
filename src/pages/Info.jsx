@@ -17,7 +17,7 @@ const Info = () => {
 
   return (
     <div className="px-4 py-8" style={{ margin: '0 auto' }}>
-      <div className="glass rounded-2xl" style={{ padding: '32px 36px' }}>
+      <div className="profile-card" style={{ padding: '32px 36px' }}>
         {loading ? (
           <div className="text-white/50 text-sm">Загрузка...</div>
         ) : content ? (

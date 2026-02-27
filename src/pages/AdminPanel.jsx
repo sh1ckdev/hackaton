@@ -385,10 +385,14 @@ const AdminPanel = () => {
 
   const handleSaveSetting = async () => {
     try {
+      const payload = {
+        ...settingFormData,
+        schedule_time: moscowInputToUtc(settingFormData.schedule_time),
+      };
       if (editingSetting) {
-        await api.put(`/admin/broadcast-settings/${editingSetting.id}`, settingFormData);
+        await api.put(`/admin/broadcast-settings/${editingSetting.id}`, payload);
       } else {
-        await api.post('/admin/broadcast-settings', settingFormData);
+        await api.post('/admin/broadcast-settings', payload);
       }
       setShowSettingForm(false);
       setEditingSetting(null);
@@ -874,7 +878,7 @@ const AdminPanel = () => {
 
         {selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={closeUserModal}>
-            <div className="glass w-full sm:rounded-xl sm:max-w-lg rounded-t-2xl p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="glass w-full sm:rounded-xl sm:max-w-2xl rounded-t-2xl p-6 max-h-[75vh] sm:max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {/* Полоска-индикатор для свайпа на мобиле */}
               <div className="sm:hidden flex justify-center mb-3 -mt-1">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
@@ -1698,9 +1702,14 @@ const AdminPanel = () => {
                             : JSON.stringify(setting.target_audience)}
                         </p>
                       )}
+                      {setting.schedule_time && (
+                        <p className="text-xs text-white/50 mt-1">
+                          Время отправки: {new Date(setting.schedule_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)
+                        </p>
+                      )}
                       {setting.last_sent_at && (
                         <p className="text-xs text-white/50 mt-1">
-                          Последняя отправка: {new Date(setting.last_sent_at).toLocaleString('ru-RU')}
+                          Последняя отправка: {new Date(setting.last_sent_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)
                         </p>
                       )}
                     </div>
@@ -1733,7 +1742,7 @@ const AdminPanel = () => {
 
       {showCaseForm && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="glass rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="glass rounded-xl p-6 max-w-4xl w-full max-h-[75vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4 text-white border-b border-terminal-gray/60 pb-2">
               {editingCase ? 'Редактировать кейс' : 'Создать кейс'}
             </h2>
