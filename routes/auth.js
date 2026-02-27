@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import crypto from 'crypto';
 import pool from '../db/index.js';
 import { logError } from '../utils/logger.js';
+import { requestPhoneFromUser } from '../bot.js';
 
 const router = express.Router();
 
@@ -139,6 +140,11 @@ router.post('/telegram', async (req, res) => {
 
     const accessToken = signAccessToken(user);
     const refresh = await createRefreshToken(user.id);
+
+    // Если телефон не привязан — просим поделиться через бота
+    if (!user.phone) {
+      requestPhoneFromUser(telegramId).catch(() => {});
+    }
 
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {

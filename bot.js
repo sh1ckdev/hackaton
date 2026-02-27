@@ -343,6 +343,30 @@ export function getBotInstance() {
 }
 
 
+export async function requestPhoneFromUser(telegramId) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return;
+
+  const bot = botInstance || new TelegramBot(token);
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+  try {
+    await bot.sendMessage(
+      telegramId,
+      `👋 Вы вошли на платформу!\n\nЧтобы связать ваш аккаунт с VK ID и использовать все возможности, поделитесь своим номером телефона.`,
+      {
+        reply_markup: {
+          keyboard: [[{ text: '📱 Поделиться номером телефона', request_contact: true }]],
+          one_time_keyboard: true,
+          resize_keyboard: true
+        }
+      }
+    );
+  } catch (e) {
+    logWarn('Не удалось запросить телефон у пользователя', { telegramId, error: e.message });
+  }
+}
+
 export async function sendMessageToUser(telegramId, message) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
