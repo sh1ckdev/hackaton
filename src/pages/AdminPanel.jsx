@@ -82,6 +82,15 @@ const AdminPanel = () => {
   const [editingTimelineItem, setEditingTimelineItem] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [userMessage, setUserMessage] = useState('');
+  const [userMessageSending, setUserMessageSending] = useState(false);
+  const [userMessageResult, setUserMessageResult] = useState(null);
+
+  const closeUserModal = () => {
+    setSelectedUser(null);
+    setUserMessage('');
+    setUserMessageResult(null);
+  };
 
   // Страница Инфо
   const [infoContent, setInfoContent] = useState('');
@@ -864,7 +873,7 @@ const AdminPanel = () => {
         )}
 
         {selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={() => setSelectedUser(null)}>
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={closeUserModal}>
             <div className="glass w-full sm:rounded-xl sm:max-w-lg rounded-t-2xl p-6 max-h-[92vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {/* Полоска-индикатор для свайпа на мобиле */}
               <div className="sm:hidden flex justify-center mb-3 -mt-1">
@@ -875,7 +884,7 @@ const AdminPanel = () => {
                   Информация о пользователе
                 </h2>
                 <button
-                  onClick={() => setSelectedUser(null)}
+                  onClick={closeUserModal}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors text-lg"
                 >
                   ✕
@@ -1056,7 +1065,7 @@ const AdminPanel = () => {
                             const roleUrl2 = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}/role` : `/admin/users/${selectedUser.telegram_id}/role`;
                             await api.put(roleUrl2, { role: 'user' });
                             fetchUsers();
-                            setSelectedUser(null);
+                            closeUserModal();
                           } catch (e) {
                             alert(e.response?.data?.error || 'Ошибка');
                           }
@@ -1091,7 +1100,7 @@ const AdminPanel = () => {
                           const deleteUrl = selectedUser.vk_id ? `/admin/users/by-id/${selectedUser.id}` : `/admin/users/${selectedUser.telegram_id}`;
                           await api.delete(deleteUrl);
                           fetchUsers();
-                          setSelectedUser(null);
+                          closeUserModal();
                         } catch (e) {
                           alert(e.response?.data?.error || 'Ошибка удаления');
                         }
@@ -1102,12 +1111,59 @@ const AdminPanel = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => setSelectedUser(null)}
+                    onClick={closeUserModal}
                     className="px-4 py-1.5 text-sm border border-terminal-gray text-white/70 hover:border-terminal-blue rounded transition-colors ml-auto"
                   >
                     Закрыть
                   </button>
                 </div>
+
+                {selectedUser.telegram_id && (
+                  <div className="pt-4 border-t border-terminal-gray/30">
+                    <p className="text-white/70 text-sm mb-2 font-medium">Написать от имени бота:</p>
+                    <textarea
+                      value={userMessage}
+                      onChange={(e) => { setUserMessage(e.target.value); setUserMessageResult(null); }}
+                      placeholder="Текст сообщения..."
+                      rows={3}
+                      className="w-full px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white placeholder-white/30 focus:border-terminal-blue focus:outline-none rounded text-sm resize-none"
+                    />
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onClick={async () => {
+                          if (!userMessage.trim()) return;
+                          setUserMessageSending(true);
+                          setUserMessageResult(null);
+                          try {
+                            await api.post(`/admin/users/by-id/${selectedUser.id}/message`, { message: userMessage.trim() });
+                            setUserMessageResult({ ok: true });
+                            setUserMessage('');
+                          } catch (e) {
+                            setUserMessageResult({ ok: false, error: e.response?.data?.error || 'Ошибка отправки' });
+                          } finally {
+                            setUserMessageSending(false);
+                          }
+                        }}
+                        disabled={userMessageSending || !userMessage.trim()}
+                        className="px-4 py-1.5 text-sm border border-terminal-blue text-terminal-blue hover:bg-terminal-blue hover:text-terminal-bg rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <PaperPlaneIcon className="w-4 h-4" />
+                        {userMessageSending ? 'Отправка...' : 'Отправить'}
+                      </button>
+                      {userMessageResult?.ok && (
+                        <span className="text-sm text-terminal-blue">✓ Отправлено</span>
+                      )}
+                      {userMessageResult?.error && (
+                        <span className="text-sm text-terminal-red">{userMessageResult.error}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!selectedUser.telegram_id && (
+                  <p className="text-white/40 text-xs pt-2 border-t border-terminal-gray/30">
+                    Нет привязанного Telegram — написать нельзя
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1345,7 +1401,26 @@ const AdminPanel = () => {
                     {' · '}Создана: {new Date(selectedTeam.created_at).toLocaleDateString('ru-RU')}
                   </p>
                 </div>
-                <button onClick={() => setSelectedTeam(null)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none">✕</button>
+                <div className="flex items-center gap-2">
+                  {authStore.isAdmin && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Удалить команду «${selectedTeam.name}»? Это также удалит всех участников из команды.`)) return;
+                        try {
+                          await api.delete(`/admin/teams/${selectedTeam.id}`);
+                          setSelectedTeam(null);
+                          fetchTeams();
+                        } catch (e) {
+                          alert(e.response?.data?.error || 'Ошибка удаления команды');
+                        }
+                      }}
+                      className="px-3 py-1.5 text-sm border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded transition-colors"
+                    >
+                      Удалить команду
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedTeam(null)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none ml-1">✕</button>
+                </div>
               </div>
 
               <div className="p-6 space-y-6">
