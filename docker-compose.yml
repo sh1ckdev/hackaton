@@ -18,10 +18,10 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`chermanx.ru`)"
-      - "traefik.http.routers.frontend.tls=true"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=4173"
+      - "traefik.http.routers.frontend-app.rule=Host(`chermanx.ru`)"
+      - "traefik.http.routers.frontend-app.tls=true"
+      - "traefik.http.routers.frontend-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend-app.loadbalancer.server.port=4173"
 
 
       # - "traefik.http.routers.frontend.middlewares=redirect-to-https"
