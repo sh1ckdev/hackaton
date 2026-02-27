@@ -16,22 +16,6 @@ services:
     networks:
       - frontend-network
       - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend-app.rule=Host(`chermanx.ru`)"
-      - "traefik.http.routers.frontend-app.tls=true"
-      - "traefik.http.routers.frontend-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend-app.loadbalancer.server.port=4173"
-      - "traefik.docker.network=dokploy-network"
-
-
-      # - "traefik.http.routers.frontend.middlewares=redirect-to-https"
-      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-
-      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.average=100"
-      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.period=1s"
-      # - "traefik.http.middlewares.frontend-ratelimit.ratelimit.burst=200"
 networks:
   frontend-network:
     name: hackathon-frontend
