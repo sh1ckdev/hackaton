@@ -21,7 +21,6 @@ services:
       - "traefik.http.routers.frontend.rule=Host(`chermanx.ru`)"
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend.service=frontend-websecure"
 
       # - "traefik.http.routers.frontend.middlewares=redirect-to-https"
       # - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
