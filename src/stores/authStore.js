@@ -19,13 +19,9 @@ class AuthStore {
     }
   }
 
-  needsPhone = false;
-  pendingTelegramData = null;
-
   async login(telegramData, captchaToken, participantCategory) {
     this.loading = true;
     this.error = null;
-    this.needsPhone = false;
     try {
       const response = await api.post('/auth/telegram', {
         telegramData,
@@ -35,16 +31,10 @@ class AuthStore {
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;
-      this.pendingTelegramData = null;
       localStorage.setItem('token', this.token);
       localStorage.setItem('refresh_token', this.refreshToken);
       return true;
     } catch (error) {
-      if (error.response?.data?.needs_phone) {
-        this.needsPhone = true;
-        this.pendingTelegramData = { telegramData, captchaToken, participantCategory };
-        return false;
-      }
       this.error = error.response?.data?.error || 'Ошибка входа';
       return false;
     } finally {

@@ -180,44 +180,16 @@ const Login = () => {
 
   const [showTgWidget, setShowTgWidget] = useState(false);
 
-  const [needsPhone, setNeedsPhone] = useState(false);
-  const [savedTelegramUser, setSavedTelegramUser] = useState(null);
-
-  // Повторный вход после того как пользователь поделился телефоном
-  const handleRetryLogin = async () => {
-    if (!savedTelegramUser) return;
-    setLoginPending(true);
-    setError(null);
-    try {
-      const ok = await authStore.login(savedTelegramUser, captchaToken || '', participantCategory);
-      if (ok) {
-        navigate('/profile');
-      } else if (authStore.needsPhone) {
-        setNeedsPhone(true);
-      } else {
-        setError(authStore.error || 'Ошибка входа');
-      }
-    } catch {
-      setError('Ошибка входа');
-    } finally {
-      setLoginPending(false);
-    }
-  };
-
   // Колбэк от Telegram Widget
   useEffect(() => {
     window.onTelegramAuth = async (telegramUser) => {
       setShowTgWidget(false);
       setLoginPending(true);
       setError(null);
-      setNeedsPhone(false);
       try {
         const ok = await authStore.login(telegramUser, captchaToken || '', participantCategory);
         if (ok) {
           navigate('/profile');
-        } else if (authStore.needsPhone) {
-          setSavedTelegramUser(telegramUser);
-          setNeedsPhone(true);
         } else {
           setError(authStore.error || 'Ошибка входа');
         }
@@ -352,38 +324,7 @@ const Login = () => {
               </div>
             )}
 
-            {needsPhone ? (
-              <div className="login-token-block">
-                <div className="login-token-title">Нужен номер телефона</div>
-                <div className="login-token-text">
-                  Откройте бота и нажмите кнопку <b>«Поделиться номером телефона»</b>, затем вернитесь и нажмите «Войти».
-                </div>
-                <a
-                  href={`https://t.me/${botUsername}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="login-telegram-button"
-                  style={{ display: 'inline-flex', textDecoration: 'none', marginTop: '12px' }}
-                >
-                  <TelegramIcon />
-                  <span>Открыть бота</span>
-                </a>
-                <button
-                  onClick={handleRetryLogin}
-                  disabled={loginPending}
-                  className="login-telegram-button"
-                  style={{ marginTop: '8px', opacity: loginPending ? 0.6 : 1 }}
-                >
-                  {loginPending ? 'Проверяем...' : '✓ Я поделился — войти'}
-                </button>
-                <button
-                  onClick={() => { setNeedsPhone(false); setSavedTelegramUser(null); }}
-                  style={{ marginTop: '8px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  ← Назад
-                </button>
-              </div>
-            ) : hasToken ? (
+            {hasToken ? (
               <div className="login-token-block">
                 <div className="login-token-title">Почти готово!</div>
                 <div className="login-token-text">
