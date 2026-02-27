@@ -10,7 +10,7 @@ const parseAllowedHosts = () => {
     .filter(Boolean);
 
   if (hosts.length === 0) {
-    hosts.push('chermanx.ru');
+    hosts.push('codesprint.ru');
   }
 
   return hosts;
