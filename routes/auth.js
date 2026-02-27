@@ -387,22 +387,42 @@ router.post('/vk', async (req, res) => {
 
     const { access_token: accessToken, user_id: vkUserId } = tokenData;
 
+    const vkHeaders = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept-Language': 'ru,ru-RU;q=0.9,en;q=0.1'
+    };
+
     const userInfoRes = await fetch('https://id.vk.ru/oauth2/user_info', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: vkHeaders,
       body: new URLSearchParams({ access_token: accessToken, client_id: clientId })
     });
     const userInfoData = await userInfoRes.json();
 
     const vkUser = userInfoData?.user;
-    const rawFirst = vkUser?.first_name || '';
-    const rawLast = vkUser?.last_name || '';
-    const hasCyrillic = (s) => /[\u0400-\u04FF]/.test(s);
-    const firstName = rawFirst && !hasCyrillic(rawFirst) ? transliterateToCyrillic(rawFirst) : rawFirst;
-    const lastName = rawLast && !hasCyrillic(rawLast) ? transliterateToCyrillic(rawLast) : rawLast;
     const photoUrl = vkUser?.avatar || null;
     const phone = vkUser?.phone || null;
     const email = vkUser?.email || null;
+
+    // Запрашиваем имя через VK API с lang=ru + Accept-Language: ru
+    let firstName = vkUser?.first_name || '';
+    let lastName = vkUser?.last_name || '';
+    try {
+      const vkApiRes = await fetch(
+        `https://api.vk.com/method/users.get?user_ids=${vkUserId}&lang=ru&v=5.199&access_token=${accessToken}`,
+        { headers: { 'Accept-Language': 'ru,ru-RU;q=0.9,en;q=0.1' } }
+      );
+      const vkApiData = await vkApiRes.json();
+      if (vkApiData?.response?.[0]) {
+        firstName = vkApiData.response[0].first_name || firstName;
+        lastName = vkApiData.response[0].last_name || lastName;
+      }
+    } catch (e) {
+      // fallback — транслитерация
+      const hasCyrillic = (s) => /[\u0400-\u04FF]/.test(s);
+      if (firstName && !hasCyrillic(firstName)) firstName = transliterateToCyrillic(firstName);
+      if (lastName && !hasCyrillic(lastName)) lastName = transliterateToCyrillic(lastName);
+    }
 
     const normalizePhone = (p) => {
       if (!p || typeof p !== 'string') return null;
