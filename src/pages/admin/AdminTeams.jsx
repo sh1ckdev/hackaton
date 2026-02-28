@@ -15,6 +15,10 @@ const AdminTeams = () => {
   const [selectedSolution, setSelectedSolution] = useState(null);
   const [solutionLoading, setSolutionLoading] = useState(false);
   const [randomizing, setRandomizing] = useState(false);
+  const [cases, setCases] = useState([]);
+  const [casePickerOpen, setCasePickerOpen] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState('');
+  const [caseChanging, setCaseChanging] = useState(false);
 
   const fetchTeams = async (cat = filter) => {
     try {
@@ -27,13 +31,39 @@ const AdminTeams = () => {
   useEffect(() => { fetchTeams(); }, []);
   useEffect(() => { fetchTeams(filter); }, [filter]);
 
+  useEffect(() => {
+    api.get('/cases').then(res => setCases(res.data.cases || [])).catch(() => {});
+  }, []);
+
   const openTeam = async (team) => {
-    setSelected(team); setSelectedSolution(null); setSolutionLoading(true);
+    setSelected(team);
+    setSelectedSolution(null);
+    setSolutionLoading(true);
+    setCasePickerOpen(false);
+    setSelectedCaseId(team.assigned_case_id ? String(team.assigned_case_id) : '');
     try {
       const res = await api.get(`/admin/teams/${team.id}/solution`);
       setSelectedSolution(res.data.solution || null);
     } catch { setSelectedSolution(null); }
     finally { setSolutionLoading(false); }
+  };
+
+  const handleChangeCase = async () => {
+    if (!selected) return;
+    setCaseChanging(true);
+    try {
+      await api.put(`/admin/teams/${selected.id}/case`, {
+        case_id: selectedCaseId || null,
+      });
+      const caseTitle = cases.find(c => String(c.id) === selectedCaseId)?.title || null;
+      setSelected(prev => ({ ...prev, assigned_case_id: selectedCaseId || null, assigned_case_title: caseTitle }));
+      setTeams(prev => prev.map(t => t.id === selected.id
+        ? { ...t, assigned_case_id: selectedCaseId || null, assigned_case_title: caseTitle }
+        : t
+      ));
+      setCasePickerOpen(false);
+    } catch (e) { alert(e.response?.data?.error || 'Ошибка смены кейса'); }
+    finally { setCaseChanging(false); }
   };
 
   const handleRandomize = async () => {
@@ -131,8 +161,38 @@ const AdminTeams = () => {
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2">Назначенный кейс</h3>
-                <p className="text-white/90">{selected.assigned_case_title || <span className="text-white/30 italic">Кейс не назначен</span>}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">Назначенный кейс</h3>
+                  <button
+                    onClick={() => { setCasePickerOpen(v => !v); setSelectedCaseId(selected.assigned_case_id ? String(selected.assigned_case_id) : ''); }}
+                    className="text-xs px-2.5 py-1 border border-terminal-cyan/40 text-terminal-cyan hover:bg-terminal-cyan/10 rounded transition-colors"
+                  >
+                    {casePickerOpen ? 'Отмена' : 'Изменить'}
+                  </button>
+                </div>
+                {casePickerOpen ? (
+                  <div className="flex items-center gap-2 mt-2">
+                    <select
+                      value={selectedCaseId}
+                      onChange={e => setSelectedCaseId(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-terminal-dark/60 border border-terminal-gray/50 text-white text-sm rounded focus:border-terminal-cyan focus:outline-none"
+                    >
+                      <option value="">— Без кейса —</option>
+                      {cases.map(c => (
+                        <option key={c.id} value={String(c.id)}>{c.title}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleChangeCase}
+                      disabled={caseChanging}
+                      className="px-3 py-2 bg-terminal-cyan/10 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg text-sm font-medium rounded transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {caseChanging ? '...' : 'Сохранить'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-white/90">{selected.assigned_case_title || <span className="text-white/30 italic">Кейс не назначен</span>}</p>
+                )}
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-3">Участники ({selected.members?.length || 0})</h3>
