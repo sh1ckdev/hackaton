@@ -64,14 +64,25 @@ const AdminBroadcastSettings = () => {
           <div key={s.id} className="border border-terminal-gray hover:border-terminal-blue transition-all p-4 bg-terminal-dark rounded">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                   <h3 className="font-semibold text-white">{s.name}</h3>
                   <span className={`px-2 py-1 text-xs rounded border ${s.enabled ? 'bg-terminal-blue/20 text-terminal-blue border-terminal-blue' : 'bg-terminal-gray/20 text-terminal-gray border-terminal-gray'}`}>{s.enabled ? 'Включено' : 'Выключено'}</span>
                   <span className="px-2 py-1 text-xs rounded bg-terminal-cyan/20 text-terminal-cyan border border-terminal-cyan">{s.type === 'scheduled' ? 'По расписанию' : 'Общая'}</span>
+                  {s.type === 'scheduled' && s.last_sent_at && s.schedule_time && new Date(s.last_sent_at) >= new Date(s.schedule_time) && (
+                    <span className="px-2 py-1 text-xs rounded bg-green-500/20 text-green-400 border border-green-500">✓ Отправлено</span>
+                  )}
                 </div>
-                <p className="text-sm text-white/60 mb-1 line-clamp-2">{s.message_template}</p>
-                {s.schedule_time && <p className="text-xs text-white/50">Время: {new Date(s.schedule_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК</p>}
-                {s.last_sent_at && <p className="text-xs text-white/50">Последняя: {new Date(s.last_sent_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК</p>}
+                <p className="text-sm text-white/60 mb-2 line-clamp-2">{s.message_template}</p>
+                {s.schedule_time && (
+                  <p className="text-xs text-white/50">
+                    Запланировано: {new Date(s.schedule_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК
+                  </p>
+                )}
+                {s.last_sent_at && (
+                  <p className="text-xs text-green-400/70">
+                    Отправлено: {new Date(s.last_sent_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 ml-4">
                 <button onClick={() => openEdit(s)} className="px-3 py-1 text-sm bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded">Редактировать</button>

@@ -101,12 +101,9 @@ const Landing = () => {
     return `${month} ${day}, ${hour}:${minute} МСК`;
   };
 
-  const formatDateRange = (item, isFirst) => {
-    if (item.date_to) {
-      if (isFirst) return formatDate(item.date_to); // для первого — только «до»
-      return `${formatDate(item.date)} — ${formatDate(item.date_to)}`;
-    }
-    return formatDate(item.date);
+  const formatDateRange = (item) => {
+    if (item.date_to) return formatDate(item.date_to);
+    return '';
   };
 
   const handleLogout = () => {
@@ -259,13 +256,13 @@ const Landing = () => {
                       </div>
                       <div className="landing-timeline-node" />
                       <span className="landing-timeline-date">
-                        {formatDateRange(item, idx === 0)}
+                        {formatDateRange(item)}
                       </span>
                     </>
                   ) : (
                     <>
                       <span className="landing-timeline-date">
-                        {formatDateRange(item, idx === 0)}
+                        {formatDateRange(item)}
                       </span>
                       <div className="landing-timeline-node" />
                       <div className="landing-timeline-content">
