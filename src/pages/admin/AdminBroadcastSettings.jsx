@@ -73,6 +73,9 @@ const AdminBroadcastSettings = () => {
                   )}
                 </div>
                 <p className="text-sm text-white/60 mb-2 line-clamp-2">{s.message_template}</p>
+                <p className="text-xs text-white/40 mb-1">
+                  Аудитория: {s.target_audience?.all ? 'Все пользователи' : `Роли: ${(s.target_audience?.roles || []).join(', ') || '—'}`}
+                </p>
                 {s.schedule_time && (
                   <p className="text-xs text-white/50">
                     Запланировано: {new Date(s.schedule_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} МСК
