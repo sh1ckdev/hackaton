@@ -37,6 +37,11 @@ const SubmitSolution = () => {
     }
   }, [caseId]);
 
+  const existingSolution = solutionsStore.solutions.find(
+    s => s.case_id === parseInt(caseId)
+  );
+  const isApproved = existingSolution?.status === 'approved';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -107,6 +112,29 @@ const SubmitSolution = () => {
   }
 
   const displayError = error || solutionsStore.error;
+
+  if (isApproved) {
+    return (
+      <div className="solutions-page">
+        <Link to="/solutions" className="submit-solution-back">
+          <ArrowLeftIcon size={18} />
+          Назад к решениям
+        </Link>
+        <div className="text-center py-20 border border-terminal-green/30 rounded-xl bg-terminal-green/5 backdrop-blur-sm mt-8">
+          <SolutionIcon size={48} className="text-terminal-green mx-auto mb-4 opacity-70" />
+          <h2 className="text-2xl font-semibold text-white mb-2">Решение одобрено</h2>
+          <p className="text-gray-400 mb-2">Редактирование одобренного решения недоступно.</p>
+          <p className="text-gray-500 text-sm">Обратитесь к организаторам, если необходимо внести изменения.</p>
+          <Link
+            to={`/cases/${caseId}`}
+            className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg rounded-lg text-sm font-medium transition-colors"
+          >
+            Перейти к кейсу
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="solutions-page">

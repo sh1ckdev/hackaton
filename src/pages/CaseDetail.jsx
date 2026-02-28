@@ -300,34 +300,38 @@ const CaseDetail = () => {
                 )}
               </div>
               <div className="flex gap-3 pt-4 border-t border-terminal-gray/20">
-                <Link
-                  to={`/solutions/submit/${caseItem.id}`}
-                  className="flex-1 px-4 py-2.5 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-colors rounded-lg text-sm font-medium text-center"
-                >
-                  Редактировать
-                </Link>
-                <button
-                  onClick={async () => {
-                    if (!confirm('Вы уверены, что хотите сняться с соревнования? Ваше решение будет удалено.')) {
-                      return;
-                    }
-                    setDeleting(true);
-                    try {
-                      await api.delete(`/solutions/${mySolution.id}`);
-                      solutionsStore.fetchMySolutions();
-                      casesStore.fetchCase(id);
-                      alert('Вы снялись с соревнования');
-                    } catch (error) {
-                      alert(error.response?.data?.error || 'Ошибка при удалении решения');
-                    } finally {
-                      setDeleting(false);
-                    }
-                  }}
-                  disabled={deleting}
-                  className="flex-1 px-4 py-2.5 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-colors rounded-lg text-sm font-medium disabled:opacity-50"
-                >
-                  {deleting ? 'Удаление...' : 'Удалить'}
-                </button>
+                {mySolution.status !== 'approved' && (
+                  <Link
+                    to={`/solutions/submit/${caseItem.id}`}
+                    className="flex-1 px-4 py-2.5 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-colors rounded-lg text-sm font-medium text-center"
+                  >
+                    Редактировать
+                  </Link>
+                )}
+                {mySolution.status !== 'approved' && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Вы уверены, что хотите сняться с соревнования? Ваше решение будет удалено.')) {
+                        return;
+                      }
+                      setDeleting(true);
+                      try {
+                        await api.delete(`/solutions/${mySolution.id}`);
+                        solutionsStore.fetchMySolutions();
+                        casesStore.fetchCase(id);
+                        alert('Вы снялись с соревнования');
+                      } catch (error) {
+                        alert(error.response?.data?.error || 'Ошибка при удалении решения');
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2.5 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-terminal-bg transition-colors rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {deleting ? 'Удаление...' : 'Удалить'}
+                  </button>
+                )}
               </div>
             </div>
           ) : (
