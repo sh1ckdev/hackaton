@@ -1280,4 +1280,23 @@ router.put('/support/chats/:ticketId/status', requireModerator, async (req, res)
   }
 });
 
+router.delete('/support/chats/:ticketId', requireModerator, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const ticket = (await pool.query(
+      `SELECT id, status FROM support_tickets WHERE id = $1`,
+      [ticketId]
+    )).rows[0];
+    if (!ticket) return res.status(404).json({ error: 'Тикет не найден' });
+    if (ticket.status !== 'closed') return res.status(400).json({ error: 'Можно удалять только закрытые тикеты' });
+    await pool.query(`DELETE FROM support_messages WHERE ticket_id = $1`, [ticketId]);
+    await pool.query(`DELETE FROM support_tickets WHERE id = $1`, [ticketId]);
+    logInfo('Удалён тикет поддержки', { ticketId });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления тикета', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 export default router;
