@@ -14,6 +14,9 @@ const CaseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState(false);
+  const [hackathonStarted, setHackathonStarted] = useState(false);
+  const [hackathonDeadline, setHackathonDeadline] = useState(null);
+  const [hackathonLoading, setHackathonLoading] = useState(true);
 
   const caseItem = casesStore.selectedCase;
   useDocumentTitle(caseItem ? caseItem.title : 'Кейс');
@@ -23,13 +26,26 @@ const CaseDetail = () => {
     solutionsStore.fetchMySolutions();
   }, [id]);
 
+  useEffect(() => {
+    api.get('/landing/deadline').then(res => {
+      const d = res.data?.target_date || null;
+      setHackathonDeadline(d);
+      if (d) {
+        const startTime = new Date(d).getTime() - 48 * 60 * 60 * 1000;
+        setHackathonStarted(Date.now() >= startTime);
+      } else {
+        setHackathonStarted(false);
+      }
+    }).catch(() => setHackathonStarted(false))
+      .finally(() => setHackathonLoading(false));
+  }, []);
+
   const mySolution = solutionsStore.solutions.find(s => s.case_id === parseInt(id));
 
-
   const isCaseOpen = !caseItem?.opens_at || new Date(caseItem.opens_at) <= new Date();
-  const canViewDetails = authStore.isModerator || isCaseOpen;
+  const canViewDetails = authStore.isModerator || (hackathonStarted && isCaseOpen);
 
-  if (casesStore.loading) {
+  if (casesStore.loading || hackathonLoading) {
     return (
       <div className="terminal-loading">
         <div className="terminal-loading-container">
@@ -46,6 +62,34 @@ const CaseDetail = () => {
             </span>
           </div>
           <div className="terminal-loading-bar"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authStore.isModerator && !hackathonStarted) {
+    return (
+      <div>
+        <Link
+          to="/cases"
+          className="inline-flex items-center gap-2 text-terminal-green hover:text-terminal-cyan mb-6 transition-colors group"
+        >
+          <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span>Назад к кейсам</span>
+        </Link>
+        <div className="text-center py-20 border border-terminal-cyan/30 rounded-xl bg-terminal-cyan/5 backdrop-blur-sm">
+          <TimeIcon size={48} className="text-terminal-cyan mx-auto mb-4 opacity-50" />
+          <h2 className="text-2xl font-semibold text-white mb-2">Соревнование ещё не началось</h2>
+          <p className="text-gray-400 mb-4">Кейсы будут доступны после старта хакатона</p>
+          {hackathonDeadline && (
+            <div className="mt-6 inline-block border border-terminal-cyan/30 rounded-xl p-5 bg-terminal-cyan/5">
+              <div className="flex items-center gap-2 mb-3 justify-center">
+                <TimeIcon size={18} className="text-terminal-cyan" />
+                <p className="text-sm font-medium text-terminal-cyan">До старта:</p>
+              </div>
+              <CountdownTimer targetDate={new Date(new Date(hackathonDeadline).getTime() - 48 * 60 * 60 * 1000).toISOString()} />
+            </div>
+          )}
         </div>
       </div>
     );

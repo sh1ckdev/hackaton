@@ -14,9 +14,32 @@ const Cases = () => {
   const [assignedCaseId, setAssignedCaseId] = useState(null);
   const [globalOpenDate, setGlobalOpenDate] = useState(null);
   const [openTimeLoading, setOpenTimeLoading] = useState(true);
-  
+  const [hackathonStarted, setHackathonStarted] = useState(false);
+  const [hackathonDeadline, setHackathonDeadline] = useState(null);
+  const [hackathonLoading, setHackathonLoading] = useState(true);
+
   useEffect(() => {
     casesStore.fetchCases('active');
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get('/landing/deadline').then(res => {
+      const d = res.data?.target_date || null;
+      if (!isMounted) return;
+      setHackathonDeadline(d);
+      if (d) {
+        const startTime = new Date(d).getTime() - 48 * 60 * 60 * 1000;
+        setHackathonStarted(Date.now() >= startTime);
+      } else {
+        setHackathonStarted(false);
+      }
+    }).catch(() => {
+      if (isMounted) setHackathonStarted(false);
+    }).finally(() => {
+      if (isMounted) setHackathonLoading(false);
+    });
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
@@ -94,13 +117,16 @@ const Cases = () => {
 
     if (authStore.isModerator) return true;
 
+    // Хакатон ещё не начался — кейсы скрыты в любом случае
+    if (!hackathonStarted) return false;
+
     if (assignedCaseId) {
       if (!assignedCase) return false;
       return !assignedCase.opens_at || new Date(assignedCase.opens_at) <= now;
     }
 
     return !globalOpenDate || new Date(globalOpenDate) <= now;
-  }, [globalOpenDate, assignedCaseId, assignedCase]);
+  }, [globalOpenDate, assignedCaseId, assignedCase, hackathonStarted]);
 
 
   const visibleCases = useMemo(() => {
@@ -176,7 +202,7 @@ const Cases = () => {
         </div>
       </header>
 
-      {(casesStore.loading || teamLoading || openTimeLoading) ? (
+      {(casesStore.loading || teamLoading || openTimeLoading || hackathonLoading) ? (
         <div className="terminal-loading">
           <div className="terminal-loading-container">
             <div>
@@ -197,16 +223,34 @@ const Cases = () => {
       ) : !areCasesOpen && !authStore.isModerator ? (
         <div className="cases-locked">
           <TimeIcon size={48} className="cases-locked-icon" />
-          <h2>Кейсы еще не открыты</h2>
-          <p>Информация о кейсах будет доступна после их открытия.</p>
-          {displayOpenDate && (
-            <div className="cases-countdown">
-              <div className="cases-countdown-title">
-                <TimeIcon size={16} />
-                <span>Откроются через</span>
-              </div>
-              <CountdownTimer targetDate={displayOpenDate} />
-            </div>
+          {!hackathonStarted ? (
+            <>
+              <h2>Соревнование ещё не началось</h2>
+              <p>Кейсы будут доступны после старта хакатона.</p>
+              {hackathonDeadline && (
+                <div className="cases-countdown">
+                  <div className="cases-countdown-title">
+                    <TimeIcon size={16} />
+                    <span>До старта</span>
+                  </div>
+                  <CountdownTimer targetDate={new Date(new Date(hackathonDeadline).getTime() - 48 * 60 * 60 * 1000).toISOString()} />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2>Кейсы еще не открыты</h2>
+              <p>Информация о кейсах будет доступна после их открытия.</p>
+              {displayOpenDate && (
+                <div className="cases-countdown">
+                  <div className="cases-countdown-title">
+                    <TimeIcon size={16} />
+                    <span>Откроются через</span>
+                  </div>
+                  <CountdownTimer targetDate={displayOpenDate} />
+                </div>
+              )}
+            </>
           )}
         </div>
       ) : assignedCaseId && !assignedCase && !authStore.isModerator ? (
