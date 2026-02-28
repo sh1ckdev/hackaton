@@ -82,6 +82,10 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
       return res.status(400).json({ error: 'Название команды обязательно' });
     }
 
+    if (['admin', 'moderator'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Администраторы и модераторы не могут создавать команды' });
+    }
+
 
     if (containsProfanity(teamName)) {
       await logSuspiciousActivity(req, 'profanity_detected', {
@@ -148,6 +152,10 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
       return res.status(400).json({ error: 'Код команды обязателен' });
     }
 
+    if (['admin', 'moderator'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Администраторы и модераторы не могут вступать в команды' });
+    }
+
     const existing = await pool.query(
       'SELECT 1 FROM team_members WHERE user_id = $1',
       [req.user.id]
@@ -204,11 +212,14 @@ router.get('/preview-invite/:userCode', authenticateToken, async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, user_code, username, first_name, last_name, photo_url FROM users WHERE user_code = $1`,
+      `SELECT id, user_code, username, first_name, last_name, photo_url, role FROM users WHERE user_code = $1`,
       [code]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    if (['admin', 'moderator'].includes(result.rows[0].role)) {
+      return res.status(400).json({ error: 'Этого пользователя нельзя добавить в команду' });
     }
 
     const userId = result.rows[0].id;
@@ -247,9 +258,12 @@ router.post('/invite', authenticateToken, async (req, res) => {
     const teamId = captainResult.rows[0].team_id;
     const teamCategory = captainResult.rows[0].team_category;
 
-    const userResult = await pool.query('SELECT id, participant_category FROM users WHERE user_code = $1', [userCode]);
+    const userResult = await pool.query('SELECT id, participant_category, role FROM users WHERE user_code = $1', [userCode]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    if (['admin', 'moderator'].includes(userResult.rows[0].role)) {
+      return res.status(400).json({ error: 'Этого пользователя нельзя добавить в команду' });
     }
     const inviteeId = userResult.rows[0].id;
     const inviteeCategory = userResult.rows[0].participant_category;

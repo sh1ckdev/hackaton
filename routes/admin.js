@@ -113,16 +113,15 @@ router.get('/users', requireAdmin, async (req, res) => {
       SELECT u.*, COUNT(s.id) as solutions_count
        FROM users u
        LEFT JOIN solutions s ON u.id = s.user_id
+       WHERE COALESCE(u.role, 'user') NOT IN ('admin', 'moderator')
     `;
     const params = [];
     if (participant_category === 'student' || participant_category === 'school') {
       params.push(participant_category);
-      query += ` WHERE u.participant_category = $1`;
+      query += ` AND u.participant_category = $1`;
     }
     query += ` GROUP BY u.id ORDER BY u.created_at DESC`;
-    const result = params.length
-      ? await pool.query(query, params)
-      : await pool.query(query);
+    const result = await pool.query(query, params);
     res.json({ users: result.rows });
   } catch (error) {
     logError('Ошибка получения пользователей', error);
