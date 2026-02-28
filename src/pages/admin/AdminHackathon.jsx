@@ -3,19 +3,17 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import api from '../../utils/api';
 import { fmtDateTime } from '../../utils/dateUtils';
 
-// PostgreSQL TIMESTAMP без timezone-маркера → Date (UTC)
-const toDate = (ts) => {
-  if (!ts) return null;
-  if (ts instanceof Date) return ts;
-  const s = String(ts);
-  if (/[Z+\-]\d*$/.test(s.trim())) return new Date(s);
-  return new Date(s.replace(' ', 'T') + 'Z');
+// Строка datetime-local (МСК) → ISO UTC для API
+const mskToUtc = (v) => {
+  if (!v || !String(v).trim()) return null;
+  return new Date(String(v) + ':00+03:00').toISOString();
 };
 
 // UTC (из API) → строка для datetime-local в МСК
 const utcToMsk = (utcStr) => {
   if (!utcStr) return '';
-  const d = toDate(utcStr);
+  const s = String(utcStr);
+  const d = /[Z+\-]\d*$/.test(s.trim()) ? new Date(s) : new Date(s.replace(' ', 'T') + 'Z');
   if (!d || isNaN(d)) return '';
   const p = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Moscow',
@@ -26,24 +24,16 @@ const utcToMsk = (utcStr) => {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 };
 
-// Строка datetime-local (МСК) → ISO UTC для API
-const mskToUtc = (v) => {
-  if (!v || !String(v).trim()) return null;
-  return new Date(String(v) + ':00+03:00').toISOString();
-};
-
-// Готовит объект для формы: даты уже в МСК-строках для datetime-local
 const toEditForm = (item) => ({
   id:             item.id,
   type:           item.type || 'other',
   title:          item.title || '',
   description:    item.description || '',
-  date:           utcToMsk(item.date),
   date_to:        utcToMsk(item.date_to),
   show_countdown: !!item.show_countdown,
 });
 
-const EMPTY_FORM = { title: '', description: '', date: '', date_to: '', show_countdown: false, type: 'other' };
+const EMPTY_FORM = { title: '', description: '', date_to: '', show_countdown: false, type: 'other' };
 
 const AdminHackathon = () => {
   useDocumentTitle('Настройки — Админ');
@@ -51,19 +41,21 @@ const AdminHackathon = () => {
   const [editing, setEditing] = useState(null);
 
   const fetchTimeline = async () => {
-    try { const res = await api.get('/admin/settings/timeline').catch(() => ({ data: { timeline: [] } })); setTimeline(res.data.timeline || []); } catch {}
+    try {
+      const res = await api.get('/admin/settings/timeline').catch(() => ({ data: { timeline: [] } }));
+      setTimeline(res.data.timeline || []);
+    } catch {}
   };
 
   useEffect(() => { fetchTimeline(); }, []);
 
   const saveItem = async (form) => {
     try {
-      // Если включён таймер на главной — дата начала берётся автоматически (текущий момент)
       const payload = {
         type:           form.type || 'other',
         title:          form.title,
         description:    form.description,
-        date:           form.show_countdown ? null : mskToUtc(form.date),
+        date:           null,
         date_to:        form.date_to ? mskToUtc(form.date_to) : null,
         show_countdown: !!form.show_countdown,
       };
@@ -82,8 +74,10 @@ const AdminHackathon = () => {
 
   const deleteItem = async (id) => {
     if (!confirm('Удалить этот пункт таймлайна?')) return;
-    try { await api.delete(`/admin/settings/timeline/${id}`); setTimeline(prev => prev.filter(t => t.id !== id)); }
-    catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
+    try {
+      await api.delete(`/admin/settings/timeline/${id}`);
+      setTimeline(prev => prev.filter(t => t.id !== id));
+    } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
 
   return (
@@ -107,8 +101,8 @@ const AdminHackathon = () => {
                 <div className="admin-settings-item-desc">{item.description}</div>
                 <div className="admin-settings-item-meta">
                   {item.date_to
-                    ? <span>От {item.date ? fmtDateTime(item.date) : '—'} до {fmtDateTime(item.date_to)}</span>
-                    : <span>Дата: {item.date ? fmtDateTime(item.date) : 'Не указана'}</span>}
+                    ? <span>До: {fmtDateTime(item.date_to)}</span>
+                    : <span style={{ opacity: 0.4 }}>Дата не указана</span>}
                   {item.show_countdown && <span className="admin-badge" style={{ marginLeft: 8 }}>Таймер на главной</span>}
                 </div>
               </div>
@@ -127,31 +121,45 @@ const AdminHackathon = () => {
               <form onSubmit={e => { e.preventDefault(); saveItem(editing); }}>
                 <div className="admin-form-group">
                   <label>Название</label>
-                  <input type="text" value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })} className="admin-input" required />
+                  <input
+                    type="text"
+                    value={editing.title}
+                    onChange={e => setEditing({ ...editing, title: e.target.value })}
+                    className="admin-input"
+                    required
+                  />
                 </div>
                 <div className="admin-form-group">
                   <label>Описание</label>
-                  <textarea value={editing.description} onChange={e => setEditing({ ...editing, description: e.target.value })} className="admin-input" rows={3} required />
+                  <textarea
+                    value={editing.description}
+                    onChange={e => setEditing({ ...editing, description: e.target.value })}
+                    className="admin-input"
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>{editing.show_countdown ? 'Дедлайн таймера' : 'Дата'}</label>
+                  <input
+                    type="datetime-local"
+                    value={editing.date_to}
+                    onChange={e => setEditing({ ...editing, date_to: e.target.value })}
+                    className="admin-input"
+                  />
+                  <small style={{ color: 'var(--text-muted)' }}>Московское время</small>
                 </div>
                 <div className="admin-form-group">
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editing.show_countdown} onChange={e => setEditing({ ...editing, show_countdown: e.target.checked })} />
+                    <input
+                      type="checkbox"
+                      checked={!!editing.show_countdown}
+                      onChange={e => setEditing({ ...editing, show_countdown: e.target.checked })}
+                    />
                     Таймер на главной
                   </label>
-                  <small style={{ color: 'var(--text-muted)' }}>Таймер считает до даты окончания</small>
-                </div>
-                {!editing.show_countdown && (
-                  <div className="admin-form-group">
-                    <label>Дата начала (от)</label>
-                    <input type="datetime-local" value={editing.date} onChange={e => setEditing({ ...editing, date: e.target.value })} className="admin-input" />
-                    <small style={{ color: 'var(--text-muted)' }}>Московское время</small>
-                  </div>
-                )}
-                <div className="admin-form-group">
-                  <label>{editing.show_countdown ? 'Дата окончания (дедлайн таймера)' : 'Дата окончания (до)'}</label>
-                  <input type="datetime-local" value={editing.date_to} onChange={e => setEditing({ ...editing, date_to: e.target.value })} className="admin-input" />
                   <small style={{ color: 'var(--text-muted)' }}>
-                    {editing.show_countdown ? 'Московское время. Таймер на главной считает до этой даты' : 'Московское время. Если указано — покажет период'}
+                    Таймер отсчитывает от текущего момента до указанной даты
                   </small>
                 </div>
                 <div className="admin-form-actions">
