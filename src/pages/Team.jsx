@@ -23,6 +23,7 @@ const Team = () => {
   const [invitePreviewLoading, setInvitePreviewLoading] = useState(false);
   const [confirmKickUserCode, setConfirmKickUserCode] = useState(null);
   const [editingMemberId, setEditingMemberId] = useState(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState(null);
   const [deadlineLeft, setDeadlineLeft] = useState(null);
   // hackathonStarted = true когда хакатон уже начался (48ч идут)
@@ -271,8 +272,10 @@ const Team = () => {
     }
   };
 
-  const handleLeave = async () => {
-    if (!confirm('Вы уверены, что хотите выйти из команды?')) return;
+  const handleLeave = () => setShowLeaveConfirm(true);
+
+  const handleLeaveConfirmed = async () => {
+    setShowLeaveConfirm(false);
     try {
       await api.post('/teams/leave');
       const teamResponse = await api.get('/teams/me');
@@ -672,6 +675,25 @@ const Team = () => {
             </div>
           </div>
         </>
+      )}
+
+      {showLeaveConfirm && (
+        <div className="team-confirm-overlay" onClick={() => setShowLeaveConfirm(false)}>
+          <div className="team-confirm-dialog" onClick={e => e.stopPropagation()}>
+            <div className="team-confirm-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 className="team-confirm-title">Выйти из команды?</h3>
+            <p className="team-confirm-text">Вы уверены? После выхода вам придётся получить новое приглашение от капитана.</p>
+            <div className="team-confirm-actions">
+              <button className="team-confirm-btn-danger" onClick={handleLeaveConfirmed}>Выйти</button>
+              <button className="team-confirm-btn-cancel" onClick={() => setShowLeaveConfirm(false)}>Отмена</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

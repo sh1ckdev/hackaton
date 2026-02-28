@@ -3523,6 +3523,98 @@ code {
   opacity: 1;
   margin-top: 10px;
 }
+.team-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.15s ease;
+}
+
+.team-confirm-dialog {
+  background: #0f1929;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: fade-in-up 0.18s ease;
+}
+
+.team-confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.team-confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 10px;
+}
+
+.team-confirm-text {
+  font-size: 14px;
+  color: rgba(148, 163, 184, 0.75);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.team-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.team-confirm-btn-danger {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.team-confirm-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.team-confirm-btn-cancel {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: rgba(148, 163, 184, 0.8);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.team-confirm-btn-cancel:hover {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
 .team-member-kick-confirm {
   display: flex;
   align-items: center;
