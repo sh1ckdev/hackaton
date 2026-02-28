@@ -10,7 +10,14 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-const { Pool } = pg;
+const { Pool, types } = pg;
+
+// node-postgres по умолчанию парсит TIMESTAMP without timezone через локальный timezone процесса.
+// Явно указываем: трактовать TIMESTAMP без TZ как UTC → возвращать строку с суффиксом 'Z'.
+// OID 1114 = TIMESTAMP without timezone
+// OID 1184 = TIMESTAMPTZ (node-postgres уже парсит корректно, но унифицируем формат)
+types.setTypeParser(1114, (val) => val ? val.replace(' ', 'T') + 'Z' : null);
+types.setTypeParser(1184, (val) => val ? new Date(val).toISOString() : null);
 
 function parseConnectionConfig() {
   if (process.env.DATABASE_URL) {
@@ -26,6 +33,11 @@ function parseConnectionConfig() {
 }
 
 const pool = new Pool(parseConnectionConfig());
+
+// Гарантируем UTC на уровне сессии — все CURRENT_TIMESTAMP/NOW() вернут UTC
+pool.on('connect', (client) => {
+  client.query("SET timezone = 'UTC'");
+});
 
 
 export async function initDB() {

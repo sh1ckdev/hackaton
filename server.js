@@ -17,6 +17,7 @@ import profileRoutes from './routes/profile.js';
 import landingRoutes from './routes/landing.js';
 import supportRoutes from './routes/support.js';
 import infoRoutes from './routes/info.js';
+import contactsRoutes from './routes/contacts.js';
 import { startBot, setBotInstance } from './bot.js';
 import { startCaseOpenerScheduler } from './utils/caseOpener.js';
 import path from 'path';
@@ -84,6 +85,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/landing', landingRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/info', infoRoutes);
+app.use('/api/contacts', contactsRoutes);
 
 
 app.get('/api/health', (req, res) => {

@@ -830,9 +830,29 @@ export async function runMigrations() {
     // Всегда применяем дополнительные миграции (vk_id и др.) — они добавляют отсутствующие столбцы
     await applyAdditionalMigrations();
     await applySupportMigration();
+    await applyContactsMigration();
   } catch (error) {
     logError('Ошибка при выполнении миграций', error);
     throw error;
+  }
+}
+
+async function applyContactsMigration() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contacts (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(50) NOT NULL,
+        label VARCHAR(255) NOT NULL,
+        url TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    logInfo('Миграция contacts: таблица готова');
+  } catch (error) {
+    logWarn('Предупреждение при миграции contacts', { error: error.message });
   }
 }
 
