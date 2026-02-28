@@ -6,6 +6,7 @@ import solutionsStore from '../stores/solutionsStore';
 import authStore from '../stores/authStore';
 import api from '../utils/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { fmtDateTime } from '../utils/dateUtils';
 import CountdownTimer from '../components/CountdownTimer';
 import { CaseIcon, TimeIcon, ArrowLeftIcon, UploadIcon, GitHubIcon, SolutionIcon, PaperPlaneIcon } from '../components/Icons';
 
@@ -33,7 +34,7 @@ const CaseDetail = () => {
       <div className="terminal-loading">
         <div className="terminal-loading-container">
           <div>
-            <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+            <span className="terminal-loading-prompt">sys@platform:~$</span>
             <span className="terminal-loading-command">read_case --id {id}</span>
           </div>
           <div className="terminal-loading-status">
@@ -291,7 +292,7 @@ const CaseDetail = () => {
                 <div>
                   <TimeIcon size={32} className="text-terminal-cyan mx-auto mb-3 opacity-50" />
                   <p className="text-gray-400">
-                    Кейс будет открыт {new Date(caseItem.opens_at).toLocaleString('ru-RU')}
+                    Кейс будет открыт {fmtDateTime(caseItem.opens_at)}
                   </p>
                 </div>
               ) : (

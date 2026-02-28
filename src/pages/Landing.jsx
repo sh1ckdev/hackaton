@@ -177,7 +177,7 @@ const Landing = () => {
               )}
 
               <Link to="/info" className="landing-secondary-btn">
-                Подробнее о хакатоне
+                Подробнее
               </Link>
             </div>
 
@@ -207,7 +207,7 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="landing-timer-sub">до окончания хакатона</div>
+                  <div className="landing-timer-sub">до окончания соревнования</div>
                 </>
               ) : (
                 <>
@@ -225,7 +225,7 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="landing-timer-sub">до начала хакатона</div>
+                  <div className="landing-timer-sub">до начала соревнования</div>
                 </>
               )}
             </div>

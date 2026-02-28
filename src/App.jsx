@@ -30,6 +30,8 @@ const AdminBroadcastSettings = lazy(() => import('./pages/admin/AdminBroadcastSe
 const AdminHackathon = lazy(() => import('./pages/admin/AdminHackathon'));
 const AdminInfo = lazy(() => import('./pages/admin/AdminInfo'));
 const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
+const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
+const Contacts = lazy(() => import('./pages/Contacts'));
 
 const ProtectedRoute = observer(({ children }) => {
   if (authStore.initializing) {
@@ -38,7 +40,7 @@ const ProtectedRoute = observer(({ children }) => {
               <div className="terminal-loading">
                 <div className="terminal-loading-container">
                   <div>
-                    <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+                    <span className="terminal-loading-prompt">sys@platform:~$</span>
                     <span className="terminal-loading-command">auth_check</span>
                   </div>
                   <div className="terminal-loading-status">
@@ -100,7 +102,7 @@ function App() {
               <div className="terminal-loading">
                 <div className="terminal-loading-container">
                   <div>
-                    <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+                    <span className="terminal-loading-prompt">sys@platform:~$</span>
                     <span className="terminal-loading-command">load_module</span>
                   </div>
                   <div className="terminal-loading-status">
@@ -134,6 +136,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="info" element={<Info />} />
+              <Route path="contacts" element={<Contacts />} />
               <Route path="support" element={<SupportPage />} />
               <Route
                 path="admin"
@@ -154,6 +157,7 @@ function App() {
                 <Route path="hackathon" element={<AdminHackathon />} />
                 <Route path="info" element={<AdminInfo />} />
                 <Route path="support" element={<AdminSupport />} />
+                <Route path="contacts" element={<AdminContacts />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

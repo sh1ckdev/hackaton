@@ -598,6 +598,19 @@ export const RefreshIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
+export const ContactsIcon = ({ size = 24, className = '' }) => (
+  <Icon size={size} className={className}>
+    <path
+      d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.5 12a19.79 19.79 0 01-3.07-8.67A2 2 0 013.44 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 8.43a16 16 0 006.29 6.29l.79-.79a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Icon>
+);
+
 export const WifiIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../utils/api';
+import { fmtTime, fmtDayLabel, isDifferentDay } from '../utils/dateUtils';
 
 const SupportChat = ({ onClose, isPage = false }) => {
   const [messages, setMessages] = useState([]);
@@ -58,19 +59,12 @@ const SupportChat = ({ onClose, isPage = false }) => {
     }
   };
 
-  const formatTime = (ts) => {
-    const d = new Date(ts);
-    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  };
+  // Группируем по дням (МСК)
+  const TZ = 'Europe/Moscow';
+  const toDayKey = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
 
-  const formatDate = (ts) => {
-    const d = new Date(ts);
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-  };
-
-  // Группируем по дням
   const grouped = messages.reduce((acc, msg) => {
-    const day = new Date(msg.created_at).toDateString();
+    const day = toDayKey(msg.created_at);
     if (!acc[day]) acc[day] = [];
     acc[day].push(msg);
     return acc;
@@ -118,7 +112,7 @@ const SupportChat = ({ onClose, isPage = false }) => {
             Object.entries(grouped).map(([day, dayMsgs]) => (
               <div key={day}>
                 <div className="support-chat-day-divider">
-                  <span>{formatDate(dayMsgs[0].created_at)}</span>
+                  <span>{fmtDayLabel(dayMsgs[0].created_at)}</span>
                 </div>
                 {dayMsgs.map(msg => (
                   <div
@@ -127,7 +121,7 @@ const SupportChat = ({ onClose, isPage = false }) => {
                   >
                     <div className="support-msg-bubble">
                       <div className="support-msg-text">{msg.text}</div>
-                      <div className="support-msg-time">{formatTime(msg.created_at)}</div>
+                      <div className="support-msg-time">{fmtTime(msg.created_at)}</div>
                     </div>
                   </div>
                 ))}

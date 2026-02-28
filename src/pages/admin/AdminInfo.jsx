@@ -27,7 +27,7 @@ const AdminInfo = () => {
       <h2 className="text-xl font-semibold text-white mb-2">Страница «Информация»</h2>
       <p className="text-white/50 text-sm mb-5">Содержимое отображается на странице /info. Поддерживается Markdown.</p>
       <textarea value={content} onChange={e => setContent(e.target.value)} rows={20}
-        placeholder="# Правила хакатона&#10;&#10;Напишите текст в формате Markdown..."
+        placeholder="# Правила соревнования&#10;&#10;Напишите текст в формате Markdown..."
         className="w-full px-4 py-3 bg-terminal-dark/40 border border-terminal-gray text-white focus:border-terminal-blue focus:outline-none rounded font-mono text-sm resize-y"
         style={{ minHeight: 320 }} />
       <div className="flex items-center gap-4 mt-4">

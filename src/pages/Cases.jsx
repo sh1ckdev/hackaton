@@ -143,7 +143,7 @@ const Cases = () => {
   };
 
   const formatCompany = (caseItem) => {
-    return caseItem?.company || caseItem?.partner || caseItem?.organization || 'Hackathon';
+    return caseItem?.company || caseItem?.partner || caseItem?.organization || 'Организатор';
   };
 
   const formatPrize = (caseItem) => {
@@ -180,7 +180,7 @@ const Cases = () => {
         <div className="terminal-loading">
           <div className="terminal-loading-container">
             <div>
-              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-prompt">sys@platform:~$</span>
               <span className="terminal-loading-command">fetch_cases --all</span>
             </div>
             <div className="terminal-loading-status">

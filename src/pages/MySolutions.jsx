@@ -5,6 +5,7 @@ import solutionsStore from '../stores/solutionsStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import api from '../utils/api';
 import { SolutionIcon } from '../components/Icons';
+import { fmtDateTime } from '../utils/dateUtils';
 
 const MySolutions = () => {
   useDocumentTitle('Мои решения');
@@ -55,7 +56,7 @@ const MySolutions = () => {
         <div className="terminal-loading">
           <div className="terminal-loading-container">
             <div>
-              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-prompt">sys@platform:~$</span>
               <span className="terminal-loading-command">list_solutions --user</span>
             </div>
             <div className="terminal-loading-status">
@@ -162,7 +163,7 @@ const MySolutions = () => {
 
               <div className="solutions-card-footer">
                 <span className="solutions-card-date">
-                  Отправлено: {new Date(solution.created_at).toLocaleString('ru-RU')}
+                  Отправлено: {fmtDateTime(solution.created_at)}
                 </span>
                 <Link to={`/solutions/submit/${solution.case_id}`} className="solutions-card-edit">
                   Редактировать

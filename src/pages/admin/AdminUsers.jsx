@@ -4,6 +4,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import authStore from '../../stores/authStore';
 import api from '../../utils/api';
 import { PaperPlaneIcon } from '../../components/Icons';
+import { fmtDateTime } from '../../utils/dateUtils';
 
 const MAIN_ADMIN_TELEGRAM_ID = 1046635419;
 
@@ -130,7 +131,7 @@ const AdminUsers = () => {
                   ['Телефон', selected.phone],
                   ['Telegram ID', selected.telegram_id],
                   ['Решений', selected.solutions_count || 0],
-                  ['Зарегистрирован', selected.created_at ? new Date(selected.created_at).toLocaleString('ru-RU') : '—'],
+                  ['Зарегистрирован', fmtDateTime(selected.created_at)],
                 ].map(([k, v]) => v ? (
                   <div key={k} className="grid grid-cols-[140px_1fr] gap-2">
                     <span className="text-white/60">{k}:</span>

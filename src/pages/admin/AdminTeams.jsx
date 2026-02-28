@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import authStore from '../../stores/authStore';
 import api from '../../utils/api';
+import { fmtDate } from '../../utils/dateUtils';
 
 const STATUS_LABELS = { pending: 'Ожидает', reviewing: 'На проверке', approved: 'Одобрено', rejected: 'Отклонено' };
 
@@ -92,7 +93,7 @@ const AdminTeams = () => {
                   <td className="py-3 pr-4 font-mono text-white/70">{team.team_code || team.code}</td>
                   <td className="py-3 pr-4 text-white/70">{team.members_count}</td>
                   <td className="py-3 pr-4 text-white/70">{team.assigned_case_title || <span className="text-white/30">не назначен</span>}</td>
-                  <td className="py-3 text-white/50">{new Date(team.created_at).toLocaleDateString('ru-RU')}</td>
+                      <td className="py-3 text-white/50">{fmtDate(team.created_at)}</td>
                 </tr>
               ))}
           </tbody>
@@ -113,7 +114,7 @@ const AdminTeams = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-white/50">Код: <span className="font-mono text-white/70">{selected.team_code || selected.code}</span> · Создана: {new Date(selected.created_at).toLocaleDateString('ru-RU')}</p>
+                <p className="text-sm text-white/50">Код: <span className="font-mono text-white/70">{selected.team_code || selected.code}</span> · Создана: {fmtDate(selected.created_at)}</p>
               </div>
               <div className="flex items-center gap-2">
                 {authStore.isAdmin && (

@@ -2,17 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import api from '../../utils/api';
 import { PaperPlaneIcon } from '../../components/Icons';
+import { fmtChatTime, fmtDayLabel, isDifferentDay } from '../../utils/dateUtils';
 
 const POLL_INTERVAL = 5000;
-
-const fmtTime = (ts) => {
-  if (!ts) return '';
-  const d = new Date(ts);
-  const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-};
 
 const Avatar = ({ user, size = 'md' }) => {
   const sz = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
@@ -178,7 +170,7 @@ const AdminSupport = () => {
                   </div>
                 </div>
                 <div className="admin-support-chat-item-meta">
-                  <span className="admin-support-chat-item-time">{fmtTime(chat.last_message_at)}</span>
+                  <span className="admin-support-chat-item-time">{fmtChatTime(chat.last_message_at)}</span>
                   {unread && <span className="admin-support-unread-dot" />}
                   {chat.status === 'closed' && <span className="text-white/30 text-xs">закрыт</span>}
                 </div>
@@ -231,19 +223,19 @@ const AdminSupport = () => {
                   {messages.map((msg, i) => {
                     const isAdmin = msg.sender === 'admin';
                     const prevMsg = messages[i - 1];
-                    const showDate = !prevMsg || new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString();
+                    const showDate = !prevMsg || isDifferentDay(prevMsg.created_at, msg.created_at);
                     return (
                       <div key={msg.id}>
                         {showDate && (
                           <div className="admin-support-date-divider">
-                            {new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+                            {fmtDayLabel(msg.created_at)}
                           </div>
                         )}
                         <div className={`admin-support-message${isAdmin ? ' admin' : ' user'}`}>
                           {!isAdmin && <Avatar user={activeChat} size="sm" />}
                           <div className={`admin-support-bubble${isAdmin ? ' admin' : ' user'}`}>
                             <p className="text-sm whitespace-pre-wrap wrap-break-word">{msg.text}</p>
-                            <span className="admin-support-bubble-time">{fmtTime(msg.created_at)}</span>
+                            <span className="admin-support-bubble-time">{fmtChatTime(msg.created_at)}</span>
                           </div>
                         </div>
                       </div>

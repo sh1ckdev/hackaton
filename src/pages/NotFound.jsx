@@ -31,13 +31,13 @@ const NotFound = () => {
           <span className="not-found-dot not-found-dot-red" />
           <span className="not-found-dot not-found-dot-yellow" />
           <span className="not-found-dot not-found-dot-green" />
-          <span className="not-found-terminal-title">bash — hackathon-shell</span>
+          <span className="not-found-terminal-title">bash — platform-shell</span>
         </div>
 
         <div className="not-found-terminal-body">
           {/* Ввод запроса */}
           <div className="not-found-line">
-            <span className="not-found-prompt">sys@hackathon:~$</span>
+            <span className="not-found-prompt">sys@platform:~$</span>
             <span className="not-found-cmd">&nbsp;{typed}</span>
             <span className="not-found-cursor" />
           </div>

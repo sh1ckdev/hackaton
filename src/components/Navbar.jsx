@@ -1,14 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { SolutionIcon, TeamIcon, AdminIcon } from './Icons';
+import { SolutionIcon, TeamIcon, AdminIcon, ContactsIcon } from './Icons';
 
 const Navbar = ({ isAdmin }) => {
   const location = useLocation();
   const isActive = (path) => location.pathname.startsWith(path);
 
   const navItems = [
-    { path: '/solutions', label: 'Решения', icon: SolutionIcon },
-    { path: '/team', label: 'Команда', icon: TeamIcon },
-    { path: '/info', label: 'Информация', icon: null },
+    { path: '/solutions',  label: 'Решения',    icon: SolutionIcon },
+    { path: '/team',       label: 'Команда',     icon: TeamIcon },
+    { path: '/contacts',   label: 'Контакты',    icon: ContactsIcon },
+    { path: '/info',       label: 'Информация',  icon: null },
   ];
 
   return (

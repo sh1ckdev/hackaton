@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ProfileIcon, SolutionIcon, TeamIcon, AdminIcon } from './Icons';
+import { ProfileIcon, SolutionIcon, TeamIcon, AdminIcon, ContactsIcon } from './Icons';
 import Logo from './Logo';
 
 const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
@@ -24,9 +24,10 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
   }, [menuOpen]);
 
   const navItems = [
-    { path: '/solutions', label: 'Решения', icon: SolutionIcon },
-    { path: '/team', label: 'Команда', icon: TeamIcon },
-    { path: '/info', label: 'Информация', icon: null },
+    { path: '/solutions', label: 'Решения',    icon: SolutionIcon },
+    { path: '/team',      label: 'Команда',     icon: TeamIcon },
+    { path: '/contacts',  label: 'Контакты',    icon: ContactsIcon },
+    { path: '/info',      label: 'Информация',  icon: null },
   ];
 
   return (

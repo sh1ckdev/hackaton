@@ -340,7 +340,7 @@ const Team = () => {
         <div className="terminal-loading">
           <div className="terminal-loading-container">
             <div>
-              <span className="terminal-loading-prompt">sys@hackathon:~$</span>
+              <span className="terminal-loading-prompt">sys@platform:~$</span>
               <span className="terminal-loading-command">team_status --current</span>
             </div>
             <div className="terminal-loading-status">

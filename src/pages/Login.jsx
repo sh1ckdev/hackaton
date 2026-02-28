@@ -270,7 +270,7 @@ const Login = () => {
         <div className="login-terminal-body">
           <div className="login-terminal-lines">
             <div className="login-line">
-              <span className="login-prompt login-prompt-green">sys@hackathon:~$</span>
+              <span className="login-prompt login-prompt-green">sys@platform:~$</span>
               <span> auth --init</span>
             </div>
             <div className="login-line login-line-muted">
@@ -283,7 +283,7 @@ const Login = () => {
             <div className="login-line login-line-muted">&gt; Выберите способ входа</div>
             <div className="login-line login-line-spacer"></div>
             <div className="login-line">
-              <span className="login-prompt login-prompt-blue">user@hackathon:~$</span>
+              <span className="login-prompt login-prompt-blue">user@platform:~$</span>
               <span> authentication</span>
               <span className="login-cursor" aria-hidden="true"></span>
             </div>
@@ -418,7 +418,7 @@ const Login = () => {
         </div>
       </div>
 
-      <div className="login-terminal-note">Доступ разрешен только авторизованным участникам хакатона.</div>
+      <div className="login-terminal-note">Доступ разрешен только авторизованным участникам.</div>
     </section>
   );
 };
