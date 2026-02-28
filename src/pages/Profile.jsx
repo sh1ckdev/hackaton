@@ -4,6 +4,20 @@ import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { EditIcon, RefreshIcon } from '../components/Icons';
 import api from '../utils/api';
+
+const CopyCodeBadge = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(code));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button type="button" className={`profile-code-badge${copied ? ' profile-code-badge-copied' : ''}`} onClick={handleCopy} title="Нажмите, чтобы скопировать">
+      {copied ? '✓ Скопировано' : code}
+    </button>
+  );
+};
 const Profile = () => {
   const user = authStore.user;
   useDocumentTitle('Профиль');
@@ -140,15 +154,9 @@ const Profile = () => {
                   </span>
                 </h1>
                 {user?.user_code && (
-                  <div className="profile-user-id">
-                    Код: <span className="profile-user-id-value">{user.user_code}</span>
-                    <button
-                      type="button"
-                      className="profile-user-id-copy"
-                      onClick={() => navigator.clipboard.writeText(String(user.user_code))}
-                    >
-                      Копировать
-                    </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    <span style={{ fontSize: 15, color: 'rgba(148,163,184,0.7)' }}>Ваш код:</span>
+                    <CopyCodeBadge code={user.user_code} />
                   </div>
                 )}
               </div>

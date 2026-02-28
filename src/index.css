@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @theme {
   --color-terminal-green: #22c55e;
@@ -140,8 +141,6 @@
 .animate-bounce-delay-2 {
   animation: bounce 1s ease-in-out infinite 0.4s;
 }
-
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 * {
   font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -3688,44 +3687,34 @@ code {
   border: 1px solid rgba(148, 163, 184, 0.3);
   color: rgba(148, 163, 184, 0.9);
 }
-.profile-user-id {
-  margin-top: 14px;
-  font-size: 14px;
-  color: rgba(148, 163, 184, 0.85);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.profile-user-id-value {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+.profile-code-badge {
+  display: inline-block;
+  margin-top: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-weight: 700;
-  font-size: 16px;
-  color: #60a5fa;
-  letter-spacing: 2px;
-  padding: 4px 12px;
-  background: rgba(59, 130, 246, 0.12);
+  font-size: 17px;
+  letter-spacing: 0.18em;
+  color: #93c5fd;
+  padding: 6px 16px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 8px;
-}
-
-.profile-user-id-copy {
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(96, 165, 250, 0.4);
-  border-radius: 8px;
-  color: #60a5fa;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  user-select: none;
 }
 
-.profile-user-id-copy:hover {
-  background: rgba(59, 130, 246, 0.25);
+.profile-code-badge:hover {
+  background: rgba(59, 130, 246, 0.18);
   border-color: rgba(96, 165, 250, 0.5);
-  transform: translateY(-1px);
+}
+
+.profile-code-badge-copied {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.35);
+  font-size: 14px;
+  letter-spacing: 0.04em;
 }
 
 .team-member-empty-icon {
