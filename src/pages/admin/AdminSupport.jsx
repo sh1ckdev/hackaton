@@ -29,6 +29,8 @@ const AdminSupport = () => {
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -106,10 +108,28 @@ const AdminSupport = () => {
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
 
+  const handleDelete = async () => {
+    if (!activeChat || deleting) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/admin/support/chats/${activeChat.ticket_id}`);
+      setShowDeleteConfirm(false);
+      setActiveChat(null);
+      setMessages([]);
+      setTicketInfo(null);
+      fetchChats();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Ошибка удаления');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openChat = (chat) => {
     setActiveChat(chat);
     setMessages([]);
     setReply('');
+    setShowDeleteConfirm(false);
     setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
@@ -210,6 +230,15 @@ const AdminSupport = () => {
               >
                 {ticketInfo?.status === 'closed' ? 'Переоткрыть' : 'Закрыть тикет'}
               </button>
+              {ticketInfo?.status === 'closed' && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3 py-1.5 text-xs rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-colors shrink-0"
+                  title="Удалить тикет"
+                >
+                  Удалить
+                </button>
+              )}
             </div>
 
             {/* Сообщения */}
@@ -281,6 +310,45 @@ const AdminSupport = () => {
           </>
         )}
       </div>
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center z-50"
+          style={{ animation: 'fade-in 0.15s ease' }}
+          onClick={() => !deleting && setShowDeleteConfirm(false)}
+        >
+          <div
+            className="bg-[#0f1929] border border-white/10 rounded-2xl p-8 max-w-sm w-[90%] text-center shadow-2xl"
+            style={{ animation: 'fade-in-up 0.18s ease' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-13 h-13 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 flex items-center justify-center mx-auto mb-4" style={{ width: 52, height: 52 }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Удалить тикет #{activeChat?.ticket_id}?</h3>
+            <p className="text-sm text-white/50 leading-relaxed mb-6">
+              Все сообщения этого тикета будут удалены безвозвратно.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25 hover:border-red-500/60 transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white/5 border border-white/15 text-white/60 hover:bg-white/10 hover:border-white/25 transition-colors disabled:opacity-50"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
