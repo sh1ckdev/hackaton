@@ -20,6 +20,7 @@ import infoRoutes from './routes/info.js';
 import contactsRoutes from './routes/contacts.js';
 import { startBot, setBotInstance } from './bot.js';
 import { startCaseOpenerScheduler } from './utils/caseOpener.js';
+import { startBroadcastScheduler } from './utils/broadcastScheduler.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -170,6 +171,7 @@ async function startServer() {
     setBotInstance(bot);
 
     startCaseOpenerScheduler();
+    startBroadcastScheduler();
     
     app.listen(PORT, () => {
       logInfo('Сервер запущен', { port: PORT, nodeEnv: process.env.NODE_ENV });
