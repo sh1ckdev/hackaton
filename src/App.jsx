@@ -123,6 +123,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/auth/vk/callback" element={<AuthVkCallback />} />
             <Route path="/" element={<Landing />} />
+            <Route path="contacts" element={<Layout />}>
+              <Route index element={<Contacts />} />
+            </Route>
             <Route
               path="/"
               element={
@@ -136,7 +139,6 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="info" element={<Info />} />
-              <Route path="contacts" element={<Contacts />} />
               <Route path="support" element={<SupportPage />} />
               <Route
                 path="admin"
