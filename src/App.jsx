@@ -126,6 +126,9 @@ function App() {
             <Route path="contacts" element={<Layout />}>
               <Route index element={<Contacts />} />
             </Route>
+            <Route path="info" element={<Layout />}>
+              <Route index element={<Info />} />
+            </Route>
             <Route
               path="/"
               element={
@@ -138,7 +141,6 @@ function App() {
               <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
-              <Route path="info" element={<Info />} />
               <Route path="support" element={<SupportPage />} />
               <Route
                 path="admin"

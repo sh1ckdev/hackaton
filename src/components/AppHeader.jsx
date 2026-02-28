@@ -23,12 +23,21 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  const navItems = [
-    { path: '/solutions', label: 'Решения',    icon: SolutionIcon },
-    { path: '/team',      label: 'Команда',     icon: TeamIcon },
-    { path: '/contacts',  label: 'Контакты',    icon: ContactsIcon },
-    { path: '/info',      label: 'Информация',  icon: InfoIcon },
+  // Пункты доступные всем (без авторизации)
+  const publicNavItems = [
+    { path: '/contacts', label: 'Контакты',   icon: ContactsIcon },
+    { path: '/info',     label: 'Информация', icon: InfoIcon },
   ];
+
+  // Пункты только для авторизованных
+  const authNavItems = [
+    { path: '/solutions', label: 'Решения', icon: SolutionIcon },
+    { path: '/team',      label: 'Команда', icon: TeamIcon },
+  ];
+
+  const visibleNavItems = isAuthenticated
+    ? [...authNavItems, ...publicNavItems]
+    : publicNavItems;
 
   return (
     <header className="app-topbar" ref={menuRef}>
@@ -37,7 +46,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
 
         {/* Десктоп навигация */}
         <nav className="app-nav app-nav-desktop">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.path} to={item.path} className={`app-nav-link ${isActive(item.path) ? 'is-active' : ''}`}>
@@ -82,7 +91,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
       {/* Мобильное меню */}
       {menuOpen && (
         <div className="app-mobile-menu">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.path} to={item.path} className={`app-mobile-link ${isActive(item.path) ? 'is-active' : ''}`}>
