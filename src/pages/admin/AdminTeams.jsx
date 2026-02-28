@@ -66,6 +66,56 @@ const AdminTeams = () => {
     finally { setCaseChanging(false); }
   };
 
+  const handleExportCSV = () => {
+    const MAX_MEMBERS = 4;
+    const headers = [
+      'Команда',
+      'Код',
+      'Категория',
+      'Кейс',
+      ...Array.from({ length: MAX_MEMBERS }, (_, i) => [`Участник ${i + 1}`, `Username ${i + 1}`, `Роль ${i + 1}`]).flat(),
+    ];
+
+    const escape = (val) => {
+      const s = val == null ? '' : String(val);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const rows = teams.map(team => {
+      const catLabel = team.participant_category === 'school' ? 'Школьники'
+        : team.participant_category === 'student' ? 'Студенты' : '';
+      const base = [
+        escape(team.name),
+        escape(team.team_code || team.code),
+        escape(catLabel),
+        escape(team.assigned_case_title || ''),
+      ];
+      const memberCols = [];
+      for (let i = 0; i < MAX_MEMBERS; i++) {
+        const m = team.members?.[i];
+        if (m) {
+          const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.username || '';
+          memberCols.push(escape(name), escape(m.username ? `@${m.username}` : ''), escape(m.role === 'captain' ? 'Капитан' : 'Участник'));
+        } else {
+          memberCols.push('', '', '');
+        }
+      }
+      return [...base, ...memberCols].join(',');
+    });
+
+    const bom = '\uFEFF';
+    const csv = bom + [headers.map(escape).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `teams_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleRandomize = async () => {
     if (!confirm('Распределить команды по кейсам случайным образом?')) return;
     setRandomizing(true);
@@ -89,10 +139,17 @@ const AdminTeams = () => {
           </select>
           <span className="text-white/40 text-sm">{teams.length} команд</span>
         </div>
-        <button onClick={handleRandomize} disabled={randomizing}
-          className="px-4 py-2 bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all text-sm font-medium rounded disabled:opacity-50">
-          {randomizing ? 'Распределение...' : 'Рандомизировать кейсы'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExportCSV} disabled={teams.length === 0}
+            className="px-4 py-2 bg-terminal-dark/40 border border-terminal-green/60 text-terminal-green hover:bg-terminal-green/10 transition-all text-sm font-medium rounded disabled:opacity-40 flex items-center gap-2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Выгрузить CSV
+          </button>
+          <button onClick={handleRandomize} disabled={randomizing}
+            className="px-4 py-2 bg-terminal-dark/40 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg transition-all text-sm font-medium rounded disabled:opacity-50">
+            {randomizing ? 'Распределение...' : 'Рандомизировать кейсы'}
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
