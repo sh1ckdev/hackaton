@@ -300,7 +300,7 @@ const CaseDetail = () => {
                 )}
               </div>
               <div className="flex gap-3 pt-4 border-t border-terminal-gray/20">
-                {mySolution.status !== 'approved' && (
+                {mySolution.status !== 'approved' && mySolution.status !== 'reviewing' && (
                   <Link
                     to={`/solutions/submit/${caseItem.id}`}
                     className="flex-1 px-4 py-2.5 border border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg transition-colors rounded-lg text-sm font-medium text-center"
@@ -308,7 +308,7 @@ const CaseDetail = () => {
                     Редактировать
                   </Link>
                 )}
-                {mySolution.status !== 'approved' && (
+                {mySolution.status !== 'approved' && mySolution.status !== 'reviewing' && (
                   <button
                     onClick={async () => {
                       if (!confirm('Вы уверены, что хотите сняться с соревнования? Ваше решение будет удалено.')) {

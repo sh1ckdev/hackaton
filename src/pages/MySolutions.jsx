@@ -165,7 +165,7 @@ const MySolutions = () => {
                 <span className="solutions-card-date">
                   Отправлено: {fmtDateTime(solution.created_at)}
                 </span>
-                {solution.status !== 'approved' && (
+                {solution.status !== 'approved' && solution.status !== 'reviewing' && (
                   <Link to={`/solutions/submit/${solution.case_id}`} className="solutions-card-edit">
                     Редактировать
                   </Link>
