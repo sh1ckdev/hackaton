@@ -306,6 +306,34 @@ router.delete('/teams/:id', requireAdmin, adminOperationLimiter, async (req, res
   }
 });
 
+// Назначить / сменить кейс команды вручную
+router.put('/teams/:id/case', requireModerator, adminOperationLimiter, async (req, res) => {
+  try {
+    const teamId = parseInt(req.params.id, 10);
+    if (isNaN(teamId) || teamId <= 0) return res.status(400).json({ error: 'Некорректный ID команды' });
+
+    const { case_id } = req.body; // null — снять кейс
+    const caseIdVal = case_id ? parseInt(case_id, 10) : null;
+
+    if (caseIdVal !== null) {
+      const caseCheck = await pool.query('SELECT id, title FROM cases WHERE id = $1', [caseIdVal]);
+      if (caseCheck.rows.length === 0) return res.status(404).json({ error: 'Кейс не найден' });
+    }
+
+    const result = await pool.query(
+      'UPDATE teams SET assigned_case_id = $1 WHERE id = $2 RETURNING *',
+      [caseIdVal, teamId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Команда не найдена' });
+
+    logInfo('[Admin] Кейс команды изменён вручную', { teamId, caseId: caseIdVal, adminId: req.user?.id });
+    res.json({ team: result.rows[0] });
+  } catch (error) {
+    logError('Ошибка смены кейса команды', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Получить решение конкретной команды
 router.get('/teams/:id/solution', requireModerator, async (req, res) => {
   try {
