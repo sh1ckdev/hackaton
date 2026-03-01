@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import { sanitizeInput } from './middleware/security.js';
 import { attachCsrfToken, verifyCsrfToken } from './middleware/csrf.js';
 import { attachRequestContext, requestAuditMiddleware } from './middleware/requestAudit.js';
+import { ipBlocklistMiddleware } from './middleware/ipBlocklist.js';
 import { logInfo, logError, logWarn } from './utils/logger.js';
 import { initDB } from './db/index.js';
 import pool from './db/index.js';
@@ -90,6 +91,7 @@ app.use(cookieParser());
 app.use(attachRequestContext);
 app.use(attachCsrfToken);
 app.use(verifyCsrfToken);
+app.use(ipBlocklistMiddleware);
 app.use(requestAuditMiddleware);
 
 

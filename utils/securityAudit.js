@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import net from 'net';
 import pool from '../db/index.js';
 import { logError } from './logger.js';
 
@@ -11,7 +12,21 @@ export const getClientIp = (req) => {
   const cfIp = req.get('cf-connecting-ip');
   const realIp = req.get('x-real-ip');
   const xff = cleanForwardedFor(req.get('x-forwarded-for'));
-  return cfIp || realIp || xff || req.ip || req.connection?.remoteAddress || null;
+  const rawIp = cfIp || realIp || xff || req.ip || req.connection?.remoteAddress || null;
+  return normalizeIp(rawIp);
+};
+
+export const normalizeIp = (ip) => {
+  if (!ip || typeof ip !== 'string') return null;
+  const trimmed = ip.trim();
+  if (!trimmed) return null;
+  const noPort = trimmed.includes(':') && trimmed.includes('.') && trimmed.includes('::ffff:')
+    ? trimmed
+    : trimmed.replace(/:\d+$/, '');
+  const unmapped = noPort.startsWith('::ffff:') ? noPort.replace('::ffff:', '') : noPort;
+  if (net.isIP(unmapped)) return unmapped;
+  if (net.isIP(noPort)) return noPort;
+  return null;
 };
 
 export const createRequestId = () => {

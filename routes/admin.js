@@ -5,6 +5,8 @@ import { broadcastMessage, sendMessageToUser } from '../bot.js';
 import { adminOperationLimiter, logSuspiciousActivity } from '../middleware/security.js';
 import { validateIdParam, validateTimelinePayload } from '../middleware/validation.js';
 import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
+import { banIp, unbanIp, getActiveIpBans } from '../middleware/ipBlocklist.js';
+import { normalizeIp } from '../utils/securityAudit.js';
 
 const router = express.Router();
 const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
@@ -1346,12 +1348,16 @@ router.get('/security/top-ips', requireAdmin, async (req, res) => {
     const minutes = Math.min(24 * 60, Math.max(1, parseInt(req.query.minutes || '15', 10)));
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10)));
     const statusCode = req.query.status ? parseInt(req.query.status, 10) : null;
+    const onlyErrors = String(req.query.only_errors || 'false') === 'true';
 
     const params = [minutes];
     let statusFilterSql = '';
     if (!Number.isNaN(statusCode) && statusCode > 0) {
       params.push(statusCode);
       statusFilterSql = ` AND status_code = $${params.length} `;
+    }
+    if (onlyErrors) {
+      statusFilterSql += ' AND status_code >= 400 ';
     }
     params.push(limit);
 
@@ -1377,6 +1383,7 @@ router.get('/security/top-ips', requireAdmin, async (req, res) => {
       window_minutes: minutes,
       limit,
       status_filter: statusCode || null,
+      only_errors: onlyErrors,
       items: topIps.map((r) => ({
         ip: r.ip,
         requests: Number(r.requests) || 0,
@@ -1563,6 +1570,89 @@ router.get('/security/events', requireAdmin, async (req, res) => {
     res.json({ window_hours: hours, limit, event_type: eventType, events });
   } catch (error) {
     logError('Ошибка получения security events', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.get('/security/bans', requireAdmin, async (req, res) => {
+  try {
+    const bans = getActiveIpBans().map((b) => ({
+      ip: b.ip,
+      reason: b.reason,
+      created_by: b.createdBy || null,
+      created_at: new Date(b.createdAt).toISOString(),
+      expires_at: new Date(b.expiresAt).toISOString(),
+    }));
+    res.json({ bans });
+  } catch (error) {
+    logError('Ошибка получения активных банов IP', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.post('/security/ban-ip', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const ipRaw = String(req.body?.ip || '').trim();
+    const minutes = Math.max(1, Math.min(60 * 24 * 30, parseInt(req.body?.minutes || '60', 10)));
+    const reason = String(req.body?.reason || 'manual_admin_ban').slice(0, 500);
+    const ip = normalizeIp(ipRaw);
+    if (!ip) {
+      return res.status(400).json({ error: 'Некорректный IP' });
+    }
+    const banned = banIp(ip, minutes, reason, req.user?.id ? `admin:${req.user.id}` : 'admin');
+    if (!banned) {
+      return res.status(400).json({ error: 'Не удалось заблокировать IP' });
+    }
+
+    await pool.query(
+      `INSERT INTO security_events (event_type, ip_address, user_id, path, method, details)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+      [
+        'ip_manual_ban',
+        ip,
+        req.user?.id || null,
+        req.path,
+        req.method,
+        JSON.stringify({ reason, minutes }),
+      ]
+    );
+
+    return res.json({
+      success: true,
+      ip,
+      minutes,
+      reason,
+      expires_at: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
+    });
+  } catch (error) {
+    logError('Ошибка ручной блокировки IP', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.post('/security/unban-ip', requireAdmin, adminOperationLimiter, async (req, res) => {
+  try {
+    const ipRaw = String(req.body?.ip || '').trim();
+    const ip = normalizeIp(ipRaw);
+    if (!ip) {
+      return res.status(400).json({ error: 'Некорректный IP' });
+    }
+    const success = unbanIp(ip);
+    await pool.query(
+      `INSERT INTO security_events (event_type, ip_address, user_id, path, method, details)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+      [
+        'ip_manual_unban',
+        ip,
+        req.user?.id || null,
+        req.path,
+        req.method,
+        JSON.stringify({ success }),
+      ]
+    );
+    return res.json({ success, ip });
+  } catch (error) {
+    logError('Ошибка ручного разбана IP', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

@@ -1,6 +1,7 @@
 import pool from '../db/index.js';
 import { logError, logSecurity } from '../utils/logger.js';
 import { createRequestId, getClientIp } from '../utils/securityAudit.js';
+import { banIp } from './ipBlocklist.js';
 
 const REQUEST_WINDOW_MS = Math.max(10, Number(process.env.SECURITY_DDOS_WINDOW_SEC || 60)) * 1000;
 const REQUEST_THRESHOLD = Math.max(20, Number(process.env.SECURITY_DDOS_REQ_THRESHOLD || 180));
@@ -79,6 +80,13 @@ export const requestAuditMiddleware = (req, res, next) => {
       };
       logSecurity('Возможная DDoS-активность по IP', req, details);
       await saveSecurityEvent(req, 'possible_ddos', details);
+      if (process.env.SECURITY_AUTO_BAN_ON_DDOS === 'true') {
+        const banMinutes = Math.max(1, Number(process.env.SECURITY_AUTO_BAN_MINUTES || 30));
+        const banned = banIp(ip, banMinutes, 'possible_ddos_auto_ban', 'system');
+        if (banned) {
+          await saveSecurityEvent(req, 'ip_auto_ban', { ...details, banMinutes });
+        }
+      }
     }
 
     cleanupState(now);
