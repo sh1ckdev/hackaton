@@ -57,6 +57,35 @@ const clearAuthCookies = (res) => {
   res.clearCookie(REFRESH_COOKIE_NAME, getCookieOptions(undefined));
 };
 
+const REGISTRATION_CLOSED_ERROR = 'Регистрация закрыта, соревнования начались';
+
+const getRegistrationCloseAt = async () => {
+  const result = await pool.query(
+    `SELECT COALESCE(date_to, date) AS close_at
+     FROM hackathon_timeline
+     WHERE show_countdown = TRUE
+       AND COALESCE(date_to, date) IS NOT NULL
+     ORDER BY COALESCE(date_to, date) ASC
+     LIMIT 1`
+  );
+  const closeAt = result.rows[0]?.close_at;
+  if (!closeAt) return null;
+  const d = new Date(closeAt);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const isRegistrationClosedForNewUsers = async () => {
+  try {
+    const closeAt = await getRegistrationCloseAt();
+    if (!closeAt) return false;
+    return Date.now() >= closeAt.getTime();
+  } catch (error) {
+    logError('Не удалось проверить дедлайн регистрации', error);
+    // Fail-open: если таймлайн недоступен, не блокируем вход существующей логики
+    return false;
+  }
+};
+
 const signAccessToken = (user) => jwt.sign(
   { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, role: user.role },
   process.env.JWT_SECRET,
@@ -146,6 +175,11 @@ router.post('/telegram', authLimiter, async (req, res) => {
 
     let user;
     if (result.rows.length === 0) {
+      const registrationClosed = await isRegistrationClosedForNewUsers();
+      if (registrationClosed) {
+        await writeAuthAudit(req, 'telegram_login', { success: false, details: { reason: 'registration_closed_new_user' } });
+        return res.status(403).json({ error: REGISTRATION_CLOSED_ERROR });
+      }
       const userCode = await generateUniqueUserCode(pool);
       result = await pool.query(
         `INSERT INTO users (telegram_id, username, first_name, last_name, photo_url, user_code, participant_category)
@@ -540,6 +574,11 @@ router.post('/vk', authLimiter, async (req, res) => {
     }
 
     if (!user) {
+      const registrationClosed = await isRegistrationClosedForNewUsers();
+      if (registrationClosed) {
+        await writeAuthAudit(req, 'vk_login', { success: false, details: { reason: 'registration_closed_new_user' } });
+        return res.status(403).json({ error: REGISTRATION_CLOSED_ERROR });
+      }
       const userCode = await generateUniqueUserCode(pool);
       result = await pool.query(
         `INSERT INTO users (vk_id, first_name, last_name, photo_url, phone, email, username, user_code, participant_category)
