@@ -151,3 +151,52 @@ export const validateIdParam = (req, res, next) => {
   req.params.id = numId;
   next();
 };
+
+export const validateTimelinePayload = (req, res, next) => {
+  const {
+    type,
+    title,
+    description,
+    date,
+    date_to,
+    active,
+    show_countdown
+  } = req.body;
+
+  const has = (v) => v !== undefined;
+  const isValidDate = (v) => typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
+
+  if (has(type)) {
+    if (typeof type !== 'string' || !/^[a-zA-Z0-9_-]{2,50}$/.test(type.trim())) {
+      return res.status(400).json({ error: 'Поле type должно быть строкой 2-50 символов (буквы, цифры, _, -)' });
+    }
+  }
+
+  if (has(title)) {
+    if (typeof title !== 'string' || title.trim().length < 2 || title.trim().length > 200) {
+      return res.status(400).json({ error: 'Название должно содержать от 2 до 200 символов' });
+    }
+  }
+
+  if (has(description)) {
+    if (typeof description !== 'string' || description.trim().length < 2 || description.trim().length > 5000) {
+      return res.status(400).json({ error: 'Описание должно содержать от 2 до 5000 символов' });
+    }
+  }
+
+  if (has(date) && date !== null && date !== '' && !isValidDate(date)) {
+    return res.status(400).json({ error: 'Некорректный формат date' });
+  }
+  if (has(date_to) && date_to !== null && date_to !== '' && !isValidDate(date_to)) {
+    return res.status(400).json({ error: 'Некорректный формат date_to' });
+  }
+
+  if (has(active) && typeof active !== 'boolean') {
+    return res.status(400).json({ error: 'Поле active должно быть boolean' });
+  }
+  if (has(show_countdown) && typeof show_countdown !== 'boolean') {
+    return res.status(400).json({ error: 'Поле show_countdown должно быть boolean' });
+  }
+
+  next();
+};

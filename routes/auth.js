@@ -3,10 +3,58 @@ import { generateUniqueUserCode } from '../utils/userCode.js';
 import jwt from 'jsonwebtoken';
 import { authenticateToken } from '../middleware/auth.js';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 import pool from '../db/index.js';
 import { logError } from '../utils/logger.js';
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Слишком много попыток авторизации. Попробуйте позже.' },
+});
+
+const ACCESS_COOKIE_NAME = 'access_token';
+const REFRESH_COOKIE_NAME = 'refresh_token';
+const ACCESS_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
+const REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+const parseSameSite = (value) => {
+  const normalized = String(value || 'lax').toLowerCase();
+  if (normalized === 'strict') return 'strict';
+  if (normalized === 'none') return 'none';
+  return 'lax';
+};
+
+const getCookieOptions = (maxAge) => {
+  const sameSite = parseSameSite(process.env.AUTH_COOKIE_SAMESITE);
+  const secure = process.env.AUTH_COOKIE_SECURE
+    ? process.env.AUTH_COOKIE_SECURE === 'true'
+    : process.env.NODE_ENV === 'production';
+  const domain = process.env.AUTH_COOKIE_DOMAIN || undefined;
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: '/',
+    ...(typeof maxAge === 'number' ? { maxAge } : {}),
+    ...(domain ? { domain } : {}),
+  };
+};
+
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie(ACCESS_COOKIE_NAME, accessToken, getCookieOptions(ACCESS_COOKIE_MAX_AGE_MS));
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(REFRESH_COOKIE_MAX_AGE_MS));
+};
+
+const clearAuthCookies = (res) => {
+  res.clearCookie(ACCESS_COOKIE_NAME, getCookieOptions(undefined));
+  res.clearCookie(REFRESH_COOKIE_NAME, getCookieOptions(undefined));
+};
 
 const signAccessToken = (user) => jwt.sign(
   { id: user.id, telegram_id: user.telegram_id ?? null, vk_id: user.vk_id ?? null, role: user.role },
@@ -70,7 +118,7 @@ const verifyTelegramWidget = (data) => {
 };
 
 // POST /auth/telegram — вход через Telegram Login Widget
-router.post('/telegram', async (req, res) => {
+router.post('/telegram', authLimiter, async (req, res) => {
   try {
     const { telegramData, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
@@ -140,6 +188,7 @@ router.post('/telegram', async (req, res) => {
     const accessToken = signAccessToken(user);
     const refresh = await createRefreshToken(user.id);
 
+    setAuthCookies(res, accessToken, refresh.token);
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {
     logError('Ошибка аутентификации Telegram Widget', error);
@@ -148,7 +197,7 @@ router.post('/telegram', async (req, res) => {
 });
 
 
-router.post('/bot', async (req, res) => {
+router.post('/bot', authLimiter, async (req, res) => {
   try {
     const { token, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
@@ -222,6 +271,7 @@ router.post('/bot', async (req, res) => {
       updated_at: row.updated_at
     };
 
+    setAuthCookies(res, jwtToken, refresh.token);
     res.json({ token: jwtToken, refresh_token: refresh.token, user });
   } catch (error) {
     logError('Ошибка входа через бота', error, { token: req.body?.token ? 'present' : 'missing' });
@@ -335,7 +385,7 @@ router.get('/vk', (req, res) => {
   res.redirect(data.url);
 });
 
-router.post('/vk', async (req, res) => {
+router.post('/vk', authLimiter, async (req, res) => {
   try {
     const { code, state, device_id, participant_category } = req.body;
     const clientId = process.env.VK_APP_ID;
@@ -519,6 +569,7 @@ router.post('/vk', async (req, res) => {
       updated_at: user.updated_at
     };
 
+    setAuthCookies(res, accessTokenJwt, refresh.token);
     res.json({ token: accessTokenJwt, refresh_token: refresh.token, user: userResponse });
   } catch (error) {
     logError('Ошибка VK OAuth', error);
@@ -620,6 +671,7 @@ router.post('/link-vk', authenticateToken, async (req, res) => {
     const newAccessToken = signAccessToken(user);
     const refresh = await createRefreshToken(user.id);
 
+    setAuthCookies(res, newAccessToken, refresh.token);
     res.json({ token: newAccessToken, refresh_token: refresh.token, user });
   } catch (error) {
     logError('Ошибка привязки VK', error);
@@ -671,6 +723,7 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
     const newAccessToken = signAccessToken(user);
     const refresh = await createRefreshToken(user.id);
 
+    setAuthCookies(res, newAccessToken, refresh.token);
     res.json({ token: newAccessToken, refresh_token: refresh.token, user });
   } catch (error) {
     logError('Ошибка привязки Telegram', error);
@@ -678,9 +731,9 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', authLimiter, async (req, res) => {
   try {
-    const { refresh_token } = req.body;
+    const refresh_token = req.body?.refresh_token || req.cookies?.[REFRESH_COOKIE_NAME];
     if (!refresh_token) {
       return res.status(400).json({ error: 'Refresh токен отсутствует' });
     }
@@ -715,6 +768,7 @@ router.post('/refresh', async (req, res) => {
       [newRefresh.tokenHash, tokenRow.id]
     );
 
+    setAuthCookies(res, accessToken, newRefresh.token);
     res.json({ token: accessToken, refresh_token: newRefresh.token });
   } catch (error) {
     logError('Ошибка обновления токена', error);
@@ -725,12 +779,12 @@ router.post('/refresh', async (req, res) => {
 
 router.post('/logout', async (req, res) => {
   try {
-    const { refresh_token } = req.body;
-    if (!refresh_token) {
-      return res.status(400).json({ error: 'Refresh токен отсутствует' });
+    const refresh_token = req.body?.refresh_token || req.cookies?.[REFRESH_COOKIE_NAME];
+    if (refresh_token) {
+      const tokenHash = crypto.createHash('sha256').update(refresh_token).digest('hex');
+      await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1', [tokenHash]);
     }
-    const tokenHash = crypto.createHash('sha256').update(refresh_token).digest('hex');
-    await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1', [tokenHash]);
+    clearAuthCookies(res);
     res.json({ ok: true });
   } catch (error) {
     logError('Ошибка выхода', error, { userId: req.user?.id });
@@ -749,22 +803,14 @@ router.post('/heartbeat', authenticateToken, async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     res.set('Surrogate-Control', 'no-store');
 
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'Токен отсутствует' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Пользователь не найден' });
@@ -791,9 +837,15 @@ router.get('/me', async (req, res) => {
 
 // ── DEV ONLY: мгновенный вход без Telegram/VK ──────────────────────────────
 // Работает ТОЛЬКО при NODE_ENV=development
-router.post('/dev-login', async (req, res) => {
-  if (process.env.NODE_ENV !== 'development') {
+router.post('/dev-login', authLimiter, async (req, res) => {
+  const isEnabled = process.env.NODE_ENV === 'development' && process.env.ENABLE_DEV_LOGIN === 'true';
+  if (!isEnabled) {
     return res.status(404).json({ error: 'Not found' });
+  }
+  const remote = req.ip || '';
+  const trustedLocalhost = remote.includes('127.0.0.1') || remote.includes('::1') || remote === '::ffff:127.0.0.1';
+  if (!trustedLocalhost) {
+    return res.status(403).json({ error: 'Dev login разрешен только с localhost' });
   }
 
   try {
@@ -831,6 +883,7 @@ router.post('/dev-login', async (req, res) => {
     const accessToken = signAccessToken(tokenUser);
     const { token: refreshToken } = await createRefreshToken(user.id);
 
+    setAuthCookies(res, accessToken, refreshToken);
     res.json({ token: accessToken, refresh_token: refreshToken, user: tokenUser });
   } catch (error) {
     logError('Ошибка dev-login', error);

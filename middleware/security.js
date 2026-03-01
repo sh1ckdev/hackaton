@@ -1,4 +1,6 @@
 
+import rateLimit from 'express-rate-limit';
+import slowDown from 'express-slow-down';
 import pool from '../db/index.js';
 import { logSecurity, logError } from '../utils/logger.js';
 
@@ -77,11 +79,51 @@ export const validateFieldLength = (field, maxLength, fieldName) => {
 };
 
 
-const noopLimiter = (req, res, next) => next();
-export const solutionCreationLimiter = noopLimiter;
-export const teamCreationLimiter = noopLimiter;
-export const teamJoinLimiter = noopLimiter;
-export const adminOperationLimiter = noopLimiter;
+const ipKeyGenerator = (req) => req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+const defaultLimiterOptions = {
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
+};
+
+export const solutionCreationLimiter = rateLimit({
+  ...defaultLimiterOptions,
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Слишком много попыток отправки решения. Попробуйте позже.' },
+});
+
+export const teamCreationLimiter = rateLimit({
+  ...defaultLimiterOptions,
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Слишком много попыток создания команды. Попробуйте позже.' },
+});
+
+export const teamJoinLimiter = rateLimit({
+  ...defaultLimiterOptions,
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Слишком много попыток вступления в команду. Попробуйте позже.' },
+});
+
+const adminBurstLimiter = rateLimit({
+  ...defaultLimiterOptions,
+  windowMs: 5 * 60 * 1000,
+  max: 120,
+  message: { error: 'Слишком много админ-операций. Подождите немного.' },
+});
+
+const adminSlowDown = slowDown({
+  windowMs: 5 * 60 * 1000,
+  delayAfter: 40,
+  delayMs: () => 250,
+  keyGenerator: ipKeyGenerator,
+  validate: { delayMs: false },
+});
+
+export const adminOperationLimiter = [adminBurstLimiter, adminSlowDown];
 
 
 export const logSuspiciousActivity = async (req, activity, details = {}) => {

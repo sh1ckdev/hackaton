@@ -3,7 +3,7 @@ import pool from '../db/index.js';
 import { authenticateToken, requireAdmin, requireModerator } from '../middleware/auth.js';
 import { broadcastMessage, sendMessageToUser } from '../bot.js';
 import { adminOperationLimiter, logSuspiciousActivity } from '../middleware/security.js';
-import { validateIdParam } from '../middleware/validation.js';
+import { validateIdParam, validateTimelinePayload } from '../middleware/validation.js';
 import { logInfo, logError, logWarn, logDatabase } from '../utils/logger.js';
 
 const router = express.Router();
@@ -770,7 +770,7 @@ router.get('/settings/timeline', requireModerator, async (req, res) => {
 });
 
 // Создать пункт таймлайна
-router.post('/settings/timeline', requireModerator, async (req, res) => {
+router.post('/settings/timeline', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
     const { type, title, description, date, date_to, active, show_countdown } = req.body;
     
@@ -795,7 +795,7 @@ router.post('/settings/timeline', requireModerator, async (req, res) => {
 });
 
 // Обновить пункт таймлайна
-router.put('/settings/timeline/:id', requireModerator, async (req, res) => {
+router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
     const { id } = req.params;
     const { type, title, description, date, date_to, active, show_countdown } = req.body;

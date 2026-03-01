@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { sanitizeInput } from './middleware/security.js';
 import { logInfo, logError, logWarn } from './utils/logger.js';
 import { initDB } from './db/index.js';
@@ -50,7 +51,20 @@ app.use(
   })
 );
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://telegram.org", "https://challenges.cloudflare.com"],
+      "frame-src": ["'self'", "https://oauth.telegram.org", "https://challenges.cloudflare.com"],
+      "connect-src": ["'self'", "https://id.vk.ru", "https://api.vk.com", "https://challenges.cloudflare.com"],
+      "img-src": ["'self'", "data:", "blob:", "https:"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"]
+    }
+  }
 }));
 
 const allowedOrigins = process.env.CLIENT_URL
@@ -69,6 +83,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(cookieParser());
 
 
 app.use(sanitizeInput);
