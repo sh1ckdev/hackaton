@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import authStore from '../../stores/authStore';
@@ -17,21 +17,21 @@ const AdminUsers = () => {
   const [msgSending, setMsgSending] = useState(false);
   const [msgResult, setMsgResult] = useState(null);
 
-  const fetchUsers = async (cat = filter) => {
+  const fetchUsers = useCallback(async (cat) => {
+    const category = cat !== undefined ? cat : filter;
     try {
       const params = new URLSearchParams({ include_staff: 'true' });
-      if (cat) params.set('participant_category', cat);
+      if (category) params.set('participant_category', category);
       const res = await api.get(`/admin/users?${params}`);
       setUsers(res.data.users);
     } catch {}
-  };
+  }, [filter]);
 
-  useEffect(() => { fetchUsers(); }, []);
   useEffect(() => { fetchUsers(filter); }, [filter]);
   useEffect(() => {
-    const interval = setInterval(() => fetchUsers(), 15000);
+    const interval = setInterval(() => fetchUsers(filter), 15000);
     return () => clearInterval(interval);
-  }, [filter]);
+  }, [fetchUsers, filter]);
 
   const closeModal = () => { setSelected(null); setMessage(''); setMsgResult(null); };
 
@@ -39,7 +39,7 @@ const AdminUsers = () => {
     try {
       const url = user.vk_id ? `/admin/users/by-id/${user.id}/role` : `/admin/users/${user.telegram_id}/role`;
       await api.put(url, { role });
-      fetchUsers();
+      fetchUsers(filter);
       if (selected?.id === user.id) setSelected(u => u ? { ...u, role } : u);
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
@@ -49,7 +49,7 @@ const AdminUsers = () => {
     try {
       const url = user.vk_id ? `/admin/users/by-id/${user.id}` : `/admin/users/${user.telegram_id}`;
       await api.delete(url);
-      fetchUsers();
+      fetchUsers(filter);
       if (selected?.id === user.id) closeModal();
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
