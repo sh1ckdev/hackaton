@@ -831,9 +831,73 @@ export async function runMigrations() {
     await applyAdditionalMigrations();
     await applySupportMigration();
     await applyContactsMigration();
+    await applySecurityAuditMigration();
   } catch (error) {
     logError('Ошибка при выполнении миграций', error);
     throw error;
+  }
+}
+
+async function applySecurityAuditMigration() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS request_audit (
+        id BIGSERIAL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        request_id VARCHAR(64) NOT NULL,
+        ip_address INET,
+        method VARCHAR(10),
+        path TEXT,
+        query_string TEXT,
+        status_code INTEGER,
+        duration_ms INTEGER,
+        content_length INTEGER,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_role VARCHAR(20),
+        user_agent TEXT,
+        origin TEXT
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS auth_audit (
+        id BIGSERIAL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        event VARCHAR(50) NOT NULL,
+        success BOOLEAN DEFAULT TRUE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        ip_address INET,
+        user_agent TEXT,
+        request_id VARCHAR(64),
+        details JSONB DEFAULT '{}'::jsonb
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS security_events (
+        id BIGSERIAL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        event_type VARCHAR(100) NOT NULL,
+        ip_address INET,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        path TEXT,
+        method VARCHAR(10),
+        details JSONB DEFAULT '{}'::jsonb
+      )
+    `);
+
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_request_audit_created_at ON request_audit(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_request_audit_ip_created_at ON request_audit(ip_address, created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_request_audit_user_created_at ON request_audit(user_id, created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_auth_audit_created_at ON auth_audit(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_auth_audit_ip_created_at ON auth_audit(ip_address, created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_auth_audit_user_created_at ON auth_audit(user_id, created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_security_events_created_at ON security_events(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_security_events_ip_created_at ON security_events(ip_address, created_at DESC)');
+
+    logInfo('Миграция security audit: таблицы и индексы готовы');
+  } catch (error) {
+    logWarn('Предупреждение при миграции security audit', { error: error.message });
   }
 }
 

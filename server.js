@@ -7,6 +7,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { sanitizeInput } from './middleware/security.js';
 import { attachCsrfToken, verifyCsrfToken } from './middleware/csrf.js';
+import { attachRequestContext, requestAuditMiddleware } from './middleware/requestAudit.js';
 import { logInfo, logError, logWarn } from './utils/logger.js';
 import { initDB } from './db/index.js';
 import pool from './db/index.js';
@@ -86,8 +87,10 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
+app.use(attachRequestContext);
 app.use(attachCsrfToken);
 app.use(verifyCsrfToken);
+app.use(requestAuditMiddleware);
 
 
 app.use(sanitizeInput);

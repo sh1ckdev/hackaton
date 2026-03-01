@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import pool from '../db/index.js';
 import { logError } from '../utils/logger.js';
+import { writeAuthAudit } from '../utils/securityAudit.js';
 
 const router = express.Router();
 
@@ -123,14 +124,17 @@ router.post('/telegram', authLimiter, async (req, res) => {
     const { telegramData, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
     if (!captchaOk) {
+      await writeAuthAudit(req, 'telegram_login', { success: false, details: { reason: 'captcha_failed' } });
       return res.status(400).json({ error: 'Капча не пройдена' });
     }
 
     if (!telegramData || !telegramData.id || !telegramData.hash) {
+      await writeAuthAudit(req, 'telegram_login', { success: false, details: { reason: 'telegram_data_missing' } });
       return res.status(400).json({ error: 'Данные Telegram отсутствуют' });
     }
 
     if (!verifyTelegramWidget(telegramData)) {
+      await writeAuthAudit(req, 'telegram_login', { success: false, details: { reason: 'invalid_telegram_signature' } });
       return res.status(401).json({ error: 'Подпись Telegram недействительна' });
     }
 
@@ -189,8 +193,10 @@ router.post('/telegram', authLimiter, async (req, res) => {
     const refresh = await createRefreshToken(user.id);
 
     setAuthCookies(res, accessToken, refresh.token);
+    await writeAuthAudit(req, 'telegram_login', { userId: user.id, success: true });
     res.json({ token: accessToken, refresh_token: refresh.token, user });
   } catch (error) {
+    await writeAuthAudit(req, 'telegram_login', { success: false, details: { reason: 'server_error' } });
     logError('Ошибка аутентификации Telegram Widget', error);
     res.status(500).json({ error: 'Ошибка сервера при аутентификации' });
   }
@@ -202,9 +208,11 @@ router.post('/bot', authLimiter, async (req, res) => {
     const { token, captcha_token, participant_category } = req.body;
     const captchaOk = await verifyCaptcha(captcha_token);
     if (!captchaOk) {
+      await writeAuthAudit(req, 'bot_login', { success: false, details: { reason: 'captcha_failed' } });
       return res.status(400).json({ error: 'Капча не пройдена' });
     }
     if (!token) {
+      await writeAuthAudit(req, 'bot_login', { success: false, details: { reason: 'token_missing' } });
       return res.status(400).json({ error: 'Токен отсутствует' });
     }
 
@@ -217,14 +225,17 @@ router.post('/bot', authLimiter, async (req, res) => {
     );
 
     if (tokenResult.rows.length === 0) {
+      await writeAuthAudit(req, 'bot_login', { success: false, details: { reason: 'token_not_found' } });
       return res.status(404).json({ error: 'Токен не найден' });
     }
 
     const row = tokenResult.rows[0];
     if (row.used) {
+      await writeAuthAudit(req, 'bot_login', { userId: row.user_id, success: false, details: { reason: 'token_used' } });
       return res.status(400).json({ error: 'Токен уже использован' });
     }
     if (new Date(row.expires_at) < new Date()) {
+      await writeAuthAudit(req, 'bot_login', { userId: row.user_id, success: false, details: { reason: 'token_expired' } });
       return res.status(400).json({ error: 'Токен истек' });
     }
 
@@ -272,8 +283,10 @@ router.post('/bot', authLimiter, async (req, res) => {
     };
 
     setAuthCookies(res, jwtToken, refresh.token);
+    await writeAuthAudit(req, 'bot_login', { userId: row.user_id, success: true });
     res.json({ token: jwtToken, refresh_token: refresh.token, user });
   } catch (error) {
+    await writeAuthAudit(req, 'bot_login', { success: false, details: { reason: 'server_error' } });
     logError('Ошибка входа через бота', error, { token: req.body?.token ? 'present' : 'missing' });
     res.status(500).json({ error: 'Ошибка сервера при входе' });
   }
@@ -570,8 +583,10 @@ router.post('/vk', authLimiter, async (req, res) => {
     };
 
     setAuthCookies(res, accessTokenJwt, refresh.token);
+    await writeAuthAudit(req, 'vk_login', { userId: user.id, success: true });
     res.json({ token: accessTokenJwt, refresh_token: refresh.token, user: userResponse });
   } catch (error) {
+    await writeAuthAudit(req, 'vk_login', { success: false, details: { reason: 'server_error' } });
     logError('Ошибка VK OAuth', error);
     res.status(500).json({ error: 'Ошибка сервера при входе через VK' });
   }
@@ -735,6 +750,7 @@ router.post('/refresh', authLimiter, async (req, res) => {
   try {
     const refresh_token = req.body?.refresh_token || req.cookies?.[REFRESH_COOKIE_NAME];
     if (!refresh_token) {
+      await writeAuthAudit(req, 'refresh', { success: false, details: { reason: 'refresh_token_missing' } });
       return res.status(400).json({ error: 'Refresh токен отсутствует' });
     }
 
@@ -744,13 +760,16 @@ router.post('/refresh', authLimiter, async (req, res) => {
       [tokenHash]
     );
     if (tokenResult.rows.length === 0) {
+      await writeAuthAudit(req, 'refresh', { success: false, details: { reason: 'refresh_token_not_found' } });
       return res.status(404).json({ error: 'Refresh токен не найден' });
     }
     const tokenRow = tokenResult.rows[0];
     if (tokenRow.revoked) {
+      await writeAuthAudit(req, 'refresh', { userId: tokenRow.user_id, success: false, details: { reason: 'refresh_token_revoked' } });
       return res.status(400).json({ error: 'Refresh токен отозван' });
     }
     if (new Date(tokenRow.expires_at) < new Date()) {
+      await writeAuthAudit(req, 'refresh', { userId: tokenRow.user_id, success: false, details: { reason: 'refresh_token_expired' } });
       return res.status(400).json({ error: 'Refresh токен истек' });
     }
 
@@ -769,8 +788,10 @@ router.post('/refresh', authLimiter, async (req, res) => {
     );
 
     setAuthCookies(res, accessToken, newRefresh.token);
+    await writeAuthAudit(req, 'refresh', { userId: user.id, success: true });
     res.json({ token: accessToken, refresh_token: newRefresh.token });
   } catch (error) {
+    await writeAuthAudit(req, 'refresh', { success: false, details: { reason: 'server_error' } });
     logError('Ошибка обновления токена', error);
     res.status(500).json({ error: 'Ошибка сервера при обновлении токена' });
   }
@@ -785,8 +806,10 @@ router.post('/logout', async (req, res) => {
       await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE token_hash = $1', [tokenHash]);
     }
     clearAuthCookies(res);
+    await writeAuthAudit(req, 'logout', { success: true, userId: req.user?.id || null });
     res.json({ ok: true });
   } catch (error) {
+    await writeAuthAudit(req, 'logout', { success: false, userId: req.user?.id || null, details: { reason: 'server_error' } });
     logError('Ошибка выхода', error, { userId: req.user?.id });
     res.status(500).json({ error: 'Ошибка сервера при выходе' });
   }
@@ -840,11 +863,13 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/dev-login', authLimiter, async (req, res) => {
   const isEnabled = process.env.NODE_ENV === 'development' && process.env.ENABLE_DEV_LOGIN === 'true';
   if (!isEnabled) {
+    await writeAuthAudit(req, 'dev_login', { success: false, details: { reason: 'disabled' } });
     return res.status(404).json({ error: 'Not found' });
   }
   const remote = req.ip || '';
   const trustedLocalhost = remote.includes('127.0.0.1') || remote.includes('::1') || remote === '::ffff:127.0.0.1';
   if (!trustedLocalhost) {
+    await writeAuthAudit(req, 'dev_login', { success: false, details: { reason: 'non_localhost' } });
     return res.status(403).json({ error: 'Dev login разрешен только с localhost' });
   }
 
@@ -884,8 +909,10 @@ router.post('/dev-login', authLimiter, async (req, res) => {
     const { token: refreshToken } = await createRefreshToken(user.id);
 
     setAuthCookies(res, accessToken, refreshToken);
+    await writeAuthAudit(req, 'dev_login', { userId: user.id, success: true, details: { role } });
     res.json({ token: accessToken, refresh_token: refreshToken, user: tokenUser });
   } catch (error) {
+    await writeAuthAudit(req, 'dev_login', { success: false, details: { reason: 'server_error' } });
     logError('Ошибка dev-login', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }

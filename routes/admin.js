@@ -1339,4 +1339,232 @@ router.delete('/support/chats/:ticketId', requireModerator, async (req, res) => 
   }
 });
 
+// ── Security monitoring ───────────────────────────────────────────────────────
+
+router.get('/security/top-ips', requireAdmin, async (req, res) => {
+  try {
+    const minutes = Math.min(24 * 60, Math.max(1, parseInt(req.query.minutes || '15', 10)));
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10)));
+    const statusCode = req.query.status ? parseInt(req.query.status, 10) : null;
+
+    const params = [minutes];
+    let statusFilterSql = '';
+    if (!Number.isNaN(statusCode) && statusCode > 0) {
+      params.push(statusCode);
+      statusFilterSql = ` AND status_code = $${params.length} `;
+    }
+    params.push(limit);
+
+    const topIps = (await pool.query(
+      `SELECT
+         COALESCE(ip_address::text, 'unknown') AS ip,
+         COUNT(*) AS requests,
+         COUNT(*) FILTER (WHERE status_code >= 400) AS errors_4xx_5xx,
+         COUNT(*) FILTER (WHERE status_code >= 500) AS errors_5xx,
+         COUNT(*) FILTER (WHERE user_id IS NOT NULL) AS authed_requests,
+         MIN(created_at) AS first_seen,
+         MAX(created_at) AS last_seen
+       FROM request_audit
+       WHERE created_at > NOW() - ($1::text || ' minutes')::interval
+       ${statusFilterSql}
+       GROUP BY ip
+       ORDER BY requests DESC
+       LIMIT $${params.length}`,
+      params
+    )).rows;
+
+    res.json({
+      window_minutes: minutes,
+      limit,
+      status_filter: statusCode || null,
+      items: topIps.map((r) => ({
+        ip: r.ip,
+        requests: Number(r.requests) || 0,
+        errors_4xx_5xx: Number(r.errors_4xx_5xx) || 0,
+        errors_5xx: Number(r.errors_5xx) || 0,
+        authed_requests: Number(r.authed_requests) || 0,
+        first_seen: r.first_seen,
+        last_seen: r.last_seen,
+      })),
+    });
+  } catch (error) {
+    logError('Ошибка получения top-ips', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.get('/security/ip-profile', requireAdmin, async (req, res) => {
+  try {
+    const ip = String(req.query.ip || '').trim();
+    const hours = Math.min(24 * 30, Math.max(1, parseInt(req.query.hours || '24', 10)));
+    if (!ip) return res.status(400).json({ error: 'Параметр ip обязателен' });
+
+    const [summary, accounts, authEvents, recentRequests] = await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*) AS requests,
+           COUNT(*) FILTER (WHERE status_code >= 400) AS errors_4xx_5xx,
+           COUNT(*) FILTER (WHERE status_code >= 500) AS errors_5xx,
+           MIN(created_at) AS first_seen,
+           MAX(created_at) AS last_seen
+         FROM request_audit
+         WHERE ip_address::text = $1
+           AND created_at > NOW() - ($2::text || ' hours')::interval`,
+        [ip, hours]
+      ),
+      pool.query(
+        `SELECT
+           ra.user_id,
+           COALESCE(MAX(u.role), MAX(ra.user_role)) AS role,
+           MAX(u.username) AS username,
+           MAX(u.first_name) AS first_name,
+           MAX(u.last_name) AS last_name,
+           COUNT(*) AS requests,
+           MAX(ra.created_at) AS last_seen
+         FROM request_audit ra
+         LEFT JOIN users u ON u.id = ra.user_id
+         WHERE ra.ip_address::text = $1
+           AND ra.created_at > NOW() - ($2::text || ' hours')::interval
+           AND ra.user_id IS NOT NULL
+         GROUP BY ra.user_id
+         ORDER BY requests DESC`,
+        [ip, hours]
+      ),
+      pool.query(
+        `SELECT created_at, event, success, user_id, details
+         FROM auth_audit
+         WHERE ip_address::text = $1
+           AND created_at > NOW() - ($2::text || ' hours')::interval
+         ORDER BY created_at DESC
+         LIMIT 200`,
+        [ip, hours]
+      ),
+      pool.query(
+        `SELECT created_at, method, path, status_code, duration_ms, user_id, request_id
+         FROM request_audit
+         WHERE ip_address::text = $1
+           AND created_at > NOW() - ($2::text || ' hours')::interval
+         ORDER BY created_at DESC
+         LIMIT 300`,
+        [ip, hours]
+      ),
+    ]);
+
+    res.json({
+      ip,
+      window_hours: hours,
+      summary: summary.rows[0] || null,
+      accounts: accounts.rows.map((r) => ({
+        user_id: r.user_id,
+        role: r.role,
+        username: r.username,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        requests: Number(r.requests) || 0,
+        last_seen: r.last_seen,
+      })),
+      auth_events: authEvents.rows,
+      recent_requests: recentRequests.rows,
+    });
+  } catch (error) {
+    logError('Ошибка получения ip-profile', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.get('/security/user-profile/:userId', requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const hours = Math.min(24 * 30, Math.max(1, parseInt(req.query.hours || '24', 10)));
+    if (Number.isNaN(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Некорректный userId' });
+    }
+
+    const [userInfo, ipStats, authEvents] = await Promise.all([
+      pool.query(
+        `SELECT id, role, username, first_name, last_name, telegram_id, vk_id
+         FROM users WHERE id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+           COALESCE(ip_address::text, 'unknown') AS ip,
+           COUNT(*) AS requests,
+           COUNT(*) FILTER (WHERE status_code >= 400) AS errors_4xx_5xx,
+           MAX(created_at) AS last_seen
+         FROM request_audit
+         WHERE user_id = $1
+           AND created_at > NOW() - ($2::text || ' hours')::interval
+         GROUP BY ip
+         ORDER BY requests DESC`,
+        [userId, hours]
+      ),
+      pool.query(
+        `SELECT created_at, event, success, ip_address::text AS ip, details
+         FROM auth_audit
+         WHERE user_id = $1
+           AND created_at > NOW() - ($2::text || ' hours')::interval
+         ORDER BY created_at DESC
+         LIMIT 200`,
+        [userId, hours]
+      ),
+    ]);
+
+    if (userInfo.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json({
+      window_hours: hours,
+      user: userInfo.rows[0],
+      ips: ipStats.rows.map((r) => ({
+        ip: r.ip,
+        requests: Number(r.requests) || 0,
+        errors_4xx_5xx: Number(r.errors_4xx_5xx) || 0,
+        last_seen: r.last_seen,
+      })),
+      auth_events: authEvents.rows,
+    });
+  } catch (error) {
+    logError('Ошибка получения user-profile security', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.get('/security/events', requireAdmin, async (req, res) => {
+  try {
+    const hours = Math.min(24 * 30, Math.max(1, parseInt(req.query.hours || '24', 10)));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit || '100', 10)));
+    const eventType = req.query.event_type ? String(req.query.event_type).trim() : null;
+
+    const params = [hours];
+    let whereTypeSql = '';
+    if (eventType) {
+      params.push(eventType);
+      whereTypeSql = ` AND event_type = $${params.length} `;
+    }
+    params.push(limit);
+
+    const events = (await pool.query(
+      `SELECT
+         se.id, se.created_at, se.event_type,
+         se.ip_address::text AS ip,
+         se.user_id, u.username, u.first_name, u.last_name,
+         se.path, se.method, se.details
+       FROM security_events se
+       LEFT JOIN users u ON u.id = se.user_id
+       WHERE se.created_at > NOW() - ($1::text || ' hours')::interval
+       ${whereTypeSql}
+       ORDER BY se.created_at DESC
+       LIMIT $${params.length}`,
+      params
+    )).rows;
+
+    res.json({ window_hours: hours, limit, event_type: eventType, events });
+  } catch (error) {
+    logError('Ошибка получения security events', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 export default router;
