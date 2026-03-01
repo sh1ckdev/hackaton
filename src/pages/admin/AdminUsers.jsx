@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import authStore from '../../stores/authStore';
@@ -17,21 +17,28 @@ const AdminUsers = () => {
   const [msgSending, setMsgSending] = useState(false);
   const [msgResult, setMsgResult] = useState(null);
 
-  const fetchUsers = useCallback(async (cat) => {
-    const category = cat !== undefined ? cat : filter;
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
+
+  const fetchUsers = async (category) => {
     try {
       const params = new URLSearchParams({ include_staff: 'true' });
       if (category) params.set('participant_category', category);
       const res = await api.get(`/admin/users?${params}`);
       setUsers(res.data.users);
     } catch {}
+  };
+
+  useEffect(() => {
+    fetchUsers(filter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  useEffect(() => { fetchUsers(filter); }, [filter]);
   useEffect(() => {
-    const interval = setInterval(() => fetchUsers(filter), 15000);
+    const interval = setInterval(() => fetchUsers(filterRef.current), 15000);
     return () => clearInterval(interval);
-  }, [fetchUsers, filter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const closeModal = () => { setSelected(null); setMessage(''); setMsgResult(null); };
 
@@ -39,7 +46,7 @@ const AdminUsers = () => {
     try {
       const url = user.vk_id ? `/admin/users/by-id/${user.id}/role` : `/admin/users/${user.telegram_id}/role`;
       await api.put(url, { role });
-      fetchUsers(filter);
+      fetchUsers(filterRef.current);
       if (selected?.id === user.id) setSelected(u => u ? { ...u, role } : u);
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
@@ -49,7 +56,7 @@ const AdminUsers = () => {
     try {
       const url = user.vk_id ? `/admin/users/by-id/${user.id}` : `/admin/users/${user.telegram_id}`;
       await api.delete(url);
-      fetchUsers(filter);
+      fetchUsers(filterRef.current);
       if (selected?.id === user.id) closeModal();
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
