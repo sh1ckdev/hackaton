@@ -891,4 +891,8 @@ router.post('/dev-login', authLimiter, async (req, res) => {
   }
 });
 
+router.get('/csrf', (req, res) => {
+  res.json({ csrf_token: req.csrfToken || null });
+});
+
 export default router;
