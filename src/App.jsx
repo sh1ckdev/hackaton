@@ -25,6 +25,7 @@ const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminTeams = lazy(() => import('./pages/admin/AdminTeams'));
 const AdminCases = lazy(() => import('./pages/admin/AdminCases'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
+const AdminSecurity = lazy(() => import('./pages/admin/AdminSecurity'));
 const AdminBroadcast = lazy(() => import('./pages/admin/AdminBroadcast'));
 const AdminBroadcastSettings = lazy(() => import('./pages/admin/AdminBroadcastSettings'));
 const AdminHackathon = lazy(() => import('./pages/admin/AdminHackathon'));
@@ -156,6 +157,7 @@ function App() {
                 <Route path="teams" element={<AdminTeams />} />
                 <Route path="cases" element={<AdminCases />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="security" element={<AdminSecurity />} />
                 <Route path="broadcast" element={<AdminBroadcast />} />
                 <Route path="broadcast-settings" element={<AdminBroadcastSettings />} />
                 <Route path="hackathon" element={<AdminHackathon />} />
