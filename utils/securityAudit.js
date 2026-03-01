@@ -21,6 +21,12 @@ export const normalizeIp = (ip) => {
   let v = ip.trim();
   if (!v) return null;
 
+  // Remove optional CIDR suffix (e.g. 1.2.3.4/32, 2001:db8::1/128)
+  const cidrMatch = v.match(/^(.+)\/\d{1,3}$/);
+  if (cidrMatch) {
+    v = cidrMatch[1].trim();
+  }
+
   // [IPv6]:port
   const bracketMatch = v.match(/^\[([^\]]+)\](?::\d+)?$/);
   if (bracketMatch) {
