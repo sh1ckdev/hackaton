@@ -60,14 +60,11 @@ const AdminHackathon = () => {
         show_countdown: !!form.show_countdown,
       };
       if (form.id) {
-        const res = await api.put(`/admin/settings/timeline/${form.id}`, payload);
-        setTimeline(prev => prev.map(t => t.id === form.id ? res.data.timeline_item : t));
+        await api.put(`/admin/settings/timeline/${form.id}`, payload);
       } else {
-        const res = await api.post('/admin/settings/timeline', payload);
-        setTimeline(prev =>
-          [...prev, res.data.timeline_item].sort((a, b) => new Date(a.date_to || a.date) - new Date(b.date_to || b.date))
-        );
+        await api.post('/admin/settings/timeline', payload);
       }
+      await fetchTimeline();
       setEditing(null);
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
@@ -76,8 +73,28 @@ const AdminHackathon = () => {
     if (!confirm('Удалить этот пункт таймлайна?')) return;
     try {
       await api.delete(`/admin/settings/timeline/${id}`);
-      setTimeline(prev => prev.filter(t => t.id !== id));
+      await fetchTimeline();
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
+  };
+
+  const moveTimelineItem = async (index, direction) => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= timeline.length) return;
+
+    const next = [...timeline];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+    setTimeline(next);
+
+    try {
+      const orderedIds = next.map((item) => item.id).filter(Boolean);
+      const res = await api.put('/admin/settings/timeline/reorder', { ordered_ids: orderedIds });
+      if (res.data?.timeline) {
+        setTimeline(res.data.timeline);
+      }
+    } catch (e) {
+      alert(e.response?.data?.error || 'Ошибка изменения порядка');
+      await fetchTimeline();
+    }
   };
 
   return (
@@ -107,6 +124,22 @@ const AdminHackathon = () => {
                 </div>
               </div>
               <div className="admin-settings-item-actions">
+                <button
+                  onClick={() => moveTimelineItem(idx, 'up')}
+                  className="admin-btn-secondary"
+                  disabled={idx === 0}
+                  title="Поднять выше"
+                >
+                  ↑
+                </button>
+                <button
+                  onClick={() => moveTimelineItem(idx, 'down')}
+                  className="admin-btn-secondary"
+                  disabled={idx === timeline.length - 1}
+                  title="Опустить ниже"
+                >
+                  ↓
+                </button>
                 <button onClick={() => setEditing(toEditForm(item))} className="admin-btn-secondary">Редактировать</button>
                 <button onClick={() => deleteItem(item.id)} className="admin-btn-danger">Удалить</button>
               </div>
