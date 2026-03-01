@@ -10,7 +10,7 @@ router.get('/deadline', async (req, res) => {
     const result = await pool.query(`
       SELECT * FROM hackathon_timeline
       WHERE show_countdown = TRUE
-      ORDER BY date ASC
+      ORDER BY sort_order ASC, date ASC
       LIMIT 1
     `);
     let targetDate = null;
@@ -46,7 +46,7 @@ router.get('/timeline', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT * FROM hackathon_timeline
-      ORDER BY date ASC, created_at ASC
+      ORDER BY sort_order ASC, date ASC, created_at ASC
     `);
     res.json({ timeline: result.rows });
   } catch (error) {

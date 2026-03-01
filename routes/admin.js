@@ -762,7 +762,7 @@ router.get('/settings/timeline', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT * FROM hackathon_timeline
-      ORDER BY date ASC, created_at ASC
+      ORDER BY sort_order ASC, date ASC, created_at ASC
     `);
     res.json({ timeline: result.rows });
   } catch (error) {
@@ -783,8 +783,8 @@ router.post('/settings/timeline', requireModerator, validateTimelinePayload, asy
     const dateFrom = date && date.trim() ? date : new Date().toISOString();
 
     const result = await pool.query(`
-      INSERT INTO hackathon_timeline (type, title, description, date, date_to, active, show_countdown)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO hackathon_timeline (type, title, description, date, date_to, active, show_countdown, sort_order)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE((SELECT MAX(sort_order) + 1 FROM hackathon_timeline), 1))
       RETURNING *
     `, [type, title, description, dateFrom, date_to || null, active || false, !!show_countdown]);
 
@@ -792,6 +792,56 @@ router.post('/settings/timeline', requireModerator, validateTimelinePayload, asy
     res.json({ timeline_item: result.rows[0] });
   } catch (error) {
     logError('Ошибка создания пункта таймлайна', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Изменить порядок пунктов таймлайна (вверх/вниз в админке)
+router.put('/settings/timeline/reorder', requireModerator, adminOperationLimiter, async (req, res) => {
+  let transactionStarted = false;
+  try {
+    const orderedIds = Array.isArray(req.body?.ordered_ids) ? req.body.ordered_ids : null;
+    if (!orderedIds || orderedIds.length === 0) {
+      return res.status(400).json({ error: 'ordered_ids должен быть непустым массивом' });
+    }
+
+    const ids = orderedIds.map((id) => parseInt(id, 10)).filter((id) => Number.isInteger(id) && id > 0);
+    if (ids.length !== orderedIds.length) {
+      return res.status(400).json({ error: 'ordered_ids содержит некорректные id' });
+    }
+    if (new Set(ids).size !== ids.length) {
+      return res.status(400).json({ error: 'ordered_ids содержит дубликаты id' });
+    }
+
+    const existing = await pool.query('SELECT id FROM hackathon_timeline WHERE id = ANY($1::int[])', [ids]);
+    if (existing.rows.length !== ids.length) {
+      return res.status(400).json({ error: 'Список ordered_ids должен содержать только существующие пункты' });
+    }
+
+    await pool.query('BEGIN');
+    transactionStarted = true;
+
+    for (let i = 0; i < ids.length; i++) {
+      await pool.query(
+        'UPDATE hackathon_timeline SET sort_order = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [i + 1, ids[i]]
+      );
+    }
+
+    await pool.query('COMMIT');
+    transactionStarted = false;
+
+    const timeline = (await pool.query(`
+      SELECT * FROM hackathon_timeline
+      ORDER BY sort_order ASC, date ASC, created_at ASC
+    `)).rows;
+
+    res.json({ success: true, timeline });
+  } catch (error) {
+    if (transactionStarted) {
+      try { await pool.query('ROLLBACK'); } catch {}
+    }
+    logError('Ошибка изменения порядка таймлайна', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

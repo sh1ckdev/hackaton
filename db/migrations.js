@@ -643,6 +643,7 @@ async function ensureNewFieldsExist() {
           title VARCHAR(255) NOT NULL,
           description TEXT NOT NULL,
           date TIMESTAMP NOT NULL,
+          sort_order INTEGER,
           active BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -676,6 +677,29 @@ async function ensureNewFieldsExist() {
       await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN show_countdown BOOLEAN DEFAULT FALSE');
       logInfo('Добавлено поле show_countdown в hackathon_timeline');
     }
+    const timelineSortOrderExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'hackathon_timeline' 
+        AND column_name = 'sort_order'
+      )
+    `);
+    if (!timelineSortOrderExists.rows[0].exists) {
+      await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN sort_order INTEGER');
+      logInfo('Добавлено поле sort_order в hackathon_timeline');
+    }
+    await pool.query(`
+      WITH ordered AS (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY date ASC, created_at ASC, id ASC) AS rn
+        FROM hackathon_timeline
+        WHERE sort_order IS NULL
+      )
+      UPDATE hackathon_timeline h
+      SET sort_order = ordered.rn
+      FROM ordered
+      WHERE h.id = ordered.id
+    `);
 
     // Проверка существования таблицы hackathon_prizes
     const prizesExists = await pool.query(`
@@ -731,6 +755,7 @@ async function ensureNewFieldsExist() {
       { name: 'idx_broadcast_settings_enabled', table: 'broadcast_settings', column: 'enabled' },
       { name: 'idx_broadcast_settings_case_id', table: 'broadcast_settings', column: 'case_id' },
       { name: 'idx_hackathon_timeline_date', table: 'hackathon_timeline', column: 'date' },
+      { name: 'idx_hackathon_timeline_sort_order', table: 'hackathon_timeline', column: 'sort_order' },
       { name: 'idx_hackathon_timeline_active', table: 'hackathon_timeline', column: 'active' },
       { name: 'idx_hackathon_prizes_rank', table: 'hackathon_prizes', column: 'rank' }
     ];
