@@ -21,6 +21,7 @@ const Landing = () => {
     seconds: 0
   });
   const [mainExpired, setMainExpired] = useState(false);
+  const [countdownLabel, setCountdownLabel] = useState('до начала соревнования');
   const [competitionCountdown, setCompetitionCountdown] = useState({
     days: 0,
     hours: 0,
@@ -50,17 +51,59 @@ const Landing = () => {
   };
 
   const updateCountdown = () => {
-    const countdownItem = timeline.find(t => t.show_countdown);
-    const targetDate = countdownItem
-      ? (countdownItem.date_to || countdownItem.date)
-      : timeline.find(t => t.type === 'hacking_begins')?.date;
-    if (!targetDate) return;
-
     const now = new Date();
-    const diff = new Date(targetDate) - now;
 
+    // Фазы обратного отсчёта: все элементы с show_countdown, отсортированные по дедлайну.
+    // Это позволяет делать последовательные этапы: регистрация -> открытие -> старт 48ч.
+    const countdownPhases = timeline
+      .filter((t) => t.show_countdown && (t.date_to || t.date))
+      .map((t) => ({ ...t, target: new Date(t.date_to || t.date).getTime() }))
+      .filter((t) => !Number.isNaN(t.target))
+      .sort((a, b) => a.target - b.target);
+
+    if (countdownPhases.length > 0) {
+      const nowTs = now.getTime();
+      const activePhase = countdownPhases.find((phase) => nowTs < phase.target);
+      const lastPhase = countdownPhases[countdownPhases.length - 1];
+
+      if (activePhase) {
+        const diff = activePhase.target - nowTs;
+        setMainExpired(false);
+        setCountdownLabel(activePhase.title?.trim() || 'до начала соревнования');
+        setCountdown({
+          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((diff % (1000 * 60)) / 1000)
+        });
+        return;
+      }
+
+      // После последней countdown-фазы запускаем стандартный 48-часовой режим соревнования.
+      setMainExpired(true);
+      setCountdownLabel('до начала соревнования');
+      const end48h = lastPhase.target + 48 * 60 * 60 * 1000;
+      const remaining = end48h - nowTs;
+      if (remaining > 0) {
+        setCompetitionCountdown({
+          days: Math.floor(remaining / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((remaining % (1000 * 60)) / 1000)
+        });
+      } else {
+        setCompetitionCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+      return;
+    }
+
+    // Fallback: старое поведение без фаз, если нет show_countdown событий
+    const fallbackTarget = timeline.find(t => t.type === 'hacking_begins')?.date;
+    if (!fallbackTarget) return;
+    const diff = new Date(fallbackTarget) - now;
     if (diff > 0) {
       setMainExpired(false);
+      setCountdownLabel('до начала соревнования');
       setCountdown({
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
         hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
@@ -69,7 +112,7 @@ const Landing = () => {
       });
     } else {
       setMainExpired(true);
-      const end48h = new Date(targetDate).getTime() + 48 * 60 * 60 * 1000;
+      const end48h = new Date(fallbackTarget).getTime() + 48 * 60 * 60 * 1000;
       const remaining = end48h - now.getTime();
       if (remaining > 0) {
         setCompetitionCountdown({
@@ -222,7 +265,7 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="landing-timer-sub">до начала соревнования</div>
+                  <div className="landing-timer-sub">{countdownLabel}</div>
                 </>
               )}
             </div>
