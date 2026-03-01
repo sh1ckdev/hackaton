@@ -14,13 +14,24 @@ const AdminSecurity = () => {
   const [selectedIp, setSelectedIp] = useState('');
   const [ipProfile, setIpProfile] = useState(null);
   const [events, setEvents] = useState([]);
+  const [bans, setBans] = useState([]);
   const [userId, setUserId] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [onlyErrors, setOnlyErrors] = useState(false);
+  const [eventType, setEventType] = useState('');
+  const [autoRefreshSec, setAutoRefreshSec] = useState(15);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [banMinutes, setBanMinutes] = useState(60);
+  const [banReason, setBanReason] = useState('manual_admin_ban');
 
   const loadTopIps = async (m = minutes) => {
-    const res = await api.get('/admin/security/top-ips', { params: { minutes: m, limit: 100 } });
+    const params = { minutes: m, limit: 100 };
+    if (statusFilter) params.status = Number(statusFilter);
+    if (onlyErrors) params.only_errors = true;
+    const res = await api.get('/admin/security/top-ips', { params });
     const items = res.data?.items || [];
     setTopIps(items);
     if (!selectedIp && items[0]?.ip && items[0].ip !== 'unknown') {
@@ -38,15 +49,22 @@ const AdminSecurity = () => {
   };
 
   const loadEvents = async (h = hours) => {
-    const res = await api.get('/admin/security/events', { params: { hours: h, limit: 200 } });
+    const params = { hours: h, limit: 200 };
+    if (eventType) params.event_type = eventType;
+    const res = await api.get('/admin/security/events', { params });
     setEvents(res.data?.events || []);
+  };
+
+  const loadBans = async () => {
+    const res = await api.get('/admin/security/bans');
+    setBans(res.data?.bans || []);
   };
 
   const refreshAll = async () => {
     setLoading(true);
     setError('');
     try {
-      await Promise.all([loadTopIps(minutes), loadEvents(hours)]);
+      await Promise.all([loadTopIps(minutes), loadEvents(hours), loadBans()]);
     } catch (e) {
       setError(e.response?.data?.error || 'Не удалось загрузить security-данные');
     } finally {
@@ -63,6 +81,16 @@ const AdminSecurity = () => {
     loadIpProfile(selectedIp, hours).catch((e) => setError(e.response?.data?.error || 'Ошибка загрузки профиля IP'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIp, hours]);
+
+  useEffect(() => {
+    if (!autoRefresh) return undefined;
+    const sec = Math.max(5, Number(autoRefreshSec) || 15);
+    const id = setInterval(() => {
+      refreshAll();
+    }, sec * 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh, autoRefreshSec, minutes, hours, statusFilter, onlyErrors, eventType]);
 
   const topStats = useMemo(() => {
     const totalReq = topIps.reduce((acc, i) => acc + toNum(i.requests), 0);
@@ -83,6 +111,33 @@ const AdminSecurity = () => {
     } catch (e) {
       setError(e.response?.data?.error || 'Ошибка загрузки профиля пользователя');
       setUserProfile(null);
+    }
+  };
+
+  const banSelectedIp = async (ip) => {
+    if (!ip || ip === 'unknown') return;
+    setError('');
+    try {
+      await api.post('/admin/security/ban-ip', {
+        ip,
+        minutes: Math.max(1, Number(banMinutes) || 60),
+        reason: (banReason || 'manual_admin_ban').trim() || 'manual_admin_ban',
+      });
+      await loadBans();
+      await loadEvents(hours);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Ошибка блокировки IP');
+    }
+  };
+
+  const unbanIp = async (ip) => {
+    setError('');
+    try {
+      await api.post('/admin/security/unban-ip', { ip });
+      await loadBans();
+      await loadEvents(hours);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Ошибка разблокировки IP');
     }
   };
 
@@ -114,6 +169,17 @@ const AdminSecurity = () => {
         >
           {loading ? 'Обновление...' : 'Обновить'}
         </button>
+        <label className="text-white/70 text-sm ml-2">Автообновление:</label>
+        <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+        <input
+          type="number"
+          min={5}
+          max={300}
+          value={autoRefreshSec}
+          onChange={(e) => setAutoRefreshSec(Math.max(5, Math.min(300, Number(e.target.value) || 15)))}
+          className="w-20 px-2 py-1 bg-terminal-dark/60 border border-terminal-gray text-white rounded"
+        />
+        <span className="text-white/60 text-sm">сек</span>
       </div>
 
       {error && (
@@ -139,6 +205,32 @@ const AdminSecurity = () => {
 
       <div className="glass rounded-xl p-4 border border-terminal-gray/30">
         <h3 className="text-lg font-semibold text-white mb-3">Топ IP</h3>
+        <div className="flex flex-wrap gap-2 mb-3 items-center">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white rounded text-sm"
+          >
+            <option value="">Все статусы</option>
+            <option value="200">200</option>
+            <option value="401">401</option>
+            <option value="403">403</option>
+            <option value="404">404</option>
+            <option value="429">429</option>
+            <option value="500">500</option>
+          </select>
+          <label className="text-white/70 text-sm inline-flex items-center gap-2">
+            <input type="checkbox" checked={onlyErrors} onChange={(e) => setOnlyErrors(e.target.checked)} />
+            Только ошибки (4xx/5xx)
+          </label>
+          <button
+            type="button"
+            onClick={() => loadTopIps(minutes).catch((e) => setError(e.response?.data?.error || 'Ошибка фильтрации top IP'))}
+            className="px-3 py-2 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded text-sm"
+          >
+            Применить фильтр
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -148,6 +240,7 @@ const AdminSecurity = () => {
                 <th className="text-left py-2 pr-2">Ошибки 4xx/5xx</th>
                 <th className="text-left py-2 pr-2">Auth req</th>
                 <th className="text-left py-2">Последняя активность</th>
+                <th className="text-left py-2">Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -173,15 +266,80 @@ const AdminSecurity = () => {
                   <td className="py-2 pr-2 text-terminal-red">{toNum(row.errors_4xx_5xx)}</td>
                   <td className="py-2 pr-2 text-white">{toNum(row.authed_requests)}</td>
                   <td className="py-2 text-white/80">{fmtDateTime(row.last_seen)}</td>
+                  <td className="py-2">
+                    {row.ip !== 'unknown' && (
+                      <button
+                        type="button"
+                        onClick={() => banSelectedIp(row.ip)}
+                        className="px-2 py-1 text-xs border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded"
+                      >
+                        Бан
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {topIps.length === 0 && (
                 <tr>
-                  <td className="py-3 text-white/40" colSpan={5}>Данные пока отсутствуют</td>
+                  <td className="py-3 text-white/40" colSpan={6}>Данные пока отсутствуют</td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="glass rounded-xl p-4 border border-terminal-gray/30">
+        <h3 className="text-lg font-semibold text-white mb-3">Управление баном IP</h3>
+        <div className="flex flex-wrap gap-2 mb-3 items-center">
+          <input
+            type="text"
+            value={selectedIp}
+            onChange={(e) => setSelectedIp(e.target.value.trim())}
+            placeholder="IP адрес"
+            className="px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white rounded"
+          />
+          <input
+            type="number"
+            min={1}
+            max={43200}
+            value={banMinutes}
+            onChange={(e) => setBanMinutes(Math.max(1, Math.min(43200, Number(e.target.value) || 60)))}
+            className="w-28 px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white rounded"
+          />
+          <span className="text-white/60 text-sm">мин</span>
+          <input
+            type="text"
+            value={banReason}
+            onChange={(e) => setBanReason(e.target.value)}
+            placeholder="Причина"
+            className="min-w-[220px] px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white rounded"
+          />
+          <button
+            type="button"
+            onClick={() => banSelectedIp(selectedIp)}
+            className="px-4 py-2 border border-terminal-red text-terminal-red hover:bg-terminal-red hover:text-white rounded"
+          >
+            Заблокировать IP
+          </button>
+        </div>
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          {bans.map((b) => (
+            <div key={b.ip} className="border border-terminal-gray/30 rounded p-2 text-sm flex flex-wrap gap-2 items-center justify-between">
+              <div>
+                <div className="text-white">{b.ip}</div>
+                <div className="text-white/60">до {fmtDateTime(b.expires_at)} · {b.reason || '—'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => unbanIp(b.ip)}
+                className="px-3 py-1 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded"
+              >
+                Разбан
+              </button>
+            </div>
+          ))}
+          {bans.length === 0 && <div className="text-white/40 text-sm">Активных банов нет</div>}
         </div>
       </div>
 
@@ -278,6 +436,26 @@ const AdminSecurity = () => {
 
       <div className="glass rounded-xl p-4 border border-terminal-gray/30">
         <h3 className="text-lg font-semibold text-white mb-3">Security events</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          <select
+            value={eventType}
+            onChange={(e) => setEventType(e.target.value)}
+            className="px-3 py-2 bg-terminal-dark/60 border border-terminal-gray text-white rounded text-sm"
+          >
+            <option value="">Все типы событий</option>
+            <option value="possible_ddos">possible_ddos</option>
+            <option value="ip_auto_ban">ip_auto_ban</option>
+            <option value="ip_manual_ban">ip_manual_ban</option>
+            <option value="ip_manual_unban">ip_manual_unban</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => loadEvents(hours).catch((e) => setError(e.response?.data?.error || 'Ошибка фильтрации событий'))}
+            className="px-3 py-2 border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded text-sm"
+          >
+            Применить фильтр
+          </button>
+        </div>
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
           {events.map((ev) => (
             <div key={ev.id} className="border border-terminal-gray/30 rounded p-2 text-sm">
