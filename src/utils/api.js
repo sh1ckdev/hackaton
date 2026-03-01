@@ -1,7 +1,7 @@
 import axios from 'axios';
 import authStore from '../stores/authStore';
 
-
+let csrfToken = null;
 
 const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
 
@@ -21,9 +21,15 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    const method = String(config.method || 'get').toUpperCase();
+    const needsCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+
     const token = authStore.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (needsCsrf && csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
     }
     return config;
   },
@@ -35,9 +41,17 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    const nextCsrfToken = response?.headers?.['x-csrf-token'];
+    if (nextCsrfToken) {
+      csrfToken = nextCsrfToken;
+    }
     return response;
   },
   async (error) => {
+    const nextCsrfToken = error?.response?.headers?.['x-csrf-token'];
+    if (nextCsrfToken) {
+      csrfToken = nextCsrfToken;
+    }
     const originalRequest = error.config;
     if (
       error.response?.status === 401 &&
