@@ -108,20 +108,33 @@ router.get('/analytics', requireAdmin, async (req, res) => {
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const { participant_category } = req.query;
-    let query = `
-      SELECT u.*, COUNT(s.id) as solutions_count
+    const { participant_category, include_staff } = req.query;
+    const showStaff = include_staff === 'true';
+    const hasCategory = participant_category === 'student' || participant_category === 'school';
+    const params = [];
+    let where = '';
+
+    if (hasCategory) {
+      params.push(participant_category);
+      if (showStaff) {
+        // Показываем обычных пользователей выбранной категории + всех staff
+        where = `WHERE (u.participant_category = $1 AND COALESCE(u.role, 'user') NOT IN ('admin', 'moderator'))
+                    OR COALESCE(u.role, 'user') IN ('admin', 'moderator')`;
+      } else {
+        where = `WHERE u.participant_category = $1 AND COALESCE(u.role, 'user') NOT IN ('admin', 'moderator')`;
+      }
+    } else if (!showStaff) {
+      where = `WHERE COALESCE(u.role, 'user') NOT IN ('admin', 'moderator')`;
+    }
+
+    const result = await pool.query(
+      `SELECT u.*, COUNT(s.id) as solutions_count
        FROM users u
        LEFT JOIN solutions s ON u.id = s.user_id
-       WHERE COALESCE(u.role, 'user') NOT IN ('admin', 'moderator')
-    `;
-    const params = [];
-    if (participant_category === 'student' || participant_category === 'school') {
-      params.push(participant_category);
-      query += ` AND u.participant_category = $1`;
-    }
-    query += ` GROUP BY u.id ORDER BY u.created_at DESC`;
-    const result = await pool.query(query, params);
+       ${where}
+       GROUP BY u.id ORDER BY u.created_at DESC`,
+      params
+    );
     res.json({ users: result.rows });
   } catch (error) {
     logError('Ошибка получения пользователей', error);
