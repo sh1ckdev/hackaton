@@ -3,8 +3,8 @@ import api from '../utils/api';
 
 class AuthStore {
   user = null;
-  token = localStorage.getItem('token');
-  refreshToken = localStorage.getItem('refresh_token');
+  token = null;
+  refreshToken = null;
   loading = false;
   error = null;
   initializing = true;
@@ -12,11 +12,7 @@ class AuthStore {
 
   constructor() {
     makeAutoObservable(this);
-    if (this.token) {
-      this.fetchUser();
-    } else {
-      this.initializing = false;
-    }
+    this.fetchUser();
   }
 
   async login(telegramData, captchaToken, participantCategory) {
@@ -31,8 +27,6 @@ class AuthStore {
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;
-      localStorage.setItem('token', this.token);
-      localStorage.setItem('refresh_token', this.refreshToken);
       return true;
     } catch (error) {
       this.error = error.response?.data?.error || 'Ошибка входа';
@@ -53,8 +47,6 @@ class AuthStore {
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;
-      localStorage.setItem('token', this.token);
-      localStorage.setItem('refresh_token', this.refreshToken);
       return true;
     } catch (error) {
       this.error = error.response?.data?.error || 'Ошибка входа через VK';
@@ -80,8 +72,6 @@ class AuthStore {
       this.token = response.data.token;
       this.refreshToken = response.data.refresh_token;
       this.user = response.data.user;
-      localStorage.setItem('token', this.token);
-      localStorage.setItem('refresh_token', this.refreshToken);
       return true;
     } catch (error) {
       this.error = error.response?.data?.error || 'Ошибка входа';
@@ -94,11 +84,6 @@ class AuthStore {
   }
 
   async fetchUser() {
-    if (!this.token) {
-      this.initializing = false;
-      return;
-    }
-    
     this.loading = true;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -107,11 +92,15 @@ class AuthStore {
     try {
       const response = await api.get('/auth/me', {
         timeout: 8000,
-        signal: controller.signal
+        signal: controller.signal,
+        _skipAuthRefresh: true,
+        _skipAuthRedirect: true
       });
       this.user = response.data.user;
     } catch (error) {
-      this.logout();
+      this.user = null;
+      this.token = null;
+      this.refreshToken = null;
     } finally {
       clearTimeout(timeoutId);
       this.loading = false;
@@ -120,20 +109,16 @@ class AuthStore {
   }
 
   logout() {
-    if (this.refreshToken) {
-      api.post('/auth/logout', { refresh_token: this.refreshToken }).catch(() => {});
-    }
+    api.post('/auth/logout', {}).catch(() => {});
     this.user = null;
     this.token = null;
     this.refreshToken = null;
     this.error = null;
     this.initializing = false;
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
   }
 
   get isAuthenticated() {
-    return !!this.token;
+    return !!this.user;
   }
 
   get isAdmin() {

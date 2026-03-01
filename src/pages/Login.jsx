@@ -60,8 +60,6 @@ const Login = () => {
       authStore.token = data.token;
       authStore.refreshToken = data.refresh_token;
       authStore.user = data.user;
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refresh_token', data.refresh_token);
       navigate('/');
     } catch (e) {
       setError(e.message);
@@ -365,7 +363,7 @@ const Login = () => {
             )}
 
             {/* DEV: быстрый вход без авторизации (только localhost/dev) */}
-            {import.meta.env.DEV && (
+            {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' && (
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>
                   DEV — быстрый вход
