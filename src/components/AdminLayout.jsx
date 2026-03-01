@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import adminStore from '../stores/adminStore';
@@ -37,6 +37,7 @@ const ALL_ITEMS = NAV.flatMap(g => g.items);
 
 const AdminLayout = () => {
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const currentItem = ALL_ITEMS.find(item => location.pathname === item.to || location.pathname.startsWith(item.to + '/'));
 
@@ -50,10 +51,14 @@ const AdminLayout = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="admin-page">
       {/* ── Sidebar ── */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar${mobileMenuOpen ? ' open' : ''}`}>
         <div className="admin-sidebar-logo">
           <div className="admin-sidebar-logo-title">Платформа</div>
           <div className="admin-sidebar-logo-sub">Панель управления</div>
@@ -89,6 +94,7 @@ const AdminLayout = () => {
               <NavLink
                 key={to}
                 to={to}
+                onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) => `admin-nav-item${isActive ? ' active' : ''}`}
               >
                 <span className="admin-nav-item-icon">{icon}</span>
@@ -109,6 +115,15 @@ const AdminLayout = () => {
       <div className="admin-main">
         {currentItem && (
           <div className="admin-topbar">
+            <button
+              type="button"
+              className="admin-sidebar-toggle"
+              onClick={() => setMobileMenuOpen(v => !v)}
+              aria-label="Открыть меню админки"
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>☰</span>
+              <span>Меню</span>
+            </button>
             <div className="admin-topbar-title">{currentItem.label}</div>
           </div>
         )}
@@ -116,6 +131,7 @@ const AdminLayout = () => {
           <Outlet />
         </div>
       </div>
+      {mobileMenuOpen && <button type="button" className="admin-mobile-overlay" onClick={() => setMobileMenuOpen(false)} aria-label="Закрыть меню" />}
     </div>
   );
 };
