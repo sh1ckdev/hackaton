@@ -19,8 +19,9 @@ const AdminUsers = () => {
 
   const fetchUsers = async (cat = filter) => {
     try {
-      const params = cat ? `?participant_category=${cat}` : '';
-      const res = await api.get(`/admin/users${params}`);
+      const params = new URLSearchParams({ include_staff: 'true' });
+      if (cat) params.set('participant_category', cat);
+      const res = await api.get(`/admin/users?${params}`);
       setUsers(res.data.users);
     } catch {}
   };

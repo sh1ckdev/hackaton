@@ -25,7 +25,7 @@ const AdminAnalytics = () => {
     try {
       const [aRes, uRes, tRes] = await Promise.all([api.get('/admin/analytics'), api.get('/admin/users'), api.get('/teams/all')]);
       setAnalytics(aRes.data);
-      setUsers(uRes.data.users);
+      setUsers((uRes.data.users || []).filter(u => !['admin', 'moderator'].includes(u.role)));
       setTeams(tRes.data.teams);
     } catch {}
   };
