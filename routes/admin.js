@@ -774,7 +774,7 @@ router.get('/settings/timeline', requireModerator, async (req, res) => {
 // Создать пункт таймлайна
 router.post('/settings/timeline', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
-    const { type, title, description, date, date_to, active, show_countdown } = req.body;
+    const { type, title, description, date, date_to, active, show_countdown, is_closing } = req.body;
     
     if (!type || !title || !description) {
       return res.status(400).json({ error: 'Название, тип и описание обязательны' });
@@ -782,11 +782,15 @@ router.post('/settings/timeline', requireModerator, validateTimelinePayload, asy
 
     const dateFrom = date && date.trim() ? date : new Date().toISOString();
 
+    if (is_closing) {
+      await pool.query('UPDATE hackathon_timeline SET is_closing = FALSE WHERE is_closing = TRUE');
+    }
+
     const result = await pool.query(`
-      INSERT INTO hackathon_timeline (type, title, description, date, date_to, active, show_countdown, sort_order)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE((SELECT MAX(sort_order) + 1 FROM hackathon_timeline), 1))
+      INSERT INTO hackathon_timeline (type, title, description, date, date_to, active, show_countdown, is_closing, sort_order)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE((SELECT MAX(sort_order) + 1 FROM hackathon_timeline), 1))
       RETURNING *
-    `, [type, title, description, dateFrom, date_to || null, active || false, !!show_countdown]);
+    `, [type, title, description, dateFrom, date_to || null, active || false, !!show_countdown, !!is_closing]);
 
     logInfo('Создан пункт таймлайна', { id: result.rows[0].id, title });
     res.json({ timeline_item: result.rows[0] });
@@ -850,7 +854,7 @@ router.put('/settings/timeline/reorder', requireModerator, adminOperationLimiter
 router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, title, description, date, date_to, active, show_countdown } = req.body;
+    const { type, title, description, date, date_to, active, show_countdown, is_closing } = req.body;
 
     const updates = [];
     const values = [];
@@ -884,6 +888,10 @@ router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, 
       updates.push(`show_countdown = $${paramIndex++}`);
       values.push(!!show_countdown);
     }
+    if (is_closing !== undefined) {
+      updates.push(`is_closing = $${paramIndex++}`);
+      values.push(!!is_closing);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Нет полей для обновления' });
@@ -891,6 +899,10 @@ router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, 
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
+
+    if (is_closing === true) {
+      await pool.query('UPDATE hackathon_timeline SET is_closing = FALSE WHERE id <> $1 AND is_closing = TRUE', [id]);
+    }
 
     const result = await pool.query(`
       UPDATE hackathon_timeline

@@ -698,6 +698,7 @@ async function ensureNewFieldsExist() {
           date TIMESTAMP NOT NULL,
           sort_order INTEGER,
           active BOOLEAN DEFAULT FALSE,
+          is_closing BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -729,6 +730,18 @@ async function ensureNewFieldsExist() {
     if (!timelineShowCountdownExists.rows[0].exists) {
       await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN show_countdown BOOLEAN DEFAULT FALSE');
       logInfo('Добавлено поле show_countdown в hackathon_timeline');
+    }
+    const timelineIsClosingExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'hackathon_timeline'
+        AND column_name = 'is_closing'
+      )
+    `);
+    if (!timelineIsClosingExists.rows[0].exists) {
+      await pool.query('ALTER TABLE hackathon_timeline ADD COLUMN is_closing BOOLEAN DEFAULT FALSE');
+      logInfo('Добавлено поле is_closing в hackathon_timeline');
     }
     const timelineSortOrderExists = await pool.query(`
       SELECT EXISTS (

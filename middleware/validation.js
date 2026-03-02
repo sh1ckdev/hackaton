@@ -160,7 +160,8 @@ export const validateTimelinePayload = (req, res, next) => {
     date,
     date_to,
     active,
-    show_countdown
+    show_countdown,
+    is_closing
   } = req.body;
 
   const has = (v) => v !== undefined;
@@ -196,6 +197,9 @@ export const validateTimelinePayload = (req, res, next) => {
   }
   if (has(show_countdown) && typeof show_countdown !== 'boolean') {
     return res.status(400).json({ error: 'Поле show_countdown должно быть boolean' });
+  }
+  if (has(is_closing) && typeof is_closing !== 'boolean') {
+    return res.status(400).json({ error: 'Поле is_closing должно быть boolean' });
   }
 
   next();

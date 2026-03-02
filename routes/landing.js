@@ -7,19 +7,37 @@ const router = express.Router();
 // Получить дату дедлайна для таймера (синхронна с таймером на главной)
 router.get('/deadline', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const phasesResult = await pool.query(`
       SELECT * FROM hackathon_timeline
       WHERE show_countdown = TRUE
+      ORDER BY sort_order ASC, date ASC
+    `);
+    const closingResult = await pool.query(`
+      SELECT * FROM hackathon_timeline
+      WHERE is_closing = TRUE
       ORDER BY sort_order ASC, date ASC
       LIMIT 1
     `);
     let targetDate = null;
-    if (result.rows.length > 0) {
-      const item = result.rows[0];
-      const baseDate = new Date(item.date_to || item.date);
+    if (phasesResult.rows.length > 0) {
+      const phases = phasesResult.rows
+        .map((item) => new Date(item.date_to || item.date).getTime())
+        .filter((ts) => !Number.isNaN(ts))
+        .sort((a, b) => a - b);
+      if (phases.length === 0) {
+        return res.json({ target_date: null });
+      }
+      const baseDateTs = phases[phases.length - 1];
+      const baseDate = new Date(baseDateTs);
       const now = new Date();
       if (now >= baseDate) {
-        targetDate = new Date(baseDate.getTime() + 48 * 60 * 60 * 1000).toISOString();
+        const minimumEnd = baseDateTs + 48 * 60 * 60 * 1000;
+        const closingTsRaw = closingResult.rows[0]
+          ? new Date(closingResult.rows[0].date_to || closingResult.rows[0].date).getTime()
+          : NaN;
+        const closingTs = Number.isNaN(closingTsRaw) ? null : closingTsRaw;
+        const endTs = closingTs ? Math.max(minimumEnd, closingTs) : minimumEnd;
+        targetDate = new Date(endTs).toISOString();
       } else {
         targetDate = baseDate.toISOString();
       }
@@ -31,7 +49,19 @@ router.get('/deadline', async (req, res) => {
         LIMIT 1
       `);
       if (fallback.rows.length > 0) {
-        targetDate = new Date(fallback.rows[0].date).toISOString();
+        const startTs = new Date(fallback.rows[0].date).getTime();
+        const nowTs = Date.now();
+        if (nowTs >= startTs) {
+          const minimumEnd = startTs + 48 * 60 * 60 * 1000;
+          const closingTsRaw = closingResult.rows[0]
+            ? new Date(closingResult.rows[0].date_to || closingResult.rows[0].date).getTime()
+            : NaN;
+          const closingTs = Number.isNaN(closingTsRaw) ? null : closingTsRaw;
+          const endTs = closingTs ? Math.max(minimumEnd, closingTs) : minimumEnd;
+          targetDate = new Date(endTs).toISOString();
+        } else {
+          targetDate = new Date(startTs).toISOString();
+        }
       }
     }
     res.json({ target_date: targetDate });
