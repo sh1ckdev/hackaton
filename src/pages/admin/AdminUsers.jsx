@@ -61,6 +61,11 @@ const AdminUsers = () => {
     } catch (e) { alert(e.response?.data?.error || 'Ошибка'); }
   };
 
+  const formatFullName = (user) => {
+    const parts = [user?.last_name, user?.first_name, user?.middle_name].filter(Boolean);
+    return parts.length ? parts.join(' ') : 'Без имени';
+  };
+
   return (
     <div className="p-6">
       <div className="mb-4 flex flex-wrap gap-4 items-center">
@@ -85,7 +90,7 @@ const AdminUsers = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <p className="font-semibold text-terminal-blue">
-                      {user.first_name} {user.last_name}{' '}
+                      {formatFullName(user)}{' '}
                       <span className="text-terminal-cyan text-sm font-normal">
                         {user.vk_id ? `vk.com/id${user.vk_id}` : user.username ? `@${user.username}` : ''}
                       </span>
@@ -124,7 +129,7 @@ const AdminUsers = () => {
                   </div>
                 )}
                 <div>
-                  <p className="font-semibold text-white text-lg">{selected.first_name} {selected.last_name}</p>
+                  <p className="font-semibold text-white text-lg">{formatFullName(selected)}</p>
                   <p className="text-terminal-cyan text-sm">
                     {selected.vk_id ? <a href={`https://vk.com/id${selected.vk_id}`} target="_blank" rel="noreferrer" className="hover:underline">vk.com/id{selected.vk_id}</a>
                       : selected.username ? <a href={`https://t.me/${selected.username}`} target="_blank" rel="noreferrer" className="hover:underline">@{selected.username}</a> : '—'}
@@ -135,8 +140,14 @@ const AdminUsers = () => {
               {/* Поля */}
               <div className="space-y-2 text-sm">
                 {[
+                  ['Фамилия', selected.last_name],
+                  ['Имя', selected.first_name],
+                  ['Отчество', selected.middle_name],
                   ['Email', selected.email],
                   ['Телефон', selected.phone],
+                  ['Институт/колледж/вуз', selected.institution],
+                  ['Школа', selected.school_name],
+                  ['Класс', selected.school_class],
                   ['Telegram ID', selected.telegram_id],
                   ['Решений', selected.solutions_count || 0],
                   ['Зарегистрирован', fmtDateTime(selected.created_at)],

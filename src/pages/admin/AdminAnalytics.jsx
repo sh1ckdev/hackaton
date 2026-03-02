@@ -37,7 +37,22 @@ const AdminAnalytics = () => {
   return (
     <div className="p-6">
       <div className="mb-6 flex flex-wrap justify-end gap-2">
-        <button onClick={() => exportCSV(users, 'users', [{ key: 'id', label: 'ID' }, { key: 'first_name', label: 'Имя' }, { key: 'last_name', label: 'Фамилия' }, { key: 'username', label: 'Username' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Телефон' }, { key: 'role', label: 'Роль' }, { key: 'solutions_count', label: 'Решений' }, { key: 'created_at', label: 'Дата' }])}
+        <button onClick={() => exportCSV(users, 'users', [
+          { key: 'id', label: 'ID' },
+          { key: 'last_name', label: 'Фамилия' },
+          { key: 'first_name', label: 'Имя' },
+          { key: 'middle_name', label: 'Отчество' },
+          { key: 'participant_category', label: 'Категория' },
+          { key: 'institution', label: 'Институт/колледж/вуз' },
+          { key: 'school_name', label: 'Школа' },
+          { key: 'school_class', label: 'Класс' },
+          { key: 'username', label: 'Username' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Телефон' },
+          { key: 'role', label: 'Роль' },
+          { key: 'solutions_count', label: 'Решений' },
+          { key: 'created_at', label: 'Дата' }
+        ])}
           className="px-3 py-2 text-sm border border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg rounded">
           Пользователи (CSV)
         </button>
