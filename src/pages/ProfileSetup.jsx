@@ -60,7 +60,7 @@ const ProfileSetup = () => {
   };
 
   return (
-    <section className="login-surface">
+    <section className="login-surface profile-setup-surface">
       <div className="login-terminal profile-setup-terminal">
         <div className="login-terminal-header">
           <div className="login-terminal-title">profile_setup.sh</div>

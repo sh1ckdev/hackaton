@@ -7180,6 +7180,25 @@ code {
 .profile-setup-terminal {
   max-width: 560px;
   width: 100%;
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-setup-surface {
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 16px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.profile-setup-surface::before {
+  display: none;
+}
+
+.profile-setup-terminal .login-terminal-body {
+  overflow-y: auto;
 }
 
 .profile-setup-form {
