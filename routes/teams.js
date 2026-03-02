@@ -7,6 +7,7 @@ import { validateTeamCreation, validateTeamJoin } from '../middleware/validation
 import { logError } from '../utils/logger.js';
 
 const router = express.Router();
+const MAX_TEAM_MEMBERS = 5;
 
 const generateTeamCode = async () => {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -162,6 +163,14 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
     }
 
     const team = teamResult.rows[0];
+    const memberCount = await pool.query(
+      'SELECT COUNT(*) as count FROM team_members WHERE team_id = $1',
+      [team.id]
+    );
+    if (parseInt(memberCount.rows[0].count, 10) >= MAX_TEAM_MEMBERS) {
+      return res.status(400).json({ error: `В команде уже ${MAX_TEAM_MEMBERS} участников` });
+    }
+
     const userCat = (await pool.query('SELECT participant_category FROM users WHERE id = $1', [req.user.id])).rows[0]?.participant_category;
     if (team.participant_category && (!userCat || team.participant_category !== userCat)) {
       return res.status(403).json({ error: 'Вы не можете присоединиться к команде другой категории (школьники и студенты в разных командах)' });
@@ -270,8 +279,8 @@ router.post('/invite', authenticateToken, async (req, res) => {
       'SELECT COUNT(*) as count FROM team_members WHERE team_id = $1',
       [teamId]
     );
-    if (parseInt(memberCount.rows[0].count, 10) >= 4) {
-      return res.status(400).json({ error: 'В команде уже 4 участника' });
+    if (parseInt(memberCount.rows[0].count, 10) >= MAX_TEAM_MEMBERS) {
+      return res.status(400).json({ error: `В команде уже ${MAX_TEAM_MEMBERS} участников` });
     }
 
     await pool.query(
