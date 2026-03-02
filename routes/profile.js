@@ -14,6 +14,8 @@ const trimOrNull = (value) => {
 };
 
 const isAllowedCategory = (value) => value === 'student' || value === 'school';
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const normalizePhone = (value) => (value || '').replace(/[^\d+]/g, '');
 
 // Получить статистику профиля
 router.get('/stats', async (req, res) => {
@@ -179,6 +181,8 @@ router.put('/required-fields', async (req, res) => {
       first_name,
       last_name,
       middle_name,
+      phone,
+      email,
       participant_category,
       institution,
       school_name,
@@ -188,16 +192,32 @@ router.put('/required-fields', async (req, res) => {
     const firstName = trimOrNull(first_name);
     const lastName = trimOrNull(last_name);
     const middleName = trimOrNull(middle_name);
+    const phoneRaw = trimOrNull(phone);
+    const emailRaw = trimOrNull(email);
     const category = trimOrNull(participant_category);
     const institutionName = trimOrNull(institution);
     const schoolName = trimOrNull(school_name);
     const schoolClass = trimOrNull(school_class);
+    const phoneNormalized = phoneRaw ? normalizePhone(phoneRaw) : null;
+    const emailNormalized = emailRaw ? emailRaw.toLowerCase() : null;
 
     if (!firstName || !lastName || !middleName) {
       return res.status(400).json({ error: 'Укажите ФИО полностью' });
     }
+    if (!phoneNormalized) {
+      return res.status(400).json({ error: 'Укажите номер телефона' });
+    }
+    if (!emailNormalized) {
+      return res.status(400).json({ error: 'Укажите email' });
+    }
     if (!isAllowedCategory(category)) {
       return res.status(400).json({ error: 'Выберите категорию участника' });
+    }
+    if (phoneNormalized.replace(/\D/g, '').length < 10) {
+      return res.status(400).json({ error: 'Укажите корректный номер телефона' });
+    }
+    if (!emailRegex.test(emailNormalized)) {
+      return res.status(400).json({ error: 'Укажите корректный email' });
     }
 
     if (category === 'student' && !institutionName) {
@@ -209,6 +229,12 @@ router.put('/required-fields', async (req, res) => {
 
     if (firstName.length > 100 || lastName.length > 100 || middleName.length > 100) {
       return res.status(400).json({ error: 'ФИО не должно превышать 100 символов в каждом поле' });
+    }
+    if (phoneNormalized.length > 32) {
+      return res.status(400).json({ error: 'Номер телефона слишком длинный' });
+    }
+    if (emailNormalized.length > 255) {
+      return res.status(400).json({ error: 'Email слишком длинный' });
     }
     if (institutionName && institutionName.length > 255) {
       return res.status(400).json({ error: 'Название учебного заведения слишком длинное' });
@@ -225,17 +251,21 @@ router.put('/required-fields', async (req, res) => {
        SET first_name = $1,
            last_name = $2,
            middle_name = $3,
-           participant_category = $4,
-           institution = $5,
-           school_name = $6,
-           school_class = $7,
+           phone = $4,
+           email = $5,
+           participant_category = $6,
+           institution = $7,
+           school_name = $8,
+           school_class = $9,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8
+       WHERE id = $10
        RETURNING *`,
       [
         firstName,
         lastName,
         middleName,
+        phoneNormalized,
+        emailNormalized,
         category,
         category === 'student' ? institutionName : null,
         category === 'school' ? schoolName : null,
