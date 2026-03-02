@@ -622,6 +622,19 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле institution в users');
     }
 
+    const usersStudentCourseExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'student_course'
+      )
+    `);
+    if (!usersStudentCourseExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN student_course VARCHAR(30)');
+      logInfo('Добавлено поле student_course в users');
+    }
+
     const usersSchoolNameExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns

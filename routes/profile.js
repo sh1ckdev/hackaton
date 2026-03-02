@@ -184,6 +184,7 @@ router.put('/required-fields', async (req, res) => {
       phone,
       email,
       participant_category,
+      student_course,
       institution,
       school_name,
       school_class
@@ -195,6 +196,7 @@ router.put('/required-fields', async (req, res) => {
     const phoneRaw = trimOrNull(phone);
     const emailRaw = trimOrNull(email);
     const category = trimOrNull(participant_category);
+    const studentCourse = trimOrNull(student_course);
     const institutionName = trimOrNull(institution);
     const schoolName = trimOrNull(school_name);
     const schoolClass = trimOrNull(school_class);
@@ -220,8 +222,8 @@ router.put('/required-fields', async (req, res) => {
       return res.status(400).json({ error: 'Укажите корректный email' });
     }
 
-    if (category === 'student' && !institutionName) {
-      return res.status(400).json({ error: 'Для студентов обязательно указывать учебное заведение' });
+    if (category === 'student' && (!institutionName || !studentCourse)) {
+      return res.status(400).json({ error: 'Для студентов обязательны учебное заведение и курс' });
     }
     if (category === 'school' && (!schoolName || !schoolClass)) {
       return res.status(400).json({ error: 'Для школьников обязательны школа и класс' });
@@ -239,6 +241,9 @@ router.put('/required-fields', async (req, res) => {
     if (institutionName && institutionName.length > 255) {
       return res.status(400).json({ error: 'Название учебного заведения слишком длинное' });
     }
+    if (studentCourse && studentCourse.length > 30) {
+      return res.status(400).json({ error: 'Курс слишком длинный' });
+    }
     if (schoolName && schoolName.length > 255) {
       return res.status(400).json({ error: 'Название школы слишком длинное' });
     }
@@ -254,11 +259,12 @@ router.put('/required-fields', async (req, res) => {
            phone = $4,
            email = $5,
            participant_category = $6,
-           institution = $7,
-           school_name = $8,
-           school_class = $9,
+           student_course = $7,
+           institution = $8,
+           school_name = $9,
+           school_class = $10,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10
+       WHERE id = $11
        RETURNING *`,
       [
         firstName,
@@ -267,6 +273,7 @@ router.put('/required-fields', async (req, res) => {
         phoneNormalized,
         emailNormalized,
         category,
+        category === 'student' ? studentCourse : null,
         category === 'student' ? institutionName : null,
         category === 'school' ? schoolName : null,
         category === 'school' ? schoolClass : null,

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     middle_name VARCHAR(255),
     photo_url TEXT,
     phone VARCHAR(32),
+    student_course VARCHAR(30),
     institution VARCHAR(255),
     school_name VARCHAR(255),
     school_class VARCHAR(50),
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS student_course VARCHAR(30);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS middle_name VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS institution VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(255);
