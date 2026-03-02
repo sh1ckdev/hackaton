@@ -137,9 +137,11 @@ class AuthStore {
     const hasFirst = typeof user.first_name === 'string' && user.first_name.trim().length > 0;
     const hasLast = typeof user.last_name === 'string' && user.last_name.trim().length > 0;
     const hasMiddle = typeof user.middle_name === 'string' && user.middle_name.trim().length > 0;
+    const hasPhone = typeof user.phone === 'string' && user.phone.trim().length > 0;
+    const hasEmail = typeof user.email === 'string' && user.email.trim().length > 0;
     const category = user.participant_category;
 
-    if (!hasFirst || !hasLast || !hasMiddle) return false;
+    if (!hasFirst || !hasLast || !hasMiddle || !hasPhone || !hasEmail) return false;
     if (category !== 'student' && category !== 'school') return false;
 
     if (category === 'student') {

@@ -67,8 +67,8 @@ const AdminTeams = () => {
   };
 
   const handleExportCSV = () => {
-    const SEP = '\t';
-    const MAX_MEMBERS = 4;
+    const SEP = ';';
+    const MAX_MEMBERS = 5;
     const headers = [
       'Команда',
       'Код',
@@ -81,16 +81,19 @@ const AdminTeams = () => {
       ]).flat(),
     ];
 
-    const cell = (val) => (val == null ? '' : String(val).replace(/\t/g, ' ').replace(/\r?\n/g, ' '));
+    const esc = (val) => {
+      if (val == null) return '""';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    };
 
     const rows = teams.map(team => {
       const catLabel = team.participant_category === 'school' ? 'Школьники'
         : team.participant_category === 'student' ? 'Студенты' : '';
       const base = [
-        cell(team.name),
-        cell(team.team_code || team.code),
-        cell(catLabel),
-        cell(team.assigned_case_title || ''),
+        esc(team.name),
+        esc(team.team_code || team.code),
+        esc(catLabel),
+        esc(team.assigned_case_title || ''),
       ];
       const memberCols = [];
       for (let i = 0; i < MAX_MEMBERS; i++) {
@@ -98,24 +101,24 @@ const AdminTeams = () => {
         if (m) {
           const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.username || '';
           memberCols.push(
-            cell(name),
-            cell(m.username ? `@${m.username}` : ''),
-            cell(m.role === 'captain' ? 'Капитан' : 'Участник'),
+            esc(name),
+            esc(m.username ? `@${m.username}` : ''),
+            esc(m.role === 'captain' ? 'Капитан' : 'Участник'),
           );
         } else {
-          memberCols.push('', '', '');
+          memberCols.push('""', '""', '""');
         }
       }
       return [...base, ...memberCols].join(SEP);
     });
 
     const bom = '\uFEFF';
-    const tsv = bom + [headers.join(SEP), ...rows].join('\r\n');
-    const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const csv = bom + [headers.map(esc).join(SEP), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `teams_${new Date().toISOString().slice(0, 10)}.tsv`;
+    a.download = `teams_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

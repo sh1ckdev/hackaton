@@ -18,6 +18,8 @@ const ProfileSetup = () => {
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [lastName, setLastName] = useState(user?.last_name || '');
   const [middleName, setMiddleName] = useState(user?.middle_name || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [participantCategory, setParticipantCategory] = useState(initialCategory);
   const [institution, setInstitution] = useState(user?.institution || '');
   const [schoolName, setSchoolName] = useState(user?.school_name || '');
@@ -45,6 +47,8 @@ const ProfileSetup = () => {
         first_name: firstName,
         last_name: lastName,
         middle_name: middleName,
+        phone,
+        email,
         participant_category: participantCategory,
         institution,
         school_name: schoolName,
@@ -90,6 +94,22 @@ const ProfileSetup = () => {
               placeholder="Отчество"
               value={middleName}
               onChange={(e) => setMiddleName(e.target.value)}
+              required
+            />
+            <input
+              type="tel"
+              className="profile-setup-input"
+              placeholder="Номер телефона"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              className="profile-setup-input"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
 
