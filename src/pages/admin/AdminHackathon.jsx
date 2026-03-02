@@ -31,9 +31,10 @@ const toEditForm = (item) => ({
   description:    item.description || '',
   date_to:        utcToMsk(item.date_to),
   show_countdown: !!item.show_countdown,
+  is_closing:     !!item.is_closing,
 });
 
-const EMPTY_FORM = { title: '', description: '', date_to: '', show_countdown: false, type: 'other' };
+const EMPTY_FORM = { title: '', description: '', date_to: '', show_countdown: false, is_closing: false, type: 'other' };
 
 const AdminHackathon = () => {
   useDocumentTitle('Настройки — Админ');
@@ -58,6 +59,7 @@ const AdminHackathon = () => {
         date:           null,
         date_to:        form.date_to ? mskToUtc(form.date_to) : null,
         show_countdown: !!form.show_countdown,
+        is_closing:     !!form.is_closing,
       };
       if (form.id) {
         await api.put(`/admin/settings/timeline/${form.id}`, payload);
@@ -121,6 +123,7 @@ const AdminHackathon = () => {
                     ? <span>До: {fmtDateTime(item.date_to)}</span>
                     : <span style={{ opacity: 0.4 }}>Дата не указана</span>}
                   {item.show_countdown && <span className="admin-badge" style={{ marginLeft: 8 }}>Таймер на главной</span>}
+                  {item.is_closing && <span className="admin-badge" style={{ marginLeft: 8 }}>Закрытие</span>}
                 </div>
               </div>
               <div className="admin-settings-item-actions">
@@ -173,7 +176,7 @@ const AdminHackathon = () => {
                   />
                 </div>
                 <div className="admin-form-group">
-                  <label>{editing.show_countdown ? 'Дедлайн таймера' : 'Дата'}</label>
+                  <label>{editing.show_countdown || editing.is_closing ? 'Дедлайн таймера' : 'Дата'}</label>
                   <input
                     type="datetime-local"
                     value={editing.date_to}
@@ -193,6 +196,19 @@ const AdminHackathon = () => {
                   </label>
                   <small style={{ color: 'var(--text-muted)' }}>
                     Таймер отсчитывает от текущего момента до указанной даты
+                  </small>
+                </div>
+                <div className="admin-form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!editing.is_closing}
+                      onChange={e => setEditing({ ...editing, is_closing: e.target.checked })}
+                    />
+                    Закрытие соревнований
+                  </label>
+                  <small style={{ color: 'var(--text-muted)' }}>
+                    После старта таймер «Соревнования идут» считает до этого события (минимум 48 часов).
                   </small>
                 </div>
                 <div className="admin-form-actions">

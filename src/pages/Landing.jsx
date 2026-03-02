@@ -52,6 +52,7 @@ const Landing = () => {
 
   const updateCountdown = () => {
     const now = new Date();
+    const nowTs = now.getTime();
 
     // Фазы обратного отсчёта: все элементы с show_countdown, отсортированные по дедлайну.
     // Это позволяет делать последовательные этапы: регистрация -> открытие -> старт 48ч.
@@ -61,8 +62,13 @@ const Landing = () => {
       .filter((t) => !Number.isNaN(t.target))
       .sort((a, b) => a.target - b.target);
 
+    const closingEvents = timeline
+      .filter((t) => t.is_closing && (t.date_to || t.date))
+      .map((t) => ({ ...t, target: new Date(t.date_to || t.date).getTime() }))
+      .filter((t) => !Number.isNaN(t.target))
+      .sort((a, b) => a.target - b.target);
+
     if (countdownPhases.length > 0) {
-      const nowTs = now.getTime();
       const activePhase = countdownPhases.find((phase) => nowTs < phase.target);
       const lastPhase = countdownPhases[countdownPhases.length - 1];
 
@@ -82,8 +88,10 @@ const Landing = () => {
       // После последней countdown-фазы запускаем стандартный 48-часовой режим соревнования.
       setMainExpired(true);
       setCountdownLabel('до начала соревнования');
-      const end48h = lastPhase.target + 48 * 60 * 60 * 1000;
-      const remaining = end48h - nowTs;
+      const minimumEnd = lastPhase.target + 48 * 60 * 60 * 1000;
+      const closestClosing = closingEvents.find((e) => e.target >= lastPhase.target);
+      const competitionEnd = closestClosing ? Math.max(minimumEnd, closestClosing.target) : minimumEnd;
+      const remaining = competitionEnd - nowTs;
       if (remaining > 0) {
         setCompetitionCountdown({
           days: Math.floor(remaining / (1000 * 60 * 60 * 24)),
@@ -112,8 +120,11 @@ const Landing = () => {
       });
     } else {
       setMainExpired(true);
-      const end48h = new Date(fallbackTarget).getTime() + 48 * 60 * 60 * 1000;
-      const remaining = end48h - now.getTime();
+      const startTs = new Date(fallbackTarget).getTime();
+      const minimumEnd = startTs + 48 * 60 * 60 * 1000;
+      const closestClosing = closingEvents.find((e) => e.target >= startTs);
+      const competitionEnd = closestClosing ? Math.max(minimumEnd, closestClosing.target) : minimumEnd;
+      const remaining = competitionEnd - nowTs;
       if (remaining > 0) {
         setCompetitionCountdown({
           days: Math.floor(remaining / (1000 * 60 * 60 * 24)),
