@@ -595,6 +595,59 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле last_activity_at в users');
     }
 
+    // Обязательные данные анкеты участника
+    const usersMiddleNameExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'middle_name'
+      )
+    `);
+    if (!usersMiddleNameExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN middle_name VARCHAR(255)');
+      logInfo('Добавлено поле middle_name в users');
+    }
+
+    const usersInstitutionExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'institution'
+      )
+    `);
+    if (!usersInstitutionExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN institution VARCHAR(255)');
+      logInfo('Добавлено поле institution в users');
+    }
+
+    const usersSchoolNameExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'school_name'
+      )
+    `);
+    if (!usersSchoolNameExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN school_name VARCHAR(255)');
+      logInfo('Добавлено поле school_name в users');
+    }
+
+    const usersSchoolClassExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'school_class'
+      )
+    `);
+    if (!usersSchoolClassExists.rows[0].exists) {
+      await pool.query('ALTER TABLE users ADD COLUMN school_class VARCHAR(50)');
+      logInfo('Добавлено поле school_class в users');
+    }
+
     // specialty в team_members (fullstack, frontend, backend, design, mobile, devops)
     const teamMembersSpecialtyExists = await pool.query(`
       SELECT EXISTS (

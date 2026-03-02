@@ -7,6 +7,14 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+const trimOrNull = (value) => {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  return v ? v : null;
+};
+
+const isAllowedCategory = (value) => value === 'student' || value === 'school';
+
 // Получить статистику профиля
 router.get('/stats', async (req, res) => {
   try {
@@ -160,6 +168,102 @@ router.put('/skills', async (req, res) => {
       error: 'Ошибка сервера при обновлении навыков',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});
+
+// Обновить обязательные поля профиля участника
+router.put('/required-fields', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      first_name,
+      last_name,
+      middle_name,
+      participant_category,
+      institution,
+      school_name,
+      school_class
+    } = req.body || {};
+
+    const firstName = trimOrNull(first_name);
+    const lastName = trimOrNull(last_name);
+    const middleName = trimOrNull(middle_name);
+    const category = trimOrNull(participant_category);
+    const institutionName = trimOrNull(institution);
+    const schoolName = trimOrNull(school_name);
+    const schoolClass = trimOrNull(school_class);
+
+    if (!firstName || !lastName || !middleName) {
+      return res.status(400).json({ error: 'Укажите ФИО полностью' });
+    }
+    if (!isAllowedCategory(category)) {
+      return res.status(400).json({ error: 'Выберите категорию участника' });
+    }
+
+    if (category === 'student' && !institutionName) {
+      return res.status(400).json({ error: 'Для студентов обязательно указывать учебное заведение' });
+    }
+    if (category === 'school' && (!schoolName || !schoolClass)) {
+      return res.status(400).json({ error: 'Для школьников обязательны школа и класс' });
+    }
+
+    if (firstName.length > 100 || lastName.length > 100 || middleName.length > 100) {
+      return res.status(400).json({ error: 'ФИО не должно превышать 100 символов в каждом поле' });
+    }
+    if (institutionName && institutionName.length > 255) {
+      return res.status(400).json({ error: 'Название учебного заведения слишком длинное' });
+    }
+    if (schoolName && schoolName.length > 255) {
+      return res.status(400).json({ error: 'Название школы слишком длинное' });
+    }
+    if (schoolClass && schoolClass.length > 50) {
+      return res.status(400).json({ error: 'Класс слишком длинный' });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET first_name = $1,
+           last_name = $2,
+           middle_name = $3,
+           participant_category = $4,
+           institution = $5,
+           school_name = $6,
+           school_class = $7,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8
+       RETURNING *`,
+      [
+        firstName,
+        lastName,
+        middleName,
+        category,
+        category === 'student' ? institutionName : null,
+        category === 'school' ? schoolName : null,
+        category === 'school' ? schoolClass : null,
+        userId
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    const user = result.rows[0];
+    if (user.skills && typeof user.skills === 'string') {
+      try {
+        user.skills = JSON.parse(user.skills);
+      } catch (e) {
+        user.skills = [];
+      }
+    } else if (!user.skills) {
+      user.skills = [];
+    }
+
+    logInfo('Обновлены обязательные поля профиля', { userId, participantCategory: category });
+    return res.json({ user });
+  } catch (error) {
+    logError('Ошибка обновления обязательных полей профиля', error, { userId: req.user?.id });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 

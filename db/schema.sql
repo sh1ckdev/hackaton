@@ -5,14 +5,22 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255),
     first_name VARCHAR(255),
     last_name VARCHAR(255),
+    middle_name VARCHAR(255),
     photo_url TEXT,
     phone VARCHAR(32),
+    institution VARCHAR(255),
+    school_name VARCHAR(255),
+    school_class VARCHAR(50),
     role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(32);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS middle_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS institution VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS school_class VARCHAR(50);
 
 -- Обновление CHECK constraint для роли (если таблица уже существует)
 -- Удаляем старый constraint, если он существует, и создаем новый
