@@ -145,7 +145,12 @@ class AuthStore {
     if (category !== 'student' && category !== 'school') return false;
 
     if (category === 'student') {
-      return typeof user.institution === 'string' && user.institution.trim().length > 0;
+      return (
+        typeof user.institution === 'string' &&
+        user.institution.trim().length > 0 &&
+        typeof user.student_course === 'string' &&
+        user.student_course.trim().length > 0
+      );
     }
 
     return (

@@ -21,6 +21,7 @@ const ProfileSetup = () => {
   const [phone, setPhone] = useState(user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
   const [participantCategory, setParticipantCategory] = useState(initialCategory);
+  const [studentCourse, setStudentCourse] = useState(user?.student_course || '');
   const [institution, setInstitution] = useState(user?.institution || '');
   const [schoolName, setSchoolName] = useState(user?.school_name || '');
   const [schoolClass, setSchoolClass] = useState(user?.school_class || '');
@@ -50,6 +51,7 @@ const ProfileSetup = () => {
         phone,
         email,
         participant_category: participantCategory,
+        student_course: studentCourse,
         institution,
         school_name: schoolName,
         school_class: schoolClass
@@ -138,14 +140,24 @@ const ProfileSetup = () => {
             </div>
 
             {participantCategory === 'student' && (
-              <input
-                type="text"
-                className="profile-setup-input"
-                placeholder="Институт / колледж / вуз"
-                value={institution}
-                onChange={(e) => setInstitution(e.target.value)}
-                required
-              />
+              <>
+                <input
+                  type="text"
+                  className="profile-setup-input"
+                  placeholder="Курс (например, 2)"
+                  value={studentCourse}
+                  onChange={(e) => setStudentCourse(e.target.value)}
+                  required
+                />
+                <input
+                  type="text"
+                  className="profile-setup-input"
+                  placeholder="Институт / колледж / вуз"
+                  value={institution}
+                  onChange={(e) => setInstitution(e.target.value)}
+                  required
+                />
+              </>
             )}
 
             {participantCategory === 'school' && (
