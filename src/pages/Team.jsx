@@ -4,6 +4,8 @@ import api from '../utils/api';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { FolderPlusIcon, LinkIcon, PlusIcon, TimeIcon, EditIcon } from '../components/Icons';
+const MAX_TEAM_MEMBERS = 5;
+
 const Team = () => {
   useDocumentTitle('Команда');
   const [team, setTeam] = useState(null);
@@ -158,7 +160,7 @@ const Team = () => {
         }
       });
     }
-    if (teamData.members && teamData.members.length < 4) {
+    if (teamData.members && teamData.members.length < MAX_TEAM_MEMBERS) {
       const now = new Date();
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
       newLogs.push({
@@ -320,7 +322,7 @@ const Team = () => {
     }
   };
 
-  const maxMembers = 4;
+  const maxMembers = MAX_TEAM_MEMBERS;
   const currentMembers = team?.members || [];
   const emptySlots = Array(maxMembers - currentMembers.length).fill(null);
 
