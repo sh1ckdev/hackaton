@@ -7176,3 +7176,29 @@ code {
     max-width: 100%;
   }
 }
+
+.profile-setup-terminal {
+  max-width: 560px;
+  width: 100%;
+}
+
+.profile-setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.profile-setup-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.66);
+  color: #e2e8f0;
+  padding: 11px 12px;
+  outline: none;
+}
+
+.profile-setup-input:focus {
+  border-color: rgba(34, 211, 238, 0.65);
+}

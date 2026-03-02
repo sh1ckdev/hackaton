@@ -128,6 +128,31 @@ class AuthStore {
   get isModerator() {
     return this.user?.role === 'admin' || this.user?.role === 'moderator';
   }
+
+  get hasRequiredProfileData() {
+    const user = this.user;
+    if (!user) return false;
+    if (user.role === 'admin' || user.role === 'moderator') return true;
+
+    const hasFirst = typeof user.first_name === 'string' && user.first_name.trim().length > 0;
+    const hasLast = typeof user.last_name === 'string' && user.last_name.trim().length > 0;
+    const hasMiddle = typeof user.middle_name === 'string' && user.middle_name.trim().length > 0;
+    const category = user.participant_category;
+
+    if (!hasFirst || !hasLast || !hasMiddle) return false;
+    if (category !== 'student' && category !== 'school') return false;
+
+    if (category === 'student') {
+      return typeof user.institution === 'string' && user.institution.trim().length > 0;
+    }
+
+    return (
+      typeof user.school_name === 'string' &&
+      user.school_name.trim().length > 0 &&
+      typeof user.school_class === 'string' &&
+      user.school_class.trim().length > 0
+    );
+  }
 }
 
 export default new AuthStore();

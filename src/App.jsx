@@ -15,6 +15,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const MySolutions = lazy(() => import('./pages/MySolutions'));
 const SubmitSolution = lazy(() => import('./pages/SubmitSolution'));
 const Profile = lazy(() => import('./pages/Profile'));
+const ProfileSetup = lazy(() => import('./pages/ProfileSetup'));
 const Team = lazy(() => import('./pages/Team'));
 const Info = lazy(() => import('./pages/Info'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -35,6 +36,7 @@ const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 
 const ProtectedRoute = observer(({ children }) => {
+  const location = useLocation();
   if (authStore.initializing) {
     return (
             <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
@@ -60,6 +62,9 @@ const ProtectedRoute = observer(({ children }) => {
   }
   if (!authStore.isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (!authStore.hasRequiredProfileData && location.pathname !== '/profile/setup') {
+    return <Navigate to="/profile/setup" replace />;
   }
   return children;
 });
@@ -140,6 +145,7 @@ function App() {
             >
               <Route path="solutions" element={<MySolutions />} />
               <Route path="solutions/submit/:caseId" element={<SubmitSolution />} />
+              <Route path="profile/setup" element={<ProfileSetup />} />
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="support" element={<SupportPage />} />
