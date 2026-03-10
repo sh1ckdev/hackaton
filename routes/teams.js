@@ -443,7 +443,9 @@ router.get('/all', authenticateToken, requireModerator, async (req, res) => {
     const teamsWithMembers = await Promise.all(
       teams.map(async (team) => {
         const membersResult = await pool.query(
-          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id, tm.role, tm.joined_at
+          `SELECT u.id, u.username, u.first_name, u.last_name, u.photo_url, u.vk_id,
+                  u.participant_category, u.school_name, u.school_class, u.institution, u.student_course,
+                  tm.role, tm.joined_at
            FROM team_members tm
            JOIN users u ON tm.user_id = u.id
            WHERE tm.team_id = $1
