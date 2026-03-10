@@ -78,6 +78,8 @@ const AdminTeams = () => {
         `Участник ${i + 1}`,
         `Username ${i + 1}`,
         `Роль ${i + 1}`,
+        `Школа/Заведение ${i + 1}`,
+        `Класс/Курс ${i + 1}`,
       ]).flat(),
     ];
 
@@ -100,13 +102,17 @@ const AdminTeams = () => {
         const m = team.members?.[i];
         if (m) {
           const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.username || '';
+          const org = m.participant_category === 'school' ? (m.school_name || '') : (m.institution || '');
+          const grade = m.participant_category === 'school' ? (m.school_class || '') : (m.student_course || '');
           memberCols.push(
             esc(name),
             esc(m.username ? `@${m.username}` : ''),
             esc(m.role === 'captain' ? 'Капитан' : 'Участник'),
+            esc(org),
+            esc(grade),
           );
         } else {
-          memberCols.push('""', '""', '""');
+          memberCols.push('""', '""', '""', '""', '""');
         }
       }
       return [...base, ...memberCols].join(SEP);
