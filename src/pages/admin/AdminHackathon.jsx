@@ -40,6 +40,28 @@ const AdminHackathon = () => {
   useDocumentTitle('Настройки — Админ');
   const [timeline, setTimeline] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
+  const [registrationLoading, setRegistrationLoading] = useState(false);
+
+  const fetchRegistrationClosed = async () => {
+    try {
+      const res = await api.get('/admin/settings/registration-closed');
+      setRegistrationClosed(!!res.data?.registration_closed);
+    } catch { setRegistrationClosed(false); }
+  };
+
+  const toggleRegistrationClosed = async () => {
+    setRegistrationLoading(true);
+    try {
+      const next = !registrationClosed;
+      await api.put('/admin/settings/registration-closed', { registration_closed: next });
+      setRegistrationClosed(next);
+    } catch (e) {
+      alert(e.response?.data?.error || 'Ошибка сохранения');
+    } finally {
+      setRegistrationLoading(false);
+    }
+  };
 
   const fetchTimeline = async () => {
     try {
@@ -48,7 +70,7 @@ const AdminHackathon = () => {
     } catch {}
   };
 
-  useEffect(() => { fetchTimeline(); }, []);
+  useEffect(() => { fetchTimeline(); fetchRegistrationClosed(); }, []);
 
   const saveItem = async (form) => {
     try {
@@ -102,6 +124,23 @@ const AdminHackathon = () => {
   return (
     <div className="p-6">
       <div className="admin-settings-content">
+        <div className="admin-settings-section-header" style={{ marginBottom: 24, padding: '16px 20px', background: 'rgba(30, 41, 59, 0.5)', borderRadius: 12, border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+          <div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: 16 }}>Закрытие регистрации</h3>
+            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+              При включении входить смогут только те, кто уже регистрировался ранее
+            </p>
+          </div>
+          <button
+            onClick={toggleRegistrationClosed}
+            disabled={registrationLoading}
+            className={registrationClosed ? 'admin-btn-primary' : 'admin-btn-danger'}
+            style={{ minWidth: 180 }}
+          >
+            {registrationLoading ? '...' : (registrationClosed ? 'Открыть регистрацию' : 'Закрыть регистрацию')}
+          </button>
+        </div>
+
         <div className="admin-settings-section-header">
           <h3>Таймлайн событий</h3>
           <button onClick={() => setEditing(EMPTY_FORM)} className="admin-btn-primary">+ Добавить событие</button>
