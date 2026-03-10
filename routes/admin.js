@@ -757,6 +757,38 @@ router.get('/cases/list', requireModerator, async (req, res) => {
 
 // ========== НАСТРОЙКИ ХАКАТОНА ==========
 
+// Получить настройку закрытия регистрации
+router.get('/settings/registration-closed', requireModerator, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'registration_closed' LIMIT 1`
+    );
+    const value = result.rows[0]?.value;
+    res.json({ registration_closed: value === 'true' });
+  } catch (error) {
+    logError('Ошибка получения настройки registration_closed', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Установить закрытие регистрации (вход только для уже зарегистрированных)
+router.put('/settings/registration-closed', requireModerator, async (req, res) => {
+  try {
+    const { registration_closed } = req.body;
+    const value = registration_closed ? 'true' : 'false';
+    await pool.query(
+      `INSERT INTO system_settings (key, value, updated_at) VALUES ('registration_closed', $1, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
+      [value]
+    );
+    logInfo('Настройка registration_closed изменена', { registration_closed: !!registration_closed });
+    res.json({ registration_closed: !!registration_closed });
+  } catch (error) {
+    logError('Ошибка сохранения настройки registration_closed', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Получить таймлайн
 router.get('/settings/timeline', requireModerator, async (req, res) => {
   try {

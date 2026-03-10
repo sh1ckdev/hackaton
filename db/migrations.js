@@ -936,6 +936,7 @@ export async function runMigrations() {
     await applySupportMigration();
     await applyContactsMigration();
     await applySecurityAuditMigration();
+    await applySystemSettingsMigration();
   } catch (error) {
     logError('Ошибка при выполнении миграций', error);
     throw error;
@@ -1058,5 +1059,24 @@ async function applySupportMigration() {
     logInfo('Миграция support: таблицы готовы');
   } catch (error) {
     logWarn('Предупреждение при миграции support', { error: error.message });
+  }
+}
+
+async function applySystemSettingsMigration() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      INSERT INTO system_settings (key, value) VALUES ('registration_closed', 'false')
+      ON CONFLICT (key) DO NOTHING
+    `);
+    logInfo('Миграция system_settings: таблица готова');
+  } catch (error) {
+    logWarn('Предупреждение при миграции system_settings', { error: error.message });
   }
 }

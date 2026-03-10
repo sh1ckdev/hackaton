@@ -181,6 +181,15 @@ CREATE INDEX IF NOT EXISTS idx_broadcast_settings_type ON broadcast_settings(typ
 CREATE INDEX IF NOT EXISTS idx_broadcast_settings_enabled ON broadcast_settings(enabled);
 CREATE INDEX IF NOT EXISTS idx_broadcast_settings_case_id ON broadcast_settings(case_id);
 
+-- Системные настройки (закрытие регистрации и др.)
+CREATE TABLE IF NOT EXISTS system_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO system_settings (key, value) VALUES ('registration_closed', 'false')
+ON CONFLICT (key) DO NOTHING;
+
 -- Security audit tables (request tracing and incident analytics)
 CREATE TABLE IF NOT EXISTS request_audit (
     id BIGSERIAL PRIMARY KEY,

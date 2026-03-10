@@ -76,6 +76,13 @@ const getRegistrationCloseAt = async () => {
 
 const isRegistrationClosedForNewUsers = async () => {
   try {
+    // Ручной переключатель в админке (приоритет)
+    const manualResult = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'registration_closed' LIMIT 1`
+    );
+    const manualClosed = manualResult.rows[0]?.value === 'true';
+    if (manualClosed) return true;
+
     const closeAt = await getRegistrationCloseAt();
     if (!closeAt) return false;
     return Date.now() >= closeAt.getTime();
