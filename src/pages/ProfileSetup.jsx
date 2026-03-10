@@ -168,7 +168,7 @@ const ProfileSetup = () => {
                 <input
                   type="text"
                   className="profile-setup-input"
-                  placeholder="Институт / колледж / вуз"
+                  placeholder="Название вашего учебного заведения"
                   value={institution}
                   onChange={(e) => setInstitution(e.target.value)}
                   required
