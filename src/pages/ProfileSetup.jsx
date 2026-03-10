@@ -33,16 +33,30 @@ const ProfileSetup = () => {
       navigate('/login', { replace: true });
       return;
     }
-    if (authStore.hasRequiredProfileData) {
-      navigate('/', { replace: true });
-    }
   }, [navigate]);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
+      setMiddleName(user.middle_name || '');
+      setPhone(user.phone || '');
+      setEmail(user.email || '');
+      const cat = user.participant_category === 'student' || user.participant_category === 'school' ? user.participant_category : '';
+      setParticipantCategory(cat);
+      setStudentCourse(user.student_course || '');
+      setInstitution(user.institution || '');
+      setSchoolName(user.school_name || '');
+      setSchoolClass(user.school_class || '');
+    }
+  }, [user?.id, user?.first_name, user?.last_name, user?.middle_name, user?.phone, user?.email, user?.participant_category, user?.student_course, user?.institution, user?.school_name, user?.school_class]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     setSaving(true);
+    const wasFirstTime = !authStore.hasRequiredProfileData;
     try {
       await api.put('/profile/required-fields', {
         first_name: firstName,
@@ -57,7 +71,7 @@ const ProfileSetup = () => {
         school_class: schoolClass
       });
       await authStore.fetchUser();
-      navigate('/', { replace: true });
+      navigate(wasFirstTime ? '/' : '/profile', { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Не удалось сохранить данные профиля');
     } finally {
@@ -72,7 +86,9 @@ const ProfileSetup = () => {
           <div className="login-terminal-title">profile_setup.sh</div>
         </div>
         <div className="login-terminal-body">
-          <div className="login-auth-title">Заполните обязательные данные профиля</div>
+          <div className="login-auth-title">
+            {authStore.hasRequiredProfileData ? 'Редактировать данные профиля' : 'Заполните обязательные данные профиля'}
+          </div>
           <form className="profile-setup-form" onSubmit={handleSubmit}>
             <input
               type="text"
@@ -183,9 +199,16 @@ const ProfileSetup = () => {
 
             {error && <div className="login-error"><span>{error}</span></div>}
 
-            <button type="submit" className="login-telegram-button" disabled={saving}>
-              {saving ? 'Сохраняем...' : 'Сохранить и продолжить'}
-            </button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button type="submit" className="login-telegram-button" disabled={saving}>
+                {saving ? 'Сохраняем...' : (authStore.hasRequiredProfileData ? 'Сохранить изменения' : 'Сохранить и продолжить')}
+              </button>
+              {authStore.hasRequiredProfileData && (
+                <button type="button" onClick={() => navigate('/profile')} className="login-telegram-button" style={{ background: 'transparent', border: '1px solid rgba(148,163,184,0.4)' }}>
+                  Отмена
+                </button>
+              )}
+            </div>
           </form>
         </div>
       </div>

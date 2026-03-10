@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import authStore from '../stores/authStore';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -19,6 +20,7 @@ const CopyCodeBadge = ({ code }) => {
   );
 };
 const Profile = () => {
+  const navigate = useNavigate();
   const user = authStore.user;
   useDocumentTitle('Профиль');
   const [editingSkills, setEditingSkills] = useState(false);
@@ -163,6 +165,14 @@ const Profile = () => {
             </div>
 
             <div className="profile-actions">
+              <button
+                onClick={() => navigate('/profile/setup')}
+                className="profile-btn profile-btn-secondary"
+                style={{ marginRight: 8 }}
+              >
+                <EditIcon size={16} />
+                Редактировать профиль
+              </button>
               <button onClick={handleResync} className="profile-btn profile-btn-primary">
                 <RefreshIcon size={16} />
                 Обновить данные
