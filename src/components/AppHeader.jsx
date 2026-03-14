@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ProfileIcon, SolutionIcon, TeamIcon, AdminIcon, ContactsIcon, InfoIcon } from './Icons';
+import { ProfileIcon, SolutionIcon, TeamIcon, AdminIcon, ContactsIcon, InfoIcon, FeedbackIcon } from './Icons';
 import Logo from './Logo';
 
 const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
@@ -31,8 +31,9 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
 
   // Пункты только для авторизованных
   const authNavItems = [
-    { path: '/solutions', label: 'Решения', icon: SolutionIcon },
-    { path: '/team',      label: 'Команда', icon: TeamIcon },
+    { path: '/solutions', label: 'Решения',      icon: SolutionIcon },
+    { path: '/team',      label: 'Команда',      icon: TeamIcon },
+    { path: '/feedback',  label: 'Обратная связь', icon: FeedbackIcon },
   ];
 
   const visibleNavItems = isAuthenticated
