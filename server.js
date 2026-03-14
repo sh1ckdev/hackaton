@@ -22,6 +22,7 @@ import landingRoutes from './routes/landing.js';
 import supportRoutes from './routes/support.js';
 import infoRoutes from './routes/info.js';
 import contactsRoutes from './routes/contacts.js';
+import feedbackRoutes from './routes/feedback.js';
 import { startBot, setBotInstance } from './bot.js';
 import { startCaseOpenerScheduler } from './utils/caseOpener.js';
 import { startBroadcastScheduler } from './utils/broadcastScheduler.js';
@@ -111,6 +112,7 @@ app.use('/api/landing', landingRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/contacts', contactsRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 
 app.get('/api/health', (req, res) => {

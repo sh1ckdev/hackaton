@@ -107,6 +107,36 @@ router.get('/analytics', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/feedback', requireModerator, async (req, res) => {
+  try {
+    const { category } = req.query;
+    const hasCategory = ['competitions', 'site', 'general'].includes(category);
+    const result = await pool.query(
+      `SELECT f.*, u.first_name, u.last_name, u.username, u.telegram_id
+       FROM feedback f
+       LEFT JOIN users u ON f.user_id = u.id
+       ${hasCategory ? 'WHERE f.category = $1' : ''}
+       ORDER BY f.created_at DESC`,
+      hasCategory ? [category] : []
+    );
+    res.json({ feedback: result.rows });
+  } catch (error) {
+    logError('Ошибка получения отзывов', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.delete('/feedback/:id', requireModerator, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM feedback WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Отзыв не найден' });
+    res.json({ success: true });
+  } catch (error) {
+    logError('Ошибка удаления отзыва', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
 router.get('/users', requireAdmin, async (req, res) => {
   try {

@@ -935,6 +935,7 @@ export async function runMigrations() {
     await applyAdditionalMigrations();
     await applySupportMigration();
     await applyContactsMigration();
+    await applyFeedbackMigration();
     await applySecurityAuditMigration();
     await applySystemSettingsMigration();
   } catch (error) {
@@ -1022,6 +1023,30 @@ async function applyContactsMigration() {
     logInfo('Миграция contacts: таблица готова');
   } catch (error) {
     logWarn('Предупреждение при миграции contacts', { error: error.message });
+  }
+}
+
+async function applyFeedbackMigration() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS feedback (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        category VARCHAR(50) NOT NULL CHECK (category IN ('competitions', 'site', 'general')),
+        rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+        text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at DESC)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category)
+    `);
+    logInfo('Миграция feedback: таблица готова');
+  } catch (error) {
+    logWarn('Предупреждение при миграции feedback', { error: error.message });
   }
 }
 
