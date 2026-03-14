@@ -1049,9 +1049,8 @@ code {
 }
 
 .app-nav-link.is-active {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
 }
 
 .app-nav-link.is-admin {

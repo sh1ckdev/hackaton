@@ -33,7 +33,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
   const authNavItems = [
     { path: '/solutions', label: 'Решения',      icon: SolutionIcon },
     { path: '/team',      label: 'Команда',      icon: TeamIcon },
-    { path: '/feedback',  label: 'Обратная связь', icon: FeedbackIcon },
+    { path: '/feedback',  label: 'Отзывы', icon: FeedbackIcon },
   ];
 
   const visibleNavItems = isAuthenticated

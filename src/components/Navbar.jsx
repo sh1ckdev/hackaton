@@ -10,7 +10,7 @@ const Navbar = ({ isAdmin }) => {
     { path: '/team',       label: 'Команда',     icon: TeamIcon },
     { path: '/contacts',   label: 'Контакты',    icon: ContactsIcon },
     { path: '/info',       label: 'Информация',  icon: null },
-    { path: '/feedback',   label: 'Обратная связь', icon: null },
+    { path: '/feedback',   label: 'Отзыв', icon: null },
   ];
 
   return (
