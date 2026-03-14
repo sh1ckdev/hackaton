@@ -33,7 +33,9 @@ const AdminHackathon = lazy(() => import('./pages/admin/AdminHackathon'));
 const AdminInfo = lazy(() => import('./pages/admin/AdminInfo'));
 const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
 const AdminContacts = lazy(() => import('./pages/admin/AdminContacts'));
+const AdminFeedback = lazy(() => import('./pages/admin/AdminFeedback'));
 const Contacts = lazy(() => import('./pages/Contacts'));
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'));
 
 const ProtectedRoute = observer(({ children }) => {
   const location = useLocation();
@@ -149,6 +151,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="team" element={<Team />} />
               <Route path="support" element={<SupportPage />} />
+              <Route path="feedback" element={<FeedbackPage />} />
               <Route
                 path="admin"
                 element={
@@ -170,6 +173,7 @@ function App() {
                 <Route path="info" element={<AdminInfo />} />
                 <Route path="support" element={<AdminSupport />} />
                 <Route path="contacts" element={<AdminContacts />} />
+                <Route path="feedback" element={<AdminFeedback />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
