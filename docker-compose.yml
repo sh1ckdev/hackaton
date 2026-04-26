@@ -8,22 +8,29 @@ services:
       - ".env"
     environment:
       PORT: ${PORT:-3001}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@hackathon-db:5432/hackathon_db}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@127.0.0.1:${DB_PORT:-5432}/${DB_NAME:-hackathon_db}
       JWT_SECRET: ${JWT_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       CLIENT_URL: ${CLIENT_URL:-https://chermanx.ru}
       NODE_ENV: ${NODE_ENV:-production}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       MAIN_ADMIN_TELEGRAM_ID: ${MAIN_ADMIN_TELEGRAM_ID:-}
+      DB_NAME: ${DB_NAME:-hackathon_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      PGDATA: /var/lib/postgresql/data
     ports:
       - "${BACKEND_PORT:-5000}:3001"
     networks:
-      - hackathon-db-network
       - dokploy-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+volumes:
+  postgres_data:
+
 networks:
-  hackathon-db-network:
-    external: true
   dokploy-network:
     external: true
