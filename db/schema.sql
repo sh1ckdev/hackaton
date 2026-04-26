@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
+    vk_id BIGINT UNIQUE,
     username VARCHAR(255),
     first_name VARCHAR(255),
     last_name VARCHAR(255),
@@ -12,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     institution VARCHAR(255),
     school_name VARCHAR(255),
     school_class VARCHAR(50),
+    user_code VARCHAR(6) UNIQUE,
+    participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL),
     role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'moderator', 'admin')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -23,6 +26,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS middle_name VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS institution VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS school_class VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS vk_id BIGINT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS user_code VARCHAR(6) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL);
 
 -- Обновление CHECK constraint для роли (если таблица уже существует)
 -- Удаляем старый constraint, если он существует, и создаем новый
