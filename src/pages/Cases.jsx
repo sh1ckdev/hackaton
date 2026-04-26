@@ -117,7 +117,7 @@ const Cases = () => {
 
     if (authStore.isModerator) return true;
 
-    // Хакатон ещё не начался — кейсы скрыты в любом случае
+    
     if (!hackathonStarted) return false;
 
     if (assignedCaseId) {
@@ -127,7 +127,6 @@ const Cases = () => {
 
     return !globalOpenDate || new Date(globalOpenDate) <= now;
   }, [globalOpenDate, assignedCaseId, assignedCase, hackathonStarted]);
-
 
   const visibleCases = useMemo(() => {
     let filtered = [...casesStore.cases];

@@ -31,13 +31,13 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers(filter);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, [filter]);
 
   useEffect(() => {
     const interval = setInterval(() => fetchUsers(filterRef.current), 15000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, []);
 
   const closeModal = () => { setSelected(null); setMessage(''); setMsgResult(null); };
@@ -110,7 +110,7 @@ const AdminUsers = () => {
         })}
       </div>
 
-      {/* Модальное окно пользователя */}
+      {}
       {selected && (
         <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 sm:p-4" onClick={closeModal}>
           <div className="glass w-full sm:rounded-xl sm:max-w-2xl rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -119,7 +119,7 @@ const AdminUsers = () => {
               <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">✕</button>
             </div>
             <div className="space-y-4">
-              {/* Аватар */}
+              {}
               <div className="flex items-center gap-4 pb-4 border-b border-terminal-gray/30">
                 {selected.photo_url ? (
                   <img src={selected.photo_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-terminal-blue/50" />
@@ -137,7 +137,7 @@ const AdminUsers = () => {
                 </div>
               </div>
 
-              {/* Поля */}
+              {}
               <div className="space-y-2 text-sm">
                 {[
                   ['Фамилия', selected.last_name],
@@ -175,7 +175,7 @@ const AdminUsers = () => {
                 </div>
               </div>
 
-              {/* Кнопки ролей */}
+              {}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-terminal-gray/30">
                 {selected.role !== 'admin' && (
                   <button onClick={() => changeRole(selected, selected.role === 'moderator' ? 'user' : 'moderator')}
@@ -198,7 +198,7 @@ const AdminUsers = () => {
                 <button onClick={closeModal} className="px-4 py-1.5 text-sm border border-terminal-gray text-white/70 hover:border-terminal-blue rounded transition-colors ml-auto">Закрыть</button>
               </div>
 
-              {/* Сообщение через бота */}
+              {}
               {selected.telegram_id && (
                 <div className="pt-4 border-t border-terminal-gray/30">
                   <p className="text-white/70 text-sm mb-2 font-medium">Написать от имени бота:</p>

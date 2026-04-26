@@ -21,14 +21,14 @@ const Layout = () => {
 
   const handleSupportClick = () => {
     if (window.innerWidth <= MOBILE_BREAKPOINT) {
-      // На мобиле — переходим на отдельную страницу
+      
       navigate('/support');
     } else {
       setShowSupport(prev => !prev);
     }
   };
 
-  // Не показываем FAB на самой странице /support
+  
   const isSupportPage = location.pathname === '/support';
   const isAdminPage = location.pathname.startsWith('/admin');
 
@@ -47,7 +47,7 @@ const Layout = () => {
         </div>
       </main>
 
-      {/* FAB поддержки — только для авторизованных, не на странице /support и не в админке */}
+      {}
       {authStore.isAuthenticated && !isSupportPage && !isAdminPage && (
         <>
           <button
@@ -62,7 +62,7 @@ const Layout = () => {
             <span className="support-fab-label">Поддержка</span>
           </button>
 
-          {/* Десктоп попап */}
+          {}
           {showSupport && <SupportChat onClose={() => setShowSupport(false)} />}
         </>
       )}

@@ -58,7 +58,7 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-page">
-      {/* ── Sidebar ── */}
+      {}
       <aside className={`admin-sidebar${mobileMenuOpen ? ' open' : ''}`}>
         <div className="admin-sidebar-logo">
           <div className="admin-sidebar-logo-title">Платформа</div>
@@ -112,7 +112,7 @@ const AdminLayout = () => {
         ))}
       </aside>
 
-      {/* ── Main ── */}
+      {}
       <div className="admin-main">
         {currentItem && (
           <div className="admin-topbar">

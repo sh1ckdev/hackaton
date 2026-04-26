@@ -28,7 +28,7 @@ const SupportChat = ({ onClose, isPage = false }) => {
 
   useEffect(() => {
     fetchMessages();
-    // Поллинг новых сообщений каждые 5 сек
+    
     pollRef.current = setInterval(() => fetchMessages(true), 5000);
     return () => clearInterval(pollRef.current);
   }, []);
@@ -59,7 +59,7 @@ const SupportChat = ({ onClose, isPage = false }) => {
     }
   };
 
-  // Группируем по дням (МСК)
+  
   const TZ = 'Europe/Moscow';
   const toDayKey = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
 
@@ -74,7 +74,7 @@ const SupportChat = ({ onClose, isPage = false }) => {
     <div className={`support-overlay${isPage ? ' support-overlay-page' : ''}`} onClick={isPage ? undefined : onClose}>
       <div className="support-chat" onClick={e => e.stopPropagation()}>
         <div className="support-chat-header">
-          {/* Стрелка назад (видна только на мобиле через CSS) */}
+          {}
           <button className="support-chat-back" onClick={onClose} aria-label="Назад">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>

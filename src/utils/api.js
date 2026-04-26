@@ -5,7 +5,6 @@ let csrfToken = null;
 
 const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
 
-
 if (import.meta.env.MODE === 'production' && !import.meta.env.VITE_API_URL) {
 
 }
@@ -17,7 +16,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
 
 api.interceptors.request.use(
   (config) => {
@@ -37,7 +35,6 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
 
 api.interceptors.response.use(
   (response) => {

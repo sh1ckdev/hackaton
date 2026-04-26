@@ -14,7 +14,6 @@ export const Icon = ({ children, className = '', size = 24, strokeWidth = 2, ...
   </svg>
 );
 
-
 export const CaseIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -44,7 +43,6 @@ export const CaseIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const SolutionIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -65,7 +63,6 @@ export const SolutionIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const TeamIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -106,7 +103,6 @@ export const TeamIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const ProfileIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -130,7 +126,6 @@ export const ProfileIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const AdminIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -152,7 +147,6 @@ export const AdminIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const GitHubIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -173,7 +167,6 @@ export const GitHubIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const TimeIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -198,7 +191,6 @@ export const TimeIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const NotificationIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -219,7 +211,6 @@ export const NotificationIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const UploadIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -250,7 +241,6 @@ export const UploadIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const StarIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -263,7 +253,6 @@ export const StarIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const SettingsIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -288,7 +277,6 @@ export const SettingsIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const CloseIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -301,7 +289,6 @@ export const CloseIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const ArrowRightIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -316,7 +303,6 @@ export const ArrowRightIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const ArrowLeftIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -329,7 +315,6 @@ export const ArrowLeftIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const SearchIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -354,7 +339,6 @@ export const SearchIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const FilterIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -367,7 +351,6 @@ export const FilterIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const StatsIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -397,7 +380,6 @@ export const StatsIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const UsersIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
@@ -436,7 +418,6 @@ export const UsersIcon = ({ size = 24, className = '' }) => (
   </Icon>
 );
 
-
 export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
   <Icon size={size} className={className}>
     <path
@@ -457,7 +438,6 @@ export const PaperPlaneIcon = ({ size = 24, className = '' }) => (
     />
   </Icon>
 );
-
 
 export const VkIcon = ({ size = 24, className = '' }) => (
   <svg

@@ -54,8 +54,8 @@ const Landing = () => {
     const now = new Date();
     const nowTs = now.getTime();
 
-    // Фазы обратного отсчёта: все элементы с show_countdown, отсортированные по дедлайну.
-    // Это позволяет делать последовательные этапы: регистрация -> открытие -> старт 48ч.
+    
+    
     const countdownPhases = timeline
       .filter((t) => t.show_countdown && (t.date_to || t.date))
       .map((t) => ({ ...t, target: new Date(t.date_to || t.date).getTime() }))
@@ -85,7 +85,7 @@ const Landing = () => {
         return;
       }
 
-      // После последней countdown-фазы запускаем стандартный 48-часовой режим соревнования.
+      
       setMainExpired(true);
       setCountdownLabel('до начала соревнования');
       const minimumEnd = lastPhase.target + 48 * 60 * 60 * 1000;
@@ -105,7 +105,7 @@ const Landing = () => {
       return;
     }
 
-    // Fallback: старое поведение без фаз, если нет show_countdown событий
+    
     const fallbackTarget = timeline.find(t => t.type === 'hacking_begins')?.date;
     if (!fallbackTarget) return;
     const diff = new Date(fallbackTarget) - now;
@@ -178,7 +178,7 @@ const Landing = () => {
 
       <div className="landing-content">
 
-        {/* HERO — 100vh */}
+        {}
         <section
           className="landing-hero"
           style={{
@@ -204,7 +204,7 @@ const Landing = () => {
               className="landing-hero-logo"
             />
 
-            {/* КНОПКИ */}
+            {}
             <div
               className="landing-hero-actions"
               style={{
@@ -232,7 +232,7 @@ const Landing = () => {
               </Link>
             </div>
 
-            {/* ТАЙМЕР */}
+            {}
             <div
               className="landing-timer"
               style={{
@@ -246,7 +246,7 @@ const Landing = () => {
                 <>
                   <div className="landing-timer-title">Соревнования идут!</div>
                   <div className="landing-timer-blocks">
-                    {/* 48ч выполнения — только ЧАС МИН СЕК, дни переводим в часы */}
+                    {}
                     {[
                       { key: 'hours',   label: 'ЧАС', val: competitionCountdown.days * 24 + competitionCountdown.hours },
                       { key: 'minutes', label: 'МИН', val: competitionCountdown.minutes },
@@ -263,7 +263,7 @@ const Landing = () => {
               ) : (
                 <>
                   <div className="landing-timer-blocks">
-                    {/* До начала — ДНИ ЧАС МИН СЕК */}
+                    {}
                     {[
                       { key: 'days',    label: 'ДНЕЙ', val: countdown.days },
                       { key: 'hours',   label: 'ЧАС', val: countdown.hours },
@@ -283,7 +283,7 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* TIMELINE */}
+        {}
         <section className="landing-section landing-timeline">
           <div className="landing-section-title">
           </div>
@@ -331,7 +331,7 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* FOOTER */}
+        {}
         <footer className="landing-footer">
           <Logo showVersion={true} asLink={true} />
           <span>© 2026 XTRA development. Все права защищены.</span>

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import api from '../utils/api';
 import authStore from '../stores/authStore';
 
-const HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 секунд
+const HEARTBEAT_INTERVAL_MS = 30 * 1000; 
 
 export const useHeartbeat = () => {
   const intervalRef = useRef(null);

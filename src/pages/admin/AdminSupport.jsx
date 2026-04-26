@@ -36,7 +36,7 @@ const AdminSupport = () => {
   const textareaRef = useRef(null);
   const pollRef = useRef(null);
 
-  // ── Загрузка списка чатов ──────────────────────────────────────────────────
+  
   const fetchChats = useCallback(async () => {
     try {
       const res = await api.get('/admin/support/chats', {
@@ -48,13 +48,13 @@ const AdminSupport = () => {
 
   useEffect(() => { fetchChats(); }, [fetchChats]);
 
-  // Polling списка каждые 10 сек
+  
   useEffect(() => {
     const id = setInterval(fetchChats, 10000);
     return () => clearInterval(id);
   }, [fetchChats]);
 
-  // ── Загрузка сообщений активного чата ─────────────────────────────────────
+  
   const fetchMessages = useCallback(async (ticketId, silent = false) => {
     if (!ticketId) return;
     if (!silent) setLoadingMessages(true);
@@ -66,7 +66,7 @@ const AdminSupport = () => {
     finally { if (!silent) setLoadingMessages(false); }
   }, []);
 
-  // Polling сообщений открытого чата
+  
   useEffect(() => {
     clearInterval(pollRef.current);
     if (!activeChat) return;
@@ -75,12 +75,12 @@ const AdminSupport = () => {
     return () => clearInterval(pollRef.current);
   }, [activeChat, fetchMessages]);
 
-  // Автоскролл вниз при новых сообщениях
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── Отправка ответа ────────────────────────────────────────────────────────
+  
   const handleSend = async () => {
     if (!reply.trim() || !activeChat || sending) return;
     setSending(true);
@@ -97,7 +97,7 @@ const AdminSupport = () => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  // ── Изменение статуса тикета ───────────────────────────────────────────────
+  
   const toggleStatus = async () => {
     if (!activeChat) return;
     const newStatus = ticketInfo?.status === 'open' ? 'closed' : 'open';
@@ -137,9 +137,9 @@ const AdminSupport = () => {
 
   return (
     <div className="admin-support-shell">
-      {/* ── Левая панель: список чатов ── */}
+      {}
       <div className="admin-support-list">
-        {/* Поиск и фильтр */}
+        {}
         <div className="admin-support-list-header">
           <input
             type="text"
@@ -164,7 +164,7 @@ const AdminSupport = () => {
           </div>
         </div>
 
-        {/* Список */}
+        {}
         <div className="admin-support-chat-list">
           {chats.length === 0 && (
             <div className="text-center py-12 text-white/30 text-sm">Чатов нет</div>
@@ -200,7 +200,7 @@ const AdminSupport = () => {
         </div>
       </div>
 
-      {/* ── Правая панель: чат ── */}
+      {}
       <div className="admin-support-chat">
         {!activeChat ? (
           <div className="admin-support-chat-empty">
@@ -211,7 +211,7 @@ const AdminSupport = () => {
           </div>
         ) : (
           <>
-            {/* Шапка чата */}
+            {}
             <div className="admin-support-chat-header">
               <Avatar user={activeChat} size="md" />
               <div className="flex-1 min-w-0">
@@ -241,7 +241,7 @@ const AdminSupport = () => {
               )}
             </div>
 
-            {/* Сообщения */}
+            {}
             <div className="admin-support-messages">
               {loadingMessages ? (
                 <div className="text-center py-8 text-white/30 text-sm">Загрузка...</div>
@@ -275,7 +275,7 @@ const AdminSupport = () => {
               )}
             </div>
 
-            {/* Поле ввода */}
+            {}
             <div className="admin-support-input-area">
               {ticketInfo?.status === 'closed' ? (
                 <div className="text-center text-white/30 text-sm py-2">

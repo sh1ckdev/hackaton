@@ -3,13 +3,11 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import api from '../../utils/api';
 import { fmtDateTime } from '../../utils/dateUtils';
 
-// Строка datetime-local (МСК) → ISO UTC для API
 const mskToUtc = (v) => {
   if (!v || !String(v).trim()) return null;
   return new Date(String(v) + ':00+03:00').toISOString();
 };
 
-// UTC (из API) → строка для datetime-local в МСК
 const utcToMsk = (utcStr) => {
   if (!utcStr) return '';
   const s = String(utcStr);

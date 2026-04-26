@@ -168,7 +168,6 @@ body::before {
   z-index: 0;
 }
 
-/* Декоративные синие круги — фон для всех страниц */
 body::after {
   content: '';
   position: fixed;
@@ -180,8 +179,6 @@ body::after {
   z-index: 0;
 }
 
-
-/* Стиль для кода */
 code {
   background: rgba(34, 197, 94, 0.12);
   padding: 2px 6px;
@@ -190,7 +187,6 @@ code {
   color: #22c55e;
 }
 
-/* Скроллбар */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -208,7 +204,6 @@ code {
   background: #4b5563;
 }
 
-/* Простые карточки без глассморфизма */
 .glass {
   background: rgba(26, 32, 44, 0.95);
   border: 1px solid rgba(55, 65, 81, 0.5);
@@ -229,7 +224,6 @@ code {
   border-radius: 8px;
 }
 
-/* Landing */
 .landing-page {
   min-height: 100vh;
   background: #0a0e1a;
@@ -275,7 +269,7 @@ code {
   .landing-hero-logo {
     width: 98vw;
     margin-bottom: 28px;
-    margin-top: -15vh; /* поднимаем лого выше центра */
+    margin-top: -15vh; 
   }
 }
 
@@ -419,7 +413,6 @@ code {
   color: #60a5fa;
 }
 
-/* Info page markdown */
 .info-markdown {
   color: rgba(255,255,255,0.85);
   font-size: 15px;
@@ -563,7 +556,6 @@ code {
   font-style: italic;
 }
 
-/* На мобильных убираем отдельную "карточку" у цитаты в info */
 @media (max-width: 768px) {
   .info-markdown blockquote {
     background: transparent;
@@ -797,7 +789,7 @@ code {
   border-radius: 8px;
   padding: 8px 14px;
   background: #3b82f6;
-  white-space: nowrap; /* на десктопе nowrap, на мобиле переопределяется */
+  white-space: nowrap; 
   word-break: break-word;
   align-self: start;
 }
@@ -957,7 +949,6 @@ code {
   color: rgba(148, 163, 184, 0.7);
 }
 
-/* App layout — прозрачный фон, чтобы сквозь него были видны body::before (сетка) и body::after (круги) */
 .app-shell {
   min-height: 100vh;
   background: transparent;
@@ -975,8 +966,8 @@ code {
   position: sticky;
   top: 0;
   z-index: 200;
-  /* нужно для абсолютного позиционирования мобильного меню */
-  /* overflow: visible через sticky */
+  
+  
 }
 
 .app-topbar-inner {
@@ -1149,7 +1140,6 @@ code {
   z-index: 1;
 }
 
-/* Admin layout — no padding/max-width, fills viewport */
 .app-shell-admin {
   height: 100vh;
   min-height: unset;
@@ -1187,7 +1177,6 @@ code {
   border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
-/* Cases */
 .cases-page {
   display: flex;
   flex-direction: column;
@@ -1261,7 +1250,6 @@ code {
   color: #93c5fd;
 }
 
-/* Terminal Loading Animation */
 .terminal-loading {
   padding: 60px 0;
   text-align: center;
@@ -1361,7 +1349,6 @@ code {
   }
 }
 
-/* Terminal Loading - Responsive */
 @media (max-width: 768px) {
   .terminal-loading-container {
     padding: 20px 24px;
@@ -1380,7 +1367,6 @@ code {
   }
 }
 
-/* Legacy support */
 .cases-loading {
   padding: 60px 0;
   text-align: center;
@@ -1634,7 +1620,6 @@ code {
   font-size: 12px;
 }
 
-/* Solutions (My Solutions) */
 .solutions-page {
   color: #e5e7eb;
 }
@@ -1909,7 +1894,6 @@ code {
   color: #38bdf8;
 }
 
-/* Submit Solution form */
 .submit-solution-header {
   display: flex;
   justify-content: space-between;
@@ -2212,7 +2196,6 @@ code {
   font-size: 13px;
 }
 
-/* Login */
 .login-surface {
   position: relative;
   background: #0a0e1a;
@@ -2226,7 +2209,6 @@ code {
   font-family: Arial, Helvetica, sans-serif !important;
 }
 
-/* Переопределяем глобальный моноширинный шрифт (*) для всего блока входа */
 .login-surface * {
   font-family: Arial, Helvetica, sans-serif !important;
 }
@@ -2477,7 +2459,6 @@ code {
   min-width: fit-content;
 }
 
-/* Попап с Telegram Login Widget */
 .login-tg-popup-overlay {
   position: fixed;
   inset: 0;
@@ -2574,7 +2555,6 @@ code {
   cursor: not-allowed;
   pointer-events: none;
 }
-
 
 .login-telegram-button:hover,
 .login-vk-button:hover {
@@ -2713,7 +2693,6 @@ code {
   text-align: center;
 }
 
-/* ErrorBoundary — стилистика как login */
 .error-boundary-status {
   color: #f87171;
   font-weight: 600;
@@ -2827,20 +2806,20 @@ code {
     max-width: 100%;
   }
 
-  /* ── Таймлайн мобиль: вертикальная лента слева ── */
+  
   .landing-timeline-list {
     max-width: 100%;
     padding: 20px 0;
     gap: 36px;
   }
 
-  /* Вертикальная линия — прижата к левому краю (по центру точки 8px) */
+  
   .landing-timeline-list::before {
     left: 8px;
     transform: none;
   }
 
-  /* Каждый элемент: grid 2 колонки — точка (16px) | правая часть */
+  
   .landing-timeline-item {
     display: grid !important;
     grid-template-columns: 16px 1fr !important;
@@ -2851,7 +2830,7 @@ code {
     position: relative;
   }
 
-  /* Точка — grid col 1, занимает обе строки, выравнивается по верху */
+  
   .landing-timeline-node {
     position: static !important;
     transform: none !important;
@@ -2864,7 +2843,7 @@ code {
     justify-self: center;
   }
 
-  /* Дата — grid col 2, row 1 */
+  
   .landing-timeline-item-left .landing-timeline-date,
   .landing-timeline-item-right .landing-timeline-date {
     grid-column: 2;
@@ -2878,7 +2857,7 @@ code {
     max-width: 100%;
   }
 
-  /* Контент (h3 + p) — grid col 2, row 2 */
+  
   .landing-timeline-item-left .landing-timeline-content,
   .landing-timeline-item-right .landing-timeline-content {
     grid-column: 2;
@@ -2931,7 +2910,6 @@ code {
   }
 }
 
-/* Extra small screens (phones) */
 @media (max-width: 600px) {
   .landing-content {
     padding: 16px 14px 40px;
@@ -3058,7 +3036,6 @@ code {
   }
 }
 
-/* Team Page */
 .team-page {
   color: #e5e7eb;
 }
@@ -3395,7 +3372,6 @@ code {
   letter-spacing: 2px;
   text-align: center;
 }
-
 
 .team-members-grid {
   display: grid;
@@ -4075,7 +4051,6 @@ code {
   flex: 1;
 }
 
-/* Admin Panel - New Design */
 .admin-settings {
   padding: 24px;
 }
@@ -4353,11 +4328,6 @@ code {
   border-top: 1px solid rgba(148, 163, 184, 0.15);
 }
 
-/* Admin Panel - General Styles */
-/* ═══════════════════════════════════════════
-   ADMIN PANEL — SIDEBAR LAYOUT
-═══════════════════════════════════════════ */
-
 .admin-page {
   display: flex;
   flex: 1;
@@ -4367,7 +4337,6 @@ code {
   background: #070d1a;
 }
 
-/* ── Sidebar ── */
 .admin-sidebar {
   width: 280px;
   flex-shrink: 0;
@@ -4511,7 +4480,6 @@ code {
   line-height: 1.6;
 }
 
-/* ── Main area ── */
 .admin-main {
   flex: 1;
   display: flex;
@@ -4563,7 +4531,6 @@ code {
   padding: 24px 28px;
 }
 
-/* Support messenger занимает всю высоту без внешнего padding */
 .admin-content > .admin-support-shell {
   padding: 0;
   height: 100%;
@@ -4584,7 +4551,6 @@ code {
   margin: 0 0 14px;
 }
 
-/* Forms */
 .admin-content input[type="text"],
 .admin-content input[type="number"],
 .admin-content input[type="datetime-local"],
@@ -4624,7 +4590,6 @@ code {
   border-radius: 12px;
 }
 
-/* Tables */
 .admin-content table { width: 100%; border-collapse: collapse; }
 
 .admin-content table th,
@@ -4647,14 +4612,12 @@ code {
   color: rgba(148, 163, 184, 0.8);
 }
 
-/* ── Admin Support Messenger ─────────────────────────────────────────────── */
 .admin-support-shell {
   display: flex;
   height: 100%;
   overflow: hidden;
 }
 
-/* Левая панель — список чатов */
 .admin-support-list {
   width: 320px;
   min-width: 260px;
@@ -4777,7 +4740,6 @@ code {
   flex-shrink: 0;
 }
 
-/* Правая панель — чат */
 .admin-support-chat {
   flex: 1;
   display: flex;
@@ -4921,7 +4883,6 @@ code {
 .admin-support-send-btn:hover:not(:disabled) { background: #2563eb; transform: scale(1.05); }
 .admin-support-send-btn:disabled { background: rgba(59,130,246,0.3); cursor: not-allowed; }
 
-/* Мобильная адаптация */
 @media (max-width: 640px) {
   .admin-support-shell { flex-direction: column; }
   .admin-support-list {
@@ -4933,9 +4894,7 @@ code {
   }
   .admin-support-bubble { max-width: 85%; }
 }
-/* ── End Admin Support Messenger ─────────────────────────────────────────── */
 
-/* Mobile sidebar toggle */
 .admin-sidebar-toggle {
   display: none;
   align-items: center;
@@ -4950,7 +4909,6 @@ code {
   cursor: pointer;
 }
 
-/* Responsive */
 @media (max-width: 900px) {
   .admin-page {
     position: relative;
@@ -5070,7 +5028,6 @@ code {
   }
 }
 
-/* Profile Page */
 .profile-page {
   color: #e5e7eb;
   width: 100%;
@@ -5325,7 +5282,6 @@ code {
   background: rgba(148, 163, 184, 0.3);
 }
 
-/* ===== SUPPORT FAB ===== */
 .support-fab {
   position: fixed;
   bottom: 28px;
@@ -5368,7 +5324,6 @@ code {
   line-height: 1;
 }
 
-/* ===== SUPPORT CHAT ===== */
 .support-overlay {
   position: fixed;
   inset: 0;
@@ -5408,7 +5363,6 @@ code {
   gap: 8px;
 }
 
-/* Стрелка назад — скрыта на десктопе */
 .support-chat-back {
   display: none;
   background: transparent;
@@ -6312,11 +6266,6 @@ code {
   }
 }
 
-/* ============================================================
-   БУРГЕР-МЕНЮ И МОБИЛЬНЫЙ ХЕДЕР
-   ============================================================ */
-
-/* Десктоп nav/actions скрываем только на мобиле */
 @media (max-width: 768px) {
   .app-nav-desktop,
   .app-actions-desktop {
@@ -6338,7 +6287,6 @@ code {
   }
 }
 
-/* Кнопка-бургер */
 .app-burger {
   flex-direction: column;
   justify-content: center;
@@ -6382,7 +6330,6 @@ code {
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Мобильное меню (дропдаун) */
 .app-mobile-menu {
   position: absolute;
   top: 100%;
@@ -6455,9 +6402,6 @@ code {
   color: #f87171;
 }
 
-/* ============================================================
-   АДАПТИВ: ПРОФИЛЬ
-   ============================================================ */
 @media (max-width: 768px) {
   .profile-page {
     padding: 16px;
@@ -6529,9 +6473,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: КОМАНДА
-   ============================================================ */
 @media (max-width: 768px) {
   .team-page {
     padding: 16px;
@@ -6594,9 +6535,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: КЕЙСЫ
-   ============================================================ */
 @media (max-width: 768px) {
   .cases-page {
     padding: 16px;
@@ -6643,9 +6581,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: ДЕТАЛИ КЕЙСА
-   ============================================================ */
 @media (max-width: 768px) {
   .case-detail-header {
     flex-wrap: wrap;
@@ -6665,9 +6600,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: МОИ РЕШЕНИЯ
-   ============================================================ */
 @media (max-width: 768px) {
   .solutions-page {
     padding: 16px;
@@ -6695,9 +6627,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: ЛЕНДИНГ
-   ============================================================ */
 @media (max-width: 768px) {
   .landing-timer-blocks {
     gap: 8px;
@@ -6719,9 +6648,6 @@ code {
 
 }
 
-/* ============================================================
-   АДАПТИВ: АДМИН-ПАНЕЛЬ
-   ============================================================ */
 @media (max-width: 768px) {
   .admin-nav-tabs {
     flex-wrap: nowrap;
@@ -6745,12 +6671,9 @@ code {
 
 }
 
-/* ============================================================
-   АДАПТИВ: LAYOUT
-   ============================================================ */
 @media (max-width: 768px) {
   .app-content-inner {
-    padding: 16px 14px 80px; /* низ с запасом под FAB */
+    padding: 16px 14px 80px; 
   }
 
   .app-topbar {
@@ -6760,9 +6683,6 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: ЛОГИН
-   ============================================================ */
 @media (max-width: 480px) {
   .login-surface {
     padding: 24px 12px 40px;
@@ -6793,11 +6713,8 @@ code {
   }
 }
 
-/* ============================================================
-   АДАПТИВ: ПОДДЕРЖКА
-   ============================================================ */
 @media (max-width: 768px) {
-  /* Полноэкранный мессенджер на мобиле */
+  
   .support-overlay {
     padding: 0;
     align-items: stretch;
@@ -6815,14 +6732,14 @@ code {
     animation: fadeIn 0.18s ease;
   }
 
-  /* Шапка — нотч + центрирование названия */
+  
   .support-chat-header {
     padding-top: max(16px, env(safe-area-inset-top, 16px));
     position: relative;
     justify-content: flex-start;
   }
 
-  /* Название + тикет — по центру шапки абсолютно */
+  
   .support-chat-header-info {
     position: absolute;
     left: 50%;
@@ -6830,7 +6747,7 @@ code {
     pointer-events: none;
   }
 
-  /* Показываем стрелку назад */
+  
   .support-chat-back {
     display: flex;
     align-items: center;
@@ -6839,7 +6756,7 @@ code {
     z-index: 1;
   }
 
-  /* Название и статус — по центру текста */
+  
   .support-chat-name,
   .support-chat-status {
     text-align: center;
@@ -6849,30 +6766,27 @@ code {
     display: none;
   }
 
-  /* Пузырьки на всю ширину */
+  
   .support-msg-bubble {
     max-width: 88%;
   }
 
-  /* Поле ввода */
+  
   .support-chat-footer {
     padding: 10px 12px;
     padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
   }
 
   .support-chat-input {
-    font-size: 16px; /* предотвращает zoom на iOS */
+    font-size: 16px; 
   }
 
-  /* FAB скрываем когда чат открыт */
+  
   .support-fab-hidden {
     display: none !important;
   }
 }
 
-/* ============================================================
-   404 PAGE
-   ============================================================ */
 .not-found-page {
   min-height: 100vh;
   display: flex;
@@ -7045,11 +6959,6 @@ code {
   color: #60a5fa;
 }
 
-/* ============================================================
-   SUPPORT PAGE (/support) — отдельная страница чата
-   ============================================================ */
-
-/* На десктопе: isPage — без тёмного оверлея, чат в углу */
 .support-overlay-page {
   background: transparent;
   backdrop-filter: none;
@@ -7060,7 +6969,6 @@ code {
   pointer-events: all;
 }
 
-/* ─── Contacts page ─── */
 .contacts-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7138,7 +7046,6 @@ code {
   }
 }
 
-/* На мобиле: страница — полный экран как нативный мессенджер */
 @media (max-width: 768px) {
   .support-overlay-page {
     background: #0b1520;
@@ -7157,12 +7064,12 @@ code {
     animation: none;
   }
 
-  /* Скрываем навбар на /support — чат занимает весь экран */
+  
   .app-shell-support .app-topbar {
     display: none;
   }
 
-  /* Контент тоже растягиваем на весь экран */
+  
   .app-shell-support .app-content {
     flex: 1;
     padding: 0;

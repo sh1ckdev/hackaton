@@ -74,12 +74,12 @@ const AdminSecurity = () => {
 
   useEffect(() => {
     refreshAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   useEffect(() => {
     loadIpProfile(selectedIp, hours).catch((e) => setError(e.response?.data?.error || 'Ошибка загрузки профиля IP'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [selectedIp, hours]);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ const AdminSecurity = () => {
       refreshAll();
     }, sec * 1000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [autoRefresh, autoRefreshSec, minutes, hours, statusFilter, onlyErrors, eventType]);
 
   const topStats = useMemo(() => {

@@ -8,7 +8,7 @@ const NotFound = () => {
   const [typed, setTyped] = useState('');
   const command = `GET ${location.pathname} HTTP/1.1`;
 
-  // Эффект печатающегося текста
+  
   useEffect(() => {
     let i = 0;
     setTyped('');
@@ -26,7 +26,7 @@ const NotFound = () => {
   return (
     <div className="not-found-page">
       <div className="not-found-terminal">
-        {/* Терминальная шапка */}
+        {}
         <div className="not-found-terminal-bar">
           <span className="not-found-dot not-found-dot-red" />
           <span className="not-found-dot not-found-dot-yellow" />
@@ -35,14 +35,14 @@ const NotFound = () => {
         </div>
 
         <div className="not-found-terminal-body">
-          {/* Ввод запроса */}
+          {}
           <div className="not-found-line">
             <span className="not-found-prompt">sys@platform:~$</span>
             <span className="not-found-cmd">&nbsp;{typed}</span>
             <span className="not-found-cursor" />
           </div>
 
-          {/* Ответ */}
+          {}
           <div className="not-found-response">
             <p className="not-found-status-line">
               <span className="not-found-code">404</span>
@@ -54,10 +54,10 @@ const NotFound = () => {
             <p className="not-found-detail">&gt; Проверьте адрес или вернитесь на главную</p>
           </div>
 
-          {/* Большая цифра */}
+          {}
           <div className="not-found-big">404</div>
 
-          {/* Действия */}
+          {}
           <div className="not-found-actions">
             <Link to="/" className="not-found-btn not-found-btn-primary">
               ← На главную

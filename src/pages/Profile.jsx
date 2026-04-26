@@ -28,10 +28,10 @@ const Profile = () => {
   const [newLangName, setNewLangName] = useState('');
   const [newFrameworkName, setNewFrameworkName] = useState('');
 
-  // Назначенный кейс команды
+  
   const [assignedCase, setAssignedCase] = useState(null);
 
-  // Easter egg: счётчик кликов по аватарке
+  
   const avatarClickCount = useRef(0);
 
   useEffect(() => {
@@ -109,7 +109,7 @@ const Profile = () => {
   const handleSaveSkills = async () => {
     try {
       const response = await api.put('/profile/skills', { skills: skillsList });
-      // Обновляем пользователя через fetchUser для правильной работы с MobX
+      
       await authStore.fetchUser();
       setEditingSkills(false);
     } catch (error) {

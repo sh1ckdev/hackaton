@@ -97,7 +97,7 @@ const AdminBroadcastSettings = () => {
         {settings.length === 0 && <div className="text-center py-16 text-white/40">Нет настроек рассылок</div>}
       </div>
 
-      {/* Форма */}
+      {}
       {showForm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="glass rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">

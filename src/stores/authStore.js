@@ -59,7 +59,7 @@ class AuthStore {
   }
 
   async loginWithToken(token, captchaToken, participantCategory) {
-    // Предотвращаем одновременные вызовы
+    
     if (this.loginInProgress) {
       return false;
     }

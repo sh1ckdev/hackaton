@@ -28,7 +28,7 @@ const Team = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState(null);
   const [deadlineLeft, setDeadlineLeft] = useState(null);
-  // hackathonStarted = true когда хакатон уже начался (48ч идут)
+  
   const [hackathonStarted, setHackathonStarted] = useState(false);
 
   useEffect(() => {
@@ -36,8 +36,8 @@ const Team = () => {
       const d = res.data?.target_date || null;
       setDeadlineDate(d);
       if (d) {
-        // Если дедлайн > текущего времени + 48ч — значит это дата старта, хакатон ещё не начался
-        // Если дедлайн <= текущего + 48ч — хакатон уже идёт
+        
+        
         const startTime = new Date(d).getTime() - 48 * 60 * 60 * 1000;
         setHackathonStarted(Date.now() >= startTime);
       }
@@ -76,7 +76,7 @@ const Team = () => {
   const isOnline = (lastActivityAt) => {
     if (!lastActivityAt) return false;
     const diff = (Date.now() - new Date(lastActivityAt).getTime()) / 1000;
-    return diff < 120; // онлайн, если активность была менее 2 минут назад
+    return diff < 120; 
   };
 
   const SPECIALTIES = [
@@ -149,7 +149,7 @@ const Team = () => {
             message: `User @${member.username} joined via hash key.`
           });
         } else {
-          // Fallback если нет даты присоединения
+          
           const now = new Date();
           const timeStr = `${now.getHours().toString().padStart(2, '0')}:${(now.getMinutes() - idx * 3).toString().padStart(2, '0')}:${(now.getSeconds() - idx).toString().padStart(2, '0')}`;
           newLogs.push({
@@ -169,13 +169,13 @@ const Team = () => {
         message: 'Waiting for final member configuration...'
       });
     }
-    // Сортируем логи по времени
+    
     newLogs.sort((a, b) => a.time.localeCompare(b.time));
     setLogs(newLogs);
   };
 
   const handleCodeChange = (index, value) => {
-    // Если вставлен длинный код (например, через Ctrl+V)
+    
     if (value.length > 1) {
       const cleanValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
       const newCode = ['', '', '', '', '', ''];
@@ -183,13 +183,13 @@ const Team = () => {
         newCode[i] = cleanValue[i];
       }
       setTeamCode(newCode);
-      // Фокус на последний заполненный или следующий пустой
+      
       const nextEmptyIndex = cleanValue.length < 6 ? cleanValue.length : 5;
       codeInputRefs.current[nextEmptyIndex]?.focus();
       return;
     }
 
-    // Обычный ввод одного символа
+    
     const newCode = [...teamCode];
     newCode[index] = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     setTeamCode(newCode);

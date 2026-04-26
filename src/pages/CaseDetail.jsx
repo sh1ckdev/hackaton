@@ -106,7 +106,6 @@ const CaseDetail = () => {
     );
   }
 
-
   if (!canViewDetails) {
     return (
       <div>
@@ -167,7 +166,6 @@ const CaseDetail = () => {
               </span>
             </div>
           </div>
-
 
           {}
           <div className="border border-terminal-gray/30 rounded-xl p-6 bg-terminal-dark/30 backdrop-blur-sm">

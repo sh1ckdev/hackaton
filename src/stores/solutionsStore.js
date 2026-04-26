@@ -3,7 +3,7 @@ import api from '../utils/api';
 
 class SolutionsStore {
   solutions = [];
-  allSolutions = []; // Для админа
+  allSolutions = []; 
   selectedSolution = null;
   loading = false;
   error = null;

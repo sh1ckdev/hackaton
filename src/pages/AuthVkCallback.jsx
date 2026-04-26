@@ -16,7 +16,7 @@ const AuthVkCallback = () => {
       return;
     }
 
-    // VK ID возвращает code, state, device_id в payload или в отдельных параметрах
+    
     let code, state, device_id;
     const payloadParam = searchParams.get('payload');
     if (payloadParam) {

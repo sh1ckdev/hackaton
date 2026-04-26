@@ -8,7 +8,6 @@ import AdminLayout from './components/AdminLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import BackendDownPage from './components/BackendDownPage';
 
-
 const Login = lazy(() => import('./pages/Login'));
 const AuthVkCallback = lazy(() => import('./pages/AuthVkCallback'));
 const Landing = lazy(() => import('./pages/Landing'));

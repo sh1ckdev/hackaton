@@ -10,10 +10,10 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
 
   const isActive = (path) => location.pathname.startsWith(path);
 
-  // Закрываем меню при смене маршрута
+  
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-  // Закрываем при клике снаружи
+  
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e) => {
@@ -23,13 +23,13 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
 
-  // Пункты доступные всем (без авторизации)
+  
   const publicNavItems = [
     { path: '/contacts', label: 'Контакты',   icon: ContactsIcon },
     { path: '/info',     label: 'Информация', icon: InfoIcon },
   ];
 
-  // Пункты только для авторизованных
+  
   const authNavItems = [
     { path: '/solutions', label: 'Решения',      icon: SolutionIcon },
     { path: '/team',      label: 'Команда',      icon: TeamIcon },
@@ -45,7 +45,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
       <div className="app-topbar-inner">
         <Logo showVersion={true} asLink={true} />
 
-        {/* Десктоп навигация */}
+        {}
         <nav className="app-nav app-nav-desktop">
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
@@ -78,7 +78,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
           )}
         </div>
 
-        {/* Бургер (мобиль) */}
+        {}
         <button
           className={`app-burger${menuOpen ? ' app-burger-open' : ''}`}
           onClick={() => setMenuOpen(o => !o)}
@@ -89,7 +89,7 @@ const AppHeader = ({ isAuthenticated, user, isAdmin, onLogout }) => {
         </button>
       </div>
 
-      {/* Мобильное меню */}
+      {}
       {menuOpen && (
         <div className="app-mobile-menu">
           {visibleNavItems.map((item) => {

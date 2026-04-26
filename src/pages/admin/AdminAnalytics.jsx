@@ -61,7 +61,7 @@ const AdminAnalytics = () => {
         </button>
       </div>
 
-      {/* Сводка */}
+      {}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {[['Пользователей', stats?.users], ['Решений', stats?.solutions], ['Кейсов', stats?.cases], ['Команд', teams.length]].map(([label, val]) => (
           <div key={label} className="p-4 bg-terminal-dark/50 rounded-lg border border-terminal-gray/20">

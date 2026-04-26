@@ -86,7 +86,7 @@ const AdminCases = () => {
         {casesStore.cases.length === 0 && <div className="text-center py-16 text-white/30">Кейсов нет</div>}
       </div>
 
-      {/* Форма создания/редактирования */}
+      {}
       {showForm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="glass rounded-xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
@@ -117,7 +117,7 @@ const AdminCases = () => {
                 </select>
               </div>
 
-              {/* Ссылки */}
+              {}
               <div className="border-t border-terminal-gray/30 pt-4">
                 <label className="block text-sm font-medium text-white/80 mb-3">Ссылки</label>
                 {form.links.map((link, i) => (
@@ -137,7 +137,7 @@ const AdminCases = () => {
                 </div>
               </div>
 
-              {/* Файлы */}
+              {}
               <div className="border-t border-terminal-gray/30 pt-4">
                 <label className="block text-sm font-medium text-white/80 mb-3">Файлы</label>
                 {form.attachments.map((att, i) => (

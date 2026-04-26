@@ -35,7 +35,6 @@ uniform float uDensity;
 uniform float uVariant;
 uniform float uDirection;
 
-
 #define PI 3.14159265
 #define PI_OVER_6 0.5235988
 #define PI_OVER_3 1.0471976
@@ -45,15 +44,12 @@ uniform float uDirection;
 #define M3 3299493293U
 #define F0 2.3283064e-10
 
-
 #define hash(n) (n * (n ^ (n >> 15)))
 #define coord3(p) (uvec3(p).x * M1 ^ uvec3(p).y * M2 ^ uvec3(p).z * M3)
-
 
 const vec3 camK = vec3(0.57735027, 0.57735027, 0.57735027);
 const vec3 camI = vec3(0.70710678, 0.0, -0.70710678);
 const vec3 camJ = vec3(-0.40824829, 0.81649658, -0.40824829);
-
 
 const vec2 b1d = vec2(0.574, 0.819);
 
@@ -88,20 +84,17 @@ void main() {
   vec3 ray = normalize(vec3((fragCoord - res * 0.5) * invResX, 1.0));
   ray = ray.x * camI + ray.y * camJ + ray.z * camK;
 
-
   float timeSpeed = uTime * uSpeed;
   float windX = cos(uDirection) * 0.4;
   float windY = sin(uDirection) * 0.4;
   vec3 camPos = (windX * camI + windY * camJ + 0.1 * camK) * timeSpeed;
   vec3 pos = camPos;
 
-
   vec3 absRay = max(abs(ray), vec3(0.001));
   vec3 strides = 1.0 / absRay;
   vec3 raySign = step(ray, vec3(0.0));
   vec3 phase = fract(pos) * strides;
   phase = mix(strides - phase, phase, raySign);
-
 
   float rayDotCamK = dot(ray, camK);
   float invRayDotCamK = 1.0 / rayDotCamK;
@@ -192,17 +185,14 @@ export default function PixelSnow({
   const materialRef = useRef(null);
   const resizeTimeoutRef = useRef(null);
 
-
   const variantValue = useMemo(() => {
     return variant === 'round' ? 1.0 : variant === 'snowflake' ? 2.0 : 0.0;
   }, [variant]);
-
 
   const colorVector = useMemo(() => {
     const threeColor = new Color(color);
     return new Vector3(threeColor.r, threeColor.g, threeColor.b);
   }, [color]);
-
 
   const handleResize = useCallback(() => {
     if (resizeTimeoutRef.current) {
@@ -221,7 +211,6 @@ export default function PixelSnow({
     }, 100);
   }, []);
 
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -236,7 +225,6 @@ export default function PixelSnow({
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
-
 
   useEffect(() => {
     const container = containerRef.current;
@@ -291,7 +279,6 @@ export default function PixelSnow({
     const animate = () => {
       animationRef.current = requestAnimationFrame(animate);
 
-
       if (isVisibleRef.current) {
         material.uniforms.uTime.value = (performance.now() - startTime) * 0.001;
         renderer.render(scene, camera);
@@ -315,8 +302,7 @@ export default function PixelSnow({
       materialRef.current = null;
     };
 
-  }, [handleResize]); // Only recreate scene when handleResize changes
-
+  }, [handleResize]); 
 
   useEffect(() => {
     const material = materialRef.current;

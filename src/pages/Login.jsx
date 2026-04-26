@@ -14,7 +14,6 @@ const TelegramIcon = () => (
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
 
-// Виджет Telegram работает только на HTTPS с зарегистрированным доменом
 const isLocalhost = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
@@ -74,7 +73,6 @@ const Login = () => {
     }
   }, [navigate]);
 
-
   useEffect(() => {
     if (!turnstileSiteKey) return;
     if (window.turnstile) {
@@ -104,12 +102,12 @@ const Login = () => {
     const token = tokenFromUrl || params.get('token');
     const captcha = captchaTokenFromCallback || captchaToken;
     
-    // Предотвращаем повторные вызовы
+    
     if (loginAttemptRef.current) {
       return;
     }
     
-    // Требуем капчу только если Turnstile настроен
+    
     if (turnstileSiteKey && !captcha) {
       setError('Пройдите капчу.');
       return;
@@ -123,7 +121,7 @@ const Login = () => {
       return;
     }
     
-    // Проверяем, не обрабатывали ли мы уже этот токен
+    
     if (processedToken === token && loginPending) {
       return;
     }
@@ -139,7 +137,7 @@ const Login = () => {
         navigate('/profile');
       } else {
         setError(authStore.error || 'Ошибка входа');
-        // Сбрасываем флаг только при ошибке, чтобы можно было повторить
+        
         loginAttemptRef.current = false;
       }
     } catch (err) {
@@ -150,9 +148,8 @@ const Login = () => {
     }
   }, [location.search, captchaToken, navigate, turnstileSiteKey, processedToken, loginPending, participantCategory]);
 
-
   useEffect(() => {
-    // Если уже авторизован, не делаем ничего
+    
     if (authStore.isAuthenticated) {
       return;
     }
@@ -160,17 +157,17 @@ const Login = () => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     
-    // Если токена нет или уже обработан, не делаем ничего
+    
     if (!token || processedToken === token) {
       return;
     }
     
-    // Если уже идет попытка входа, не делаем ничего
+    
     if (loginPending || loginAttemptRef.current) {
       return;
     }
     
-    // Если Turnstile не настроен, можно входить сразу без капчи
+    
     if (!turnstileSiteKey || captchaToken) {
       handleTokenLogin(token, captchaToken);
     }
@@ -178,7 +175,7 @@ const Login = () => {
 
   const [showTgWidget, setShowTgWidget] = useState(false);
 
-  // Колбэк от Telegram Widget
+  
   useEffect(() => {
     window.onTelegramAuth = async (telegramUser) => {
       setShowTgWidget(false);
@@ -200,7 +197,7 @@ const Login = () => {
     return () => { delete window.onTelegramAuth; };
   }, [participantCategory, captchaToken, navigate]);
 
-  // Вставляем виджет когда попап открыт
+  
   useEffect(() => {
     if (!showTgWidget || !botUsername || !widgetRef.current) return;
     widgetRef.current.innerHTML = '';
@@ -221,7 +218,7 @@ const Login = () => {
     }
     setError(null);
     if (isLocalhost) {
-      // На localhost виджет не работает — редиректим в бота
+      
       try { localStorage.setItem(CATEGORY_STORAGE_KEY, participantCategory); } catch (e) {}
       window.location.href = `https://t.me/${botUsername}?start=login`;
     } else {
@@ -315,7 +312,7 @@ const Login = () => {
           </div>
 
           <div className="login-actions">
-            {/* Капча — показывается всегда если Turnstile настроен */}
+            {}
             {turnstileSiteKey && (
               <div className="login-captcha">
                 <div ref={captchaRef}></div>
@@ -362,7 +359,7 @@ const Login = () => {
               </div>
             )}
 
-            {/* DEV: быстрый вход без авторизации (только localhost/dev) */}
+            {}
             {import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' && (
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, textAlign: 'center' }}>
@@ -394,7 +391,7 @@ const Login = () => {
               </div>
             )}
 
-            {/* Попап с виджетом Telegram — появляется после клика */}
+            {}
             {showTgWidget && (
               <div className="login-tg-popup-overlay" onClick={() => setShowTgWidget(false)}>
                 <div className="login-tg-popup" onClick={e => e.stopPropagation()}>
