@@ -6,7 +6,6 @@ import { getBotInstance } from '../bot.js';
 
 const router = express.Router();
 
-// Получить или создать активный тикет текущего пользователя + историю сообщений
 router.get('/ticket', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -35,7 +34,6 @@ router.get('/ticket', authenticateToken, async (req, res) => {
   }
 });
 
-// Отправить сообщение от пользователя
 router.post('/message', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -48,7 +46,7 @@ router.post('/message', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Сообщение слишком длинное (макс. 2000 символов)' });
     }
 
-    // Получаем или создаём тикет
+    
     let ticket = (await pool.query(
       `SELECT * FROM support_tickets WHERE user_id = $1 AND status = 'open' ORDER BY created_at DESC LIMIT 1`,
       [userId]
@@ -61,19 +59,19 @@ router.post('/message', authenticateToken, async (req, res) => {
       )).rows[0];
     }
 
-    // Сохраняем сообщение
+    
     const message = (await pool.query(
       `INSERT INTO support_messages (ticket_id, sender, text) VALUES ($1, 'user', $2) RETURNING *`,
       [ticket.id, text.trim()]
     )).rows[0];
 
-    // Обновляем updated_at тикета
+    
     await pool.query(
       `UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [ticket.id]
     );
 
-    // Отправляем в Telegram-группу поддержки
+    
     const groupId = process.env.SUPPORT_GROUP_ID;
     if (groupId) {
       try {
@@ -102,12 +100,12 @@ router.post('/message', authenticateToken, async (req, res) => {
         const bot = getBotInstance();
         if (bot) {
           const sent = await bot.sendMessage(groupId, msgText, { parse_mode: 'HTML' });
-          // Сохраняем tg_message_id для связи reply → тикет
+          
           await pool.query(
             `UPDATE support_messages SET tg_message_id = $1 WHERE id = $2`,
             [sent.message_id, message.id]
           );
-          // Сохраняем tg_message_id в тикете (последнее сообщение)
+          
           await pool.query(
             `UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
             [ticket.id]
@@ -115,7 +113,7 @@ router.post('/message', authenticateToken, async (req, res) => {
         }
       } catch (tgErr) {
         logError('Ошибка отправки в Telegram', tgErr);
-        // Не фейлим запрос — сообщение в БД уже сохранено
+        
       }
     }
 

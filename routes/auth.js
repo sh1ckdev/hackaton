@@ -76,7 +76,7 @@ const getRegistrationCloseAt = async () => {
 
 const isRegistrationClosedForNewUsers = async () => {
   try {
-    // Ручной переключатель в админке (приоритет)
+    
     const manualResult = await pool.query(
       `SELECT value FROM system_settings WHERE key = 'registration_closed' LIMIT 1`
     );
@@ -88,7 +88,7 @@ const isRegistrationClosedForNewUsers = async () => {
     return Date.now() >= closeAt.getTime();
   } catch (error) {
     logError('Не удалось проверить дедлайн регистрации', error);
-    // Fail-open: если таймлайн недоступен, не блокируем вход существующей логики
+    
     return false;
   }
 };
@@ -125,8 +125,6 @@ const verifyCaptcha = async (captchaToken) => {
   return !!data.success;
 };
 
-// Верификация данных Telegram Login Widget
-// https://core.telegram.org/widgets/login#checking-authorization
 const verifyTelegramWidget = (data) => {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return false;
@@ -134,17 +132,17 @@ const verifyTelegramWidget = (data) => {
   const { hash, ...fields } = data;
   if (!hash) return false;
 
-  // Проверяем, что данные не старше 24 часов
+  
   const authDate = parseInt(fields.auth_date, 10);
   if (!authDate || Date.now() / 1000 - authDate > 86400) return false;
 
-  // Строим строку для проверки: поля в алфавитном порядке key=value\n
+  
   const checkString = Object.keys(fields)
     .sort()
     .map((k) => `${k}=${fields[k]}`)
     .join('\n');
 
-  // Ключ = SHA256(bot_token), затем HMAC-SHA256(checkString, key)
+  
   const secretKey = crypto.createHash('sha256').update(botToken).digest();
   const expectedHash = crypto
     .createHmac('sha256', secretKey)
@@ -154,7 +152,6 @@ const verifyTelegramWidget = (data) => {
   return expectedHash === hash;
 };
 
-// POST /auth/telegram — вход через Telegram Login Widget
 router.post('/telegram', authLimiter, async (req, res) => {
   try {
     const { telegramData, captcha_token, participant_category } = req.body;
@@ -243,7 +240,6 @@ router.post('/telegram', authLimiter, async (req, res) => {
   }
 });
 
-
 router.post('/bot', authLimiter, async (req, res) => {
   try {
     const { token, captcha_token, participant_category } = req.body;
@@ -296,7 +292,7 @@ router.post('/bot', authLimiter, async (req, res) => {
     const jwtToken = signAccessToken(row);
     const refresh = await createRefreshToken(row.user_id);
 
-    // Парсим JSON поля если они есть
+    
     let skills = [];
     if (row.skills) {
       try {
@@ -333,10 +329,6 @@ router.post('/bot', authLimiter, async (req, res) => {
   }
 });
 
-
-// VK ID OAuth 2.1 (id.vk.ru) — для приложений, созданных в VK ID
-
-// Диграфы (двухбуквенные) — проверяются первыми
 const latToCyrDigraphs = [
   ['yo', 'ё'], ['Yo', 'Ё'], ['YO', 'Ё'],
   ['zh', 'ж'], ['Zh', 'Ж'], ['ZH', 'Ж'],
@@ -353,7 +345,6 @@ const latToCyrDigraphs = [
   ["'", 'ъ'],
 ];
 
-// Одиночные символы
 const latToCyrMap = {
   a: 'а', b: 'б', v: 'в', g: 'г', d: 'д', e: 'е', z: 'з', i: 'и',
   j: 'й', k: 'к', l: 'л', m: 'м', n: 'н', o: 'о', p: 'п', r: 'р',
@@ -363,7 +354,7 @@ const latToCyrMap = {
   J: 'Й', K: 'К', L: 'Л', M: 'М', N: 'Н', O: 'О', P: 'П', R: 'Р',
   S: 'С', T: 'Т', U: 'У', F: 'Ф', H: 'Х', C: 'Ц', Y: 'Ы', X: 'Х',
   Q: 'К', W: 'В',
-  // диакритика
+  
   ž: 'ж', Ž: 'Ж', č: 'ч', Č: 'Ч', š: 'ш', Š: 'Ш', ŝ: 'щ', Ŝ: 'Щ',
   ė: 'э', Ė: 'Э', ā: 'а', ē: 'е', ī: 'и', ō: 'о', ū: 'у',
   ļ: 'л', Ļ: 'Л', ņ: 'н', Ņ: 'Н', ķ: 'к', Ķ: 'К', ģ: 'г', Ģ: 'Г',
@@ -372,13 +363,13 @@ const latToCyrMap = {
 
 const transliterateToCyrillic = (str) => {
   if (!str || typeof str !== 'string') return str;
-  // Если уже содержит кириллицу — не трогаем
+  
   if (/[\u0400-\u04FF]/.test(str)) return str;
   let out = '';
   let i = 0;
   while (i < str.length) {
     let matched = false;
-    // Сначала пробуем диграфы (от длинных к коротким)
+    
     for (const [lat, cyr] of latToCyrDigraphs) {
       if (str.substr(i, lat.length) === lat) {
         out += cyr;
@@ -396,7 +387,7 @@ const transliterateToCyrillic = (str) => {
   return out;
 };
 
-const vkPkceStore = new Map(); // state -> { code_verifier, expires }
+const vkPkceStore = new Map(); 
 const VK_PKCE_TTL_MS = 10 * 60 * 1000;
 
 const generateCodeVerifier = () => crypto.randomBytes(32).toString('base64url');
@@ -423,7 +414,6 @@ const getVkAuthUrl = () => {
   };
 };
 
-// Очистка устаревших записей
 setInterval(() => {
   const now = Date.now();
   for (const [k, v] of vkPkceStore.entries()) {
@@ -502,7 +492,7 @@ router.post('/vk', authLimiter, async (req, res) => {
     const phone = vkUser?.phone || null;
     const email = vkUser?.email || null;
 
-    // Запрашиваем имя через VK API с lang=ru + Accept-Language: ru
+    
     let firstName = vkUser?.first_name || '';
     let lastName = vkUser?.last_name || '';
     try {
@@ -516,7 +506,7 @@ router.post('/vk', authLimiter, async (req, res) => {
         lastName = vkApiData.response[0].last_name || lastName;
       }
     } catch (e) {
-      // fallback — транслитерация
+      
       const hasCyrillic = (s) => /[\u0400-\u04FF]/.test(s);
       if (firstName && !hasCyrillic(firstName)) firstName = transliterateToCyrillic(firstName);
       if (lastName && !hasCyrillic(lastName)) lastName = transliterateToCyrillic(lastName);
@@ -638,7 +628,6 @@ router.post('/vk', authLimiter, async (req, res) => {
   }
 });
 
-// POST /auth/link-vk — привязать VK к уже залогиненному аккаунту (через Telegram)
 router.post('/link-vk', authenticateToken, async (req, res) => {
   try {
     const { code, state, device_id } = req.body;
@@ -688,7 +677,7 @@ router.post('/link-vk', authenticateToken, async (req, res) => {
     const phone = vkUser?.phone || null;
     const email = vkUser?.email || null;
 
-    // Проверяем, не привязан ли этот VK к другому аккаунту
+    
     const existingVk = (await pool.query(
       `SELECT id FROM users WHERE vk_id = $1 AND id != $2 LIMIT 1`,
       [vkUserId, req.user.id]
@@ -705,7 +694,7 @@ router.post('/link-vk', authenticateToken, async (req, res) => {
     };
     const phoneNorm = normalizePhone(phone);
 
-    // Если есть другой аккаунт с таким же телефоном — сливаем
+    
     if (phoneNorm) {
       const byPhone = (await pool.query(
         `SELECT id FROM users WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') = $1 AND id != $2 LIMIT 1`,
@@ -713,7 +702,7 @@ router.post('/link-vk', authenticateToken, async (req, res) => {
       )).rows[0];
 
       if (byPhone) {
-        // Удаляем дубликат (другой аккаунт без telegram_id или менее полный)
+        
         await pool.query(`DELETE FROM users WHERE id = $1`, [byPhone.id]);
       }
     }
@@ -740,7 +729,6 @@ router.post('/link-vk', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /auth/link-telegram — привязать Telegram к уже залогиненному аккаунту (через VK)
 router.post('/link-telegram', authenticateToken, async (req, res) => {
   try {
     const { telegramData } = req.body;
@@ -754,14 +742,14 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
 
     const telegramId = String(telegramData.id);
 
-    // Проверяем, не привязан ли этот Telegram к другому аккаунту
+    
     const existingTg = (await pool.query(
       `SELECT id FROM users WHERE telegram_id = $1 AND id != $2 LIMIT 1`,
       [telegramId, req.user.id]
     )).rows[0];
 
     if (existingTg) {
-      // Удаляем старый дубликат-аккаунт Telegram (если у него нет VK)
+      
       const oldTgUser = (await pool.query(`SELECT vk_id FROM users WHERE id = $1`, [existingTg.id])).rows[0];
       if (!oldTgUser?.vk_id) {
         await pool.query(`DELETE FROM users WHERE id = $1`, [existingTg.id]);
@@ -843,7 +831,6 @@ router.post('/refresh', authLimiter, async (req, res) => {
   }
 });
 
-
 router.post('/logout', async (req, res) => {
   try {
     const refresh_token = req.body?.refresh_token || req.cookies?.[REFRESH_COOKIE_NAME];
@@ -860,7 +847,6 @@ router.post('/logout', async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера при выходе' });
   }
 });
-
 
 router.post('/heartbeat', authenticateToken, async (req, res) => {
   try {
@@ -887,7 +873,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 
     const user = result.rows[0];
     
-    // Парсим JSON поля если они есть
+    
     if (user.skills && typeof user.skills === 'string') {
       try {
         user.skills = JSON.parse(user.skills);
@@ -904,8 +890,6 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// ── DEV ONLY: мгновенный вход без Telegram/VK ──────────────────────────────
-// Работает ТОЛЬКО при NODE_ENV=development
 router.post('/dev-login', authLimiter, async (req, res) => {
   const isEnabled = process.env.NODE_ENV === 'development' && process.env.ENABLE_DEV_LOGIN === 'true';
   if (!isEnabled) {
@@ -922,7 +906,7 @@ router.post('/dev-login', authLimiter, async (req, res) => {
   try {
     const { role = 'admin' } = req.body;
 
-    // Сначала ищем пользователя с нужной ролью, иначе берём любого
+    
     let result = await pool.query(
       `SELECT * FROM users WHERE role = $1 ORDER BY id LIMIT 1`,
       [role]
@@ -933,7 +917,7 @@ router.post('/dev-login', authLimiter, async (req, res) => {
 
     let user = result.rows[0];
     if (!user) {
-      // Создаём admin-пользователя из MAIN_ADMIN_TELEGRAM_ID
+      
       const adminTgId = process.env.MAIN_ADMIN_TELEGRAM_ID;
       if (!adminTgId) {
         return res.status(500).json({ error: 'В БД нет пользователей и MAIN_ADMIN_TELEGRAM_ID не задан в .env' });
@@ -949,7 +933,7 @@ router.post('/dev-login', authLimiter, async (req, res) => {
       user = inserted.rows[0];
     }
 
-    // Выдаём токен с запрошенной ролью (не меняем роль в БД)
+    
     const tokenUser = { ...user, role };
     const accessToken = signAccessToken(tokenUser);
     const { token: refreshToken } = await createRefreshToken(user.id);

@@ -17,13 +17,12 @@ const isAllowedCategory = (value) => value === 'student' || value === 'school';
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalizePhone = (value) => (value || '').replace(/[^\d+]/g, '');
 
-// Получить статистику профиля
 router.get('/stats', async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Здесь можно добавить реальную логику подсчета статистики
-    // Пока возвращаем заглушку
+    
+    
     res.json({
       reputation: 0,
       attendance: 0
@@ -34,13 +33,12 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// Получить метрики профиля
 router.get('/metrics', async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Здесь можно добавить реальную логику подсчета метрик
-    // Пока возвращаем заглушку
+    
+    
     res.json({
       commits: 0,
       commits_change: 0,
@@ -55,7 +53,6 @@ router.get('/metrics', async (req, res) => {
   }
 });
 
-// Обновить био
 router.put('/bio', async (req, res) => {
   try {
     const userId = req.user.id;
@@ -71,7 +68,7 @@ router.put('/bio', async (req, res) => {
     );
 
     const user = result.rows[0];
-    // Парсим JSON поля если они есть
+    
     if (user.skills && typeof user.skills === 'string') {
       try {
         user.skills = JSON.parse(user.skills);
@@ -90,7 +87,6 @@ router.put('/bio', async (req, res) => {
   }
 });
 
-// Обновить навыки
 router.put('/skills', async (req, res) => {
   try {
     const userId = req.user.id;
@@ -100,7 +96,7 @@ router.put('/skills', async (req, res) => {
       return res.status(400).json({ error: 'Навыки должны быть массивом' });
     }
 
-    // Валидация навыков
+    
     for (const skill of skills) {
       if (!skill || typeof skill !== 'object') {
         return res.status(400).json({ error: 'Каждый навык должен быть объектом' });
@@ -113,7 +109,7 @@ router.put('/skills', async (req, res) => {
       }
     }
 
-    // Убеждаемся, что поле skills существует в таблице
+    
     const columnCheck = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -128,7 +124,7 @@ router.put('/skills', async (req, res) => {
       logInfo('Добавлено поле skills в таблицу users');
     }
 
-    // Подготавливаем данные для сохранения
+    
     const skillsToSave = skills.map(skill => ({
       name: String(skill.name).trim(),
       type: skill.type,
@@ -145,7 +141,7 @@ router.put('/skills', async (req, res) => {
     }
 
     const user = result.rows[0];
-    // Парсим JSON поля если они есть
+    
     if (user.skills && typeof user.skills === 'string') {
       try {
         user.skills = JSON.parse(user.skills);
@@ -173,7 +169,6 @@ router.put('/skills', async (req, res) => {
   }
 });
 
-// Обновить обязательные поля профиля участника
 router.put('/required-fields', async (req, res) => {
   try {
     const userId = req.user.id;
@@ -304,13 +299,12 @@ router.put('/required-fields', async (req, res) => {
   }
 });
 
-// Синхронизация профиля
 router.post('/resync', async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Здесь можно добавить логику синхронизации с внешними сервисами
-    // Пока просто возвращаем успех
+    
+    
     logInfo('Синхронизация профиля', { userId });
     res.json({ success: true });
   } catch (error) {

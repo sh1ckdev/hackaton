@@ -14,7 +14,7 @@ export function startBot() {
 
   const bot = new TelegramBot(token, { polling: true });
 
-  // /start — приветствие
+  
   bot.onText(/\/start/, async (msg) => {
     try {
       await bot.sendMessage(
@@ -31,12 +31,12 @@ export function startBot() {
     }
   });
 
-  // Обработка контакта (телефона) от пользователя
+  
   bot.on('contact', async (msg) => {
     try {
       if (!msg.contact) return;
 
-      // Telegram позволяет пересылать чужие контакты — проверяем, что это свой номер
+      
       if (String(msg.contact.user_id) !== String(msg.from.id)) {
         await bot.sendMessage(
           msg.chat.id,
@@ -58,25 +58,25 @@ export function startBot() {
         return;
       }
 
-      // Ищем пользователя по telegram_id
+      
       const byTg = (await pool.query(
         `SELECT id, phone FROM users WHERE telegram_id = $1 LIMIT 1`,
         [telegramId]
       )).rows[0];
 
-      // Ищем пользователя по номеру телефона (мог зайти через VK раньше)
+      
       const byPhone = (await pool.query(
         `SELECT id, telegram_id FROM users WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') = $1 LIMIT 1`,
         [phone]
       )).rows[0];
 
       if (byTg && byPhone && byTg.id !== byPhone.id) {
-        // Два разных аккаунта — сливаем: оставляем тот, что с VK (byPhone), привязываем telegram_id
+        
         await pool.query(
           `UPDATE users SET telegram_id = $1, phone = COALESCE(phone, $2), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [telegramId, phone, byPhone.id]
         );
-        // Удаляем дубликат аккаунта от Telegram (без VK)
+        
         if (!byTg.phone) {
           await pool.query(`DELETE FROM users WHERE id = $1`, [byTg.id]);
         }
@@ -91,7 +91,7 @@ export function startBot() {
           }
         );
       } else if (byTg) {
-        // Аккаунт уже есть по telegram_id — просто сохраняем телефон
+        
         await pool.query(
           `UPDATE users SET phone = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [phone, byTg.id]
@@ -107,7 +107,7 @@ export function startBot() {
           }
         );
       } else if (byPhone) {
-        // Аккаунт есть по телефону (VK) — привязываем telegram_id
+        
         await pool.query(
           `UPDATE users SET telegram_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [telegramId, byPhone.id]
@@ -123,7 +123,7 @@ export function startBot() {
           }
         );
       } else {
-        // Новый пользователь — сохраняем телефон, аккаунт создастся при входе через сайт
+        
         await bot.sendMessage(
           msg.chat.id,
           `✅ Номер телефона получен!\n\nТеперь зайдите на сайт через Telegram Login — ваш профиль будет создан, а при последующем входе через VK аккаунты объединятся автоматически.\n\n🌐 ${clientUrl}/login`,
@@ -141,23 +141,23 @@ export function startBot() {
         await bot.sendMessage(msg.chat.id, 'Произошла ошибка. Попробуйте позже.', {
           reply_markup: { remove_keyboard: true }
         });
-      } catch (e) { /* игнорируем */ }
+      } catch (e) {  }
     }
   });
 
   bot.on('message', async (msg) => {
     try {
       if (!msg.text && !msg.caption) return;
-      if (msg.text?.startsWith('/')) return; // команды обрабатываются отдельно
+      if (msg.text?.startsWith('/')) return; 
 
-      // ── Сообщение из группы поддержки (reply администратора) ──────────────
+      
       if (supportGroupId && String(msg.chat.id) === String(supportGroupId)) {
         if (!msg.reply_to_message) return;
 
         const replyToMsgId = msg.reply_to_message.message_id;
         const adminText = msg.text || msg.caption;
 
-        // Ищем сообщение поддержки по tg_message_id
+        
         const msgRow = (await pool.query(
           `SELECT sm.ticket_id, st.user_id
            FROM support_messages sm
@@ -171,7 +171,7 @@ export function startBot() {
 
         const { ticket_id, user_id } = msgRow;
 
-        // Сохраняем ответ в БД
+        
         await pool.query(
           `INSERT INTO support_messages (ticket_id, sender, text) VALUES ($1, 'admin', $2)`,
           [ticket_id, adminText]
@@ -181,7 +181,7 @@ export function startBot() {
           [ticket_id]
         );
 
-        // Отправляем ответ пользователю в личку
+        
         const userRow = (await pool.query(
           `SELECT telegram_id FROM users WHERE id = $1`,
           [user_id]
@@ -203,13 +203,13 @@ export function startBot() {
         return;
       }
 
-      // ── Личное сообщение пользователя боту → поддержка ───────────────────
+      
       if (msg.chat.type !== 'private') return;
 
       const telegramId = String(msg.from.id);
       const text = msg.text || msg.caption;
 
-      // Ищем пользователя по telegram_id
+      
       const userRow = (await pool.query(
         `SELECT u.id, u.first_name, u.last_name, u.username, u.participant_category,
                 t.name AS team_name, t.team_code
@@ -222,7 +222,7 @@ export function startBot() {
       )).rows[0];
 
       if (!userRow) {
-        // Пользователь не зарегистрирован на сайте
+        
         await bot.sendMessage(
           msg.chat.id,
           `⚠️ Ваш аккаунт Telegram не привязан к платформе.\n\nПожалуйста, войдите на сайте через Telegram Login:\n🌐 ${clientUrl}/login`,
@@ -237,7 +237,7 @@ export function startBot() {
 
       const userId = userRow.id;
 
-      // Получаем или создаём открытый тикет
+      
       let ticket = (await pool.query(
         `SELECT * FROM support_tickets WHERE user_id = $1 AND status = 'open' ORDER BY created_at DESC LIMIT 1`,
         [userId]
@@ -250,7 +250,7 @@ export function startBot() {
         )).rows[0];
       }
 
-      // Сохраняем сообщение в БД
+      
       const savedMsg = (await pool.query(
         `INSERT INTO support_messages (ticket_id, sender, text) VALUES ($1, 'user', $2) RETURNING *`,
         [ticket.id, text.trim()]
@@ -261,14 +261,14 @@ export function startBot() {
         [ticket.id]
       );
 
-      // Подтверждение пользователю
+      
       await bot.sendMessage(
         msg.chat.id,
         `✅ Сообщение получено! Мы ответим вам здесь.\n\nТакже историю переписки можно посмотреть на сайте: ${clientUrl}/profile`,
         { reply_to_message_id: msg.message_id }
       );
 
-      // Пересылаем в группу поддержки
+      
       if (supportGroupId) {
         const name = [userRow.first_name, userRow.last_name].filter(Boolean).join(' ') || userRow.username || `User #${userId}`;
         const tgHandle = userRow.username ? `@${userRow.username}` : `tg_id: ${telegramId}`;
@@ -286,7 +286,7 @@ export function startBot() {
 
         try {
           const sent = await bot.sendMessage(supportGroupId, groupMsg, { parse_mode: 'HTML' });
-          // Сохраняем tg_message_id для связи reply → тикет
+          
           await pool.query(
             `UPDATE support_messages SET tg_message_id = $1 WHERE id = $2`,
             [sent.message_id, savedMsg.id]
@@ -305,19 +305,15 @@ export function startBot() {
   return bot;
 }
 
-
 let botInstance = null;
-
 
 export function setBotInstance(bot) {
   botInstance = bot;
 }
 
-
 export function getBotInstance() {
   return botInstance;
 }
-
 
 export async function requestPhoneFromUser(telegramId) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -352,7 +348,6 @@ export async function sendMessageToUser(telegramId, message) {
   const bot = botInstance || new TelegramBot(token);
   await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
 }
-
 
 export async function broadcastMessage(message) {
   const token = process.env.TELEGRAM_BOT_TOKEN;

@@ -21,7 +21,7 @@ if (!fs.existsSync(uploadsCasesDir)) {
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  limits: { fileSize: 100 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
 
     const allowedTypes = /pdf|doc|docx|ppt|pptx|xls|xlsx|zip|rar|txt|md|jpg|jpeg|png|gif/;
@@ -50,7 +50,6 @@ const upload = multer({
 });
 
 const router = express.Router();
-
 
 router.get('/', async (req, res) => {
   try {
@@ -119,7 +118,6 @@ router.get('/opening-time', async (req, res) => {
   }
 });
 
-
 router.get('/:id', validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,12 +143,11 @@ router.get('/:id', validateIdParam, async (req, res) => {
   }
 });
 
-
 router.post('/', 
   authenticateToken, 
   requireModerator, 
   adminOperationLimiter, 
-  upload.array('attachments', 10), // До 10 файлов
+  upload.array('attachments', 10), 
   validateCaseCreation,
   async (req, res) => {
   try {
@@ -223,7 +220,6 @@ router.post('/',
   }
 });
 
-
 router.put('/:id', 
   authenticateToken, 
   requireModerator, 
@@ -235,7 +231,6 @@ router.put('/:id',
   try {
     const { id } = req.params;
     let { title, description, requirements, participant_category, links } = req.body;
-
 
     const currentCase = await pool.query('SELECT attachments FROM cases WHERE id = $1', [id]);
     let existingAttachments = [];
@@ -249,7 +244,6 @@ router.put('/:id',
       }
     }
 
-
     let linksArray = undefined;
     if (links !== undefined) {
       try {
@@ -261,7 +255,6 @@ router.put('/:id',
         linksArray = [];
       }
     }
-
 
     const newAttachments = [];
     if (req.files && req.files.length > 0) {
@@ -281,8 +274,6 @@ router.put('/:id',
         newAttachments.push({ name: originalName, url });
       }
     }
-
-
 
     const preservedAttachments = [];
     const urlIndices = new Set();
@@ -339,7 +330,7 @@ router.put('/:id',
       params.push(JSON.stringify(linksArray));
     }
 
-    // Обновляем вложения если: есть новые файлы, явно переданы сохраняемые вложения, или флаг что вложения редактировались
+    
     const attachmentsEdited = req.body.attachments_updated === '1';
     if (req.files?.length > 0 || Object.keys(req.body).some(k => k.startsWith('attachment_url_')) || attachmentsEdited) {
       paramCount++;
@@ -350,13 +341,13 @@ router.put('/:id',
     updates.push('updated_at = CURRENT_TIMESTAMP');
 
     if (updates.length === 1) {
-      // Только updated_at — нечего обновлять
+      
       const currentResult = await pool.query('SELECT * FROM cases WHERE id = $1', [id]);
       if (currentResult.rows.length === 0) return res.status(404).json({ error: 'Кейс не найден' });
       return res.json({ case: currentResult.rows[0] });
     }
 
-    // id идёт только в WHERE, не в SET
+    
     paramCount++;
     params.push(id);
 
@@ -387,7 +378,6 @@ router.put('/:id',
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.delete('/:id', authenticateToken, requireAdmin, adminOperationLimiter, validateIdParam, async (req, res) => {
   try {

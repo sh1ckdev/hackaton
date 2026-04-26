@@ -9,7 +9,7 @@ import { banIp, unbanIp, getActiveIpBans } from '../middleware/ipBlocklist.js';
 import { normalizeIp } from '../utils/securityAudit.js';
 
 const router = express.Router();
-const MAIN_ADMIN_ID = 1046635419; // ID главного администратора (число)
+const MAIN_ADMIN_ID = 1046635419; 
 
 const normalizeTelegramId = (telegramIdParam) => {
   if (typeof telegramIdParam === 'string') {
@@ -31,9 +31,7 @@ const normalizeTelegramId = (telegramIdParam) => {
   return null;
 };
 
-
 router.use(authenticateToken);
-
 
 router.get('/stats', requireAdmin, async (req, res) => {
   try {
@@ -149,7 +147,7 @@ router.get('/users', requireAdmin, async (req, res) => {
     if (hasCategory) {
       params.push(participant_category);
       if (showStaff) {
-        // Показываем обычных пользователей выбранной категории + всех staff
+        
         where = `WHERE (u.participant_category = $1 AND COALESCE(u.role, 'user') NOT IN ('admin', 'moderator'))
                     OR COALESCE(u.role, 'user') IN ('admin', 'moderator')`;
       } else {
@@ -174,15 +172,12 @@ router.get('/users', requireAdmin, async (req, res) => {
   }
 });
 
-
-
 router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const telegramIdParam = req.params.telegramId;
     const { role } = req.body;
 
     logInfo('[Admin] Изменение роли', { telegramId: telegramIdParam, role, adminId: req.user?.id });
-
 
     let telegramId;
     try {
@@ -215,7 +210,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       return res.status(400).json({ error: 'Некорректный Telegram ID пользователя' });
     }
 
-
     const normalizedRole = role ? String(role).toLowerCase().trim() : null;
     
     if (!normalizedRole || !['user', 'moderator', 'admin'].includes(normalizedRole)) {
@@ -230,7 +224,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
 
     const roleToSet = normalizedRole;
 
-
     const userCheck = await pool.query('SELECT id, telegram_id, role FROM users WHERE telegram_id = $1', [telegramId]);
     if (userCheck.rows.length === 0) {
       logError('[Admin] Пользователь не найден по Telegram ID', null, { telegramId, adminId: req.user?.id });
@@ -244,7 +237,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
       currentRole: currentUser.role 
     });
 
-
     const userTelegramId = currentUser.telegram_id;
     if (userTelegramId != null) {
 
@@ -255,7 +247,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
         return res.status(403).json({ error: 'Нельзя снять роль администратора у главного администратора' });
       }
     }
-
 
     logInfo('[Admin] Обновление роли', { 
       telegramId, 
@@ -309,7 +300,7 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
         });
       }
       
-      throw dbError; // Пробрасываем ошибку в общий catch блок
+      throw dbError; 
     }
   } catch (error) {
     logError('[Admin] Ошибка изменения роли', error, {
@@ -326,8 +317,6 @@ router.put('/users/:telegramId/role', requireAdmin, adminOperationLimiter, async
   }
 });
 
-
-// Удалить команду
 router.delete('/teams/:id', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const teamId = parseInt(req.params.id, 10);
@@ -350,13 +339,12 @@ router.delete('/teams/:id', requireAdmin, adminOperationLimiter, async (req, res
   }
 });
 
-// Назначить / сменить кейс команды вручную
 router.put('/teams/:id/case', requireModerator, adminOperationLimiter, async (req, res) => {
   try {
     const teamId = parseInt(req.params.id, 10);
     if (isNaN(teamId) || teamId <= 0) return res.status(400).json({ error: 'Некорректный ID команды' });
 
-    const { case_id } = req.body; // null — снять кейс
+    const { case_id } = req.body; 
     const caseIdVal = case_id ? parseInt(case_id, 10) : null;
 
     if (caseIdVal !== null) {
@@ -378,7 +366,6 @@ router.put('/teams/:id/case', requireModerator, adminOperationLimiter, async (re
   }
 });
 
-// Получить решение конкретной команды
 router.get('/teams/:id/solution', requireModerator, async (req, res) => {
   try {
     const teamId = parseInt(req.params.id);
@@ -420,7 +407,6 @@ router.post('/broadcast', requireModerator, async (req, res) => {
   }
 });
 
-// Получить все настройки рассылок
 router.get('/broadcast-settings', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -436,7 +422,6 @@ router.get('/broadcast-settings', requireModerator, async (req, res) => {
   }
 });
 
-// Роуты по user id — для VK-пользователей (у них нет telegram_id)
 router.put('/users/by-id/:userId/role', requireAdmin, adminOperationLimiter, async (req, res) => {
   try {
     const userId = parseInt(req.params.userId, 10);
@@ -591,7 +576,6 @@ router.delete('/users/:telegramId', requireAdmin, adminOperationLimiter, async (
   }
 });
 
-// Получить настройку рассылки по ID
 router.get('/broadcast-settings/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -613,7 +597,6 @@ router.get('/broadcast-settings/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Создать новую настройку рассылки
 router.post('/broadcast-settings', requireModerator, async (req, res) => {
   try {
     const {
@@ -663,7 +646,6 @@ router.post('/broadcast-settings', requireModerator, async (req, res) => {
   }
 });
 
-// Обновить настройку рассылки
 router.put('/broadcast-settings/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -749,7 +731,6 @@ router.put('/broadcast-settings/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Удалить настройку рассылки
 router.delete('/broadcast-settings/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -770,7 +751,6 @@ router.delete('/broadcast-settings/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Получить список кейсов для выбора
 router.get('/cases/list', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -785,9 +765,6 @@ router.get('/cases/list', requireModerator, async (req, res) => {
   }
 });
 
-// ========== НАСТРОЙКИ ХАКАТОНА ==========
-
-// Получить настройку закрытия регистрации
 router.get('/settings/registration-closed', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(
@@ -801,7 +778,6 @@ router.get('/settings/registration-closed', requireModerator, async (req, res) =
   }
 });
 
-// Установить закрытие регистрации (вход только для уже зарегистрированных)
 router.put('/settings/registration-closed', requireModerator, async (req, res) => {
   try {
     const { registration_closed } = req.body;
@@ -819,7 +795,6 @@ router.put('/settings/registration-closed', requireModerator, async (req, res) =
   }
 });
 
-// Получить таймлайн
 router.get('/settings/timeline', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -833,7 +808,6 @@ router.get('/settings/timeline', requireModerator, async (req, res) => {
   }
 });
 
-// Создать пункт таймлайна
 router.post('/settings/timeline', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
     const { type, title, description, date, date_to, active, show_countdown, is_closing } = req.body;
@@ -862,7 +836,6 @@ router.post('/settings/timeline', requireModerator, validateTimelinePayload, asy
   }
 });
 
-// Изменить порядок пунктов таймлайна (вверх/вниз в админке)
 router.put('/settings/timeline/reorder', requireModerator, adminOperationLimiter, async (req, res) => {
   let transactionStarted = false;
   try {
@@ -912,7 +885,6 @@ router.put('/settings/timeline/reorder', requireModerator, adminOperationLimiter
   }
 });
 
-// Обновить пункт таймлайна
 router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, async (req, res) => {
   try {
     const { id } = req.params;
@@ -985,7 +957,6 @@ router.put('/settings/timeline/:id', requireModerator, validateTimelinePayload, 
   }
 });
 
-// Удалить пункт таймлайна
 router.delete('/settings/timeline/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1006,7 +977,6 @@ router.delete('/settings/timeline/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Получить призы
 router.get('/settings/prizes', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -1020,7 +990,6 @@ router.get('/settings/prizes', requireModerator, async (req, res) => {
   }
 });
 
-// Создать приз
 router.post('/settings/prizes', requireModerator, async (req, res) => {
   try {
     const { rank, name, amount, benefits, featured } = req.body;
@@ -1043,7 +1012,6 @@ router.post('/settings/prizes', requireModerator, async (req, res) => {
   }
 });
 
-// Обновить приз
 router.put('/settings/prizes/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1100,7 +1068,6 @@ router.put('/settings/prizes/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Удалить приз
 router.delete('/settings/prizes/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1121,7 +1088,6 @@ router.delete('/settings/prizes/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Получить треки
 router.get('/settings/tracks', requireModerator, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -1135,7 +1101,6 @@ router.get('/settings/tracks', requireModerator, async (req, res) => {
   }
 });
 
-// Создать трек
 router.post('/settings/tracks', requireModerator, async (req, res) => {
   try {
     const { name, description, tags } = req.body;
@@ -1158,7 +1123,6 @@ router.post('/settings/tracks', requireModerator, async (req, res) => {
   }
 });
 
-// Обновить трек
 router.put('/settings/tracks/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1207,7 +1171,6 @@ router.put('/settings/tracks/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Удалить трек
 router.delete('/settings/tracks/:id', requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1228,7 +1191,6 @@ router.delete('/settings/tracks/:id', requireModerator, async (req, res) => {
   }
 });
 
-// Рандомное распределение команд по кейсам (учитывает participant_category: школьники/студенты)
 router.post('/cases/assign-random', requireModerator, adminOperationLimiter, async (req, res) => {
   let transactionStarted = false;
   try {
@@ -1318,9 +1280,6 @@ router.post('/cases/assign-random', requireModerator, adminOperationLimiter, asy
   }
 });
 
-// ── Support chats ─────────────────────────────────────────────────────────────
-
-// Список всех тикетов (с последним сообщением и данными пользователя)
 router.get('/support/chats', requireModerator, async (req, res) => {
   try {
     const { status = 'open', search = '' } = req.query;
@@ -1369,7 +1328,6 @@ router.get('/support/chats', requireModerator, async (req, res) => {
   }
 });
 
-// Сообщения конкретного тикета
 router.get('/support/chats/:ticketId/messages', requireModerator, async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -1392,7 +1350,6 @@ router.get('/support/chats/:ticketId/messages', requireModerator, async (req, re
   }
 });
 
-// Ответить в тикет от имени поддержки
 router.post('/support/chats/:ticketId/reply', requireModerator, async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -1412,7 +1369,7 @@ router.post('/support/chats/:ticketId/reply', requireModerator, async (req, res)
 
     await pool.query(`UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [ticketId]);
 
-    // Отправить пользователю в Telegram если есть telegram_id
+    
     if (ticket.telegram_id) {
       try {
         await sendMessageToUser(ticket.telegram_id, `💬 Ответ от поддержки\n\n${String(text).trim()}`);
@@ -1428,7 +1385,6 @@ router.post('/support/chats/:ticketId/reply', requireModerator, async (req, res)
   }
 });
 
-// Закрыть / переоткрыть тикет
 router.put('/support/chats/:ticketId/status', requireModerator, async (req, res) => {
   try {
     const { ticketId } = req.params;
@@ -1464,8 +1420,6 @@ router.delete('/support/chats/:ticketId', requireModerator, async (req, res) => 
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
-// ── Security monitoring ───────────────────────────────────────────────────────
 
 router.get('/security/top-ips', requireAdmin, async (req, res) => {
   try {

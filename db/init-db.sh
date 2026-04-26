@@ -6,7 +6,6 @@ DB_USER="${DB_USER:-postgres}"
 
 echo "Проверка существования базы данных $DB_NAME..."
 
-# Проверяем, существует ли БД
 if psql -U "$DB_USER" -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
     echo "База данных $DB_NAME уже существует"
 else

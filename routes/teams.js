@@ -23,7 +23,6 @@ const generateTeamCode = async () => {
   throw new Error('Не удалось сгенерировать уникальный код команды');
 };
 
-
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const memberResult = await pool.query(
@@ -73,7 +72,6 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-
 router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreation, async (req, res) => {
   try {
     const { name } = req.body;
@@ -83,14 +81,12 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
       return res.status(400).json({ error: 'Название команды обязательно' });
     }
 
-
     if (containsProfanity(teamName)) {
       await logSuspiciousActivity(req, 'profanity_detected', {
         team_name: teamName
       });
       return res.status(400).json({ error: getProfanityErrorMessage() });
     }
-
 
     const isNotDuplicate = await checkDuplicate(req, 'teams', 'name', teamName, 60000);
     if (!isNotDuplicate) {
@@ -140,7 +136,6 @@ router.post('/create', authenticateToken, teamCreationLimiter, validateTeamCreat
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async (req, res) => {
   try {
@@ -195,7 +190,6 @@ router.post('/join', authenticateToken, teamJoinLimiter, validateTeamJoin, async
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.get('/preview-invite/:userCode', authenticateToken, async (req, res) => {
   try {
@@ -411,7 +405,6 @@ router.post('/kick', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.get('/all', authenticateToken, requireModerator, async (req, res) => {
   try {

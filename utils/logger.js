@@ -7,7 +7,6 @@ const LOG_LEVELS = {
   DEBUG: 'DEBUG'
 };
 
-
 function formatLog(level, message, data = {}) {
   const timestamp = new Date().toISOString();
   const logEntry = {
@@ -17,14 +16,12 @@ function formatLog(level, message, data = {}) {
     ...data
   };
 
-
   if (process.env.NODE_ENV === 'production') {
     return JSON.stringify(logEntry);
   } else {
     return `[${timestamp}] [${level}] ${message}${Object.keys(data).length > 0 ? ' ' + JSON.stringify(data, null, 2) : ''}`;
   }
 }
-
 
 export function logError(message, error = null, context = {}) {
   const errorData = {
@@ -39,23 +36,19 @@ export function logError(message, error = null, context = {}) {
   console.error(formatLog(LOG_LEVELS.ERROR, message, errorData));
 }
 
-
 export function logWarn(message, data = {}) {
   console.warn(formatLog(LOG_LEVELS.WARN, message, data));
 }
 
-
 export function logInfo(message, data = {}) {
   console.log(formatLog(LOG_LEVELS.INFO, message, data));
 }
-
 
 export function logDebug(message, data = {}) {
   if (process.env.NODE_ENV !== 'production') {
     console.log(formatLog(LOG_LEVELS.DEBUG, message, data));
   }
 }
-
 
 export function logRequest(req, res, responseTime = null) {
   const data = {
@@ -80,7 +73,6 @@ export function logRequest(req, res, responseTime = null) {
   console.log(formatLog(level, message, data));
 }
 
-
 export function logSecurity(activity, req, details = {}) {
   const data = {
     activity,
@@ -93,7 +85,6 @@ export function logSecurity(activity, req, details = {}) {
   };
   console.warn(formatLog(LOG_LEVELS.WARN, `[SECURITY] ${activity}`, data));
 }
-
 
 export function logDatabase(operation, table, details = {}) {
   const data = {

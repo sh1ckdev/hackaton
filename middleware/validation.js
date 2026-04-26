@@ -1,6 +1,5 @@
 
 
-
 export const validateCaseCreation = (req, res, next) => {
   const { title, description, requirements, participant_category } = req.body;
 
@@ -31,7 +30,6 @@ export const validateCaseCreation = (req, res, next) => {
   next();
 };
 
-
 export const validateSolutionCreation = (req, res, next) => {
   const { case_id, title, description, github_url, demo_url } = req.body;
 
@@ -50,11 +48,9 @@ export const validateSolutionCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Название решения слишком длинное (максимум 255 символов)' });
   }
 
-
   if (!github_url || typeof github_url !== 'string') {
     return res.status(400).json({ error: 'Ссылка на GitHub репозиторий обязательна' });
   }
-
 
   try {
     const githubUrl = new URL(github_url);
@@ -67,7 +63,6 @@ export const validateSolutionCreation = (req, res, next) => {
   } catch {
     return res.status(400).json({ error: 'Некорректный формат URL GitHub' });
   }
-
 
   if (demo_url) {
     try {
@@ -83,14 +78,12 @@ export const validateSolutionCreation = (req, res, next) => {
     }
   }
 
-
   if (description && typeof description === 'string' && description.length > 5000) {
     return res.status(400).json({ error: 'Описание слишком длинное (максимум 5000 символов)' });
   }
 
   next();
 };
-
 
 export const validateTeamCreation = (req, res, next) => {
   const { name } = req.body;
@@ -107,14 +100,12 @@ export const validateTeamCreation = (req, res, next) => {
     return res.status(400).json({ error: 'Название команды слишком длинное (максимум 255 символов)' });
   }
 
-
   if (name.trim().length === 0) {
     return res.status(400).json({ error: 'Название команды не может состоять только из пробелов' });
   }
 
   next();
 };
-
 
 export const validateTeamJoin = (req, res, next) => {
   const { team_code } = req.body;
@@ -127,14 +118,12 @@ export const validateTeamJoin = (req, res, next) => {
     return res.status(400).json({ error: 'Код команды должен содержать 6 символов' });
   }
 
-
   if (!/^[A-Z]{6}$/.test(team_code.toUpperCase())) {
     return res.status(400).json({ error: 'Код команды должен содержать только буквы' });
   }
 
   next();
 };
-
 
 export const validateIdParam = (req, res, next) => {
   const { id } = req.params;

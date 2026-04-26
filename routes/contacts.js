@@ -5,7 +5,6 @@ import { logInfo, logError } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Публичный список контактов
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
@@ -18,7 +17,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Создать контакт (только модераторы/админы)
 router.post('/', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { type, label, url, sort_order } = req.body;
@@ -38,7 +36,6 @@ router.post('/', authenticateToken, requireModerator, async (req, res) => {
   }
 });
 
-// Обновить контакт
 router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { id } = req.params;
@@ -57,7 +54,6 @@ router.put('/:id', authenticateToken, requireModerator, async (req, res) => {
   }
 });
 
-// Удалить контакт
 router.delete('/:id', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { id } = req.params;

@@ -4,7 +4,6 @@ import slowDown from 'express-slow-down';
 import pool from '../db/index.js';
 import { logSecurity, logError } from '../utils/logger.js';
 
-
 export const sanitizeInput = (req, res, next) => {
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
@@ -41,7 +40,6 @@ export const sanitizeInput = (req, res, next) => {
   next();
 };
 
-
 export const validateUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   try {
@@ -60,7 +58,6 @@ export const validateUrl = (url) => {
   }
 };
 
-
 export const validateGitHubUrl = (url) => {
   if (!validateUrl(url)) return false;
   try {
@@ -71,13 +68,11 @@ export const validateGitHubUrl = (url) => {
   }
 };
 
-
 export const validateFieldLength = (field, maxLength, fieldName) => {
   if (field && typeof field === 'string' && field.length > maxLength) {
     throw new Error(`${fieldName} превышает максимальную длину ${maxLength} символов`);
   }
 };
-
 
 const ipKeyGenerator = (req) => req.ip || req.headers['x-forwarded-for'] || 'unknown';
 
@@ -125,20 +120,14 @@ const adminSlowDown = slowDown({
 
 export const adminOperationLimiter = [adminBurstLimiter, adminSlowDown];
 
-
 export const logSuspiciousActivity = async (req, activity, details = {}) => {
   try {
     logSecurity(`Подозрительная активность: ${activity}`, req, details);
-
-
-
-
 
   } catch (error) {
     logError('Ошибка логирования подозрительной активности', error);
   }
 };
-
 
 export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
   try {
@@ -147,7 +136,6 @@ export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     
-
 
     const result = await pool.query(
       `SELECT COUNT(*) as count FROM solutions 
@@ -168,10 +156,9 @@ export const checkMassOperation = async (req, operation, maxPerHour = 10) => {
     return true;
   } catch (error) {
     logError('Ошибка проверки массовых операций', error, { operation });
-    return true; // В случае ошибки разрешаем операцию
+    return true; 
   }
 };
-
 
 export const preventPathTraversal = (path) => {
   if (!path || typeof path !== 'string') return false;
@@ -186,13 +173,11 @@ export const preventPathTraversal = (path) => {
   return true;
 };
 
-
 export const validateId = (id) => {
   if (!id) return false;
   const numId = typeof id === 'string' ? parseInt(id, 10) : id;
   return !isNaN(numId) && numId > 0 && numId <= Number.MAX_SAFE_INTEGER;
 };
-
 
 export const checkDuplicate = async (req, table, field, value, timeWindow = 60000) => {
   try {
@@ -210,10 +195,9 @@ export const checkDuplicate = async (req, table, field, value, timeWindow = 6000
     return parseInt(result.rows[0].count) === 0;
   } catch (error) {
     logError('Ошибка проверки дубликатов', error, { table, field, value });
-    return true; // В случае ошибки разрешаем
+    return true; 
   }
 };
-
 
 export const validateRequestSize = (maxSize = 1024 * 1024) => {
   return (req, res, next) => {
@@ -226,7 +210,6 @@ export const validateRequestSize = (maxSize = 1024 * 1024) => {
     next();
   };
 };
-
 
 export const preventEnumeration = (req, res, next) => {
 

@@ -1,6 +1,6 @@
 import { normalizeIp, getClientIp } from '../utils/securityAudit.js';
 
-const blockedIps = new Map(); // ip -> { expiresAt, reason, createdAt, createdBy }
+const blockedIps = new Map(); 
 
 const now = () => Date.now();
 const DEFAULT_BAN_MINUTES = 60;

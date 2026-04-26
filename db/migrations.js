@@ -9,7 +9,6 @@ import { logInfo, logWarn, logError } from '../utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 async function ensureMigrationsTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -20,7 +19,6 @@ async function ensureMigrationsTable() {
     )
   `);
 }
-
 
 async function getCurrentSchemaVersion() {
   try {
@@ -33,7 +31,6 @@ async function getCurrentSchemaVersion() {
   }
 }
 
-
 async function saveMigrationVersion(version, description) {
   await pool.query(
     'INSERT INTO schema_migrations (version, description) VALUES ($1, $2) ON CONFLICT (version) DO NOTHING',
@@ -41,14 +38,12 @@ async function saveMigrationVersion(version, description) {
   );
 }
 
-
 function getSchemaHash(schemaContent) {
 
   const schemaPath = path.join(__dirname, 'schema.sql');
   const stats = fs.statSync(schemaPath);
   return `${stats.mtime.getTime()}-${stats.size}`;
 }
-
 
 function parseSQLStatements(sqlContent) {
   const statements = [];
@@ -61,7 +56,6 @@ function parseSQLStatements(sqlContent) {
     const char = sqlContent[pos];
     const nextChar = pos + 1 < sqlContent.length ? sqlContent[pos + 1] : '';
 
-
     if (char === '-' && nextChar === '-') {
 
       while (pos < sqlContent.length && sqlContent[pos] !== '\n') {
@@ -69,7 +63,6 @@ function parseSQLStatements(sqlContent) {
       }
       continue;
     }
-
 
     if (char === '$' && !inDollarQuote) {
 
@@ -93,9 +86,7 @@ function parseSQLStatements(sqlContent) {
       continue;
     }
 
-
     currentStatement += char;
-
 
     if (!inDollarQuote && char === ';') {
       const stmt = currentStatement.trim();
@@ -108,7 +99,6 @@ function parseSQLStatements(sqlContent) {
     pos++;
   }
 
-
   const lastStmt = currentStatement.trim();
   if (lastStmt && lastStmt.length > 0) {
     statements.push(lastStmt);
@@ -116,7 +106,6 @@ function parseSQLStatements(sqlContent) {
 
   return statements.filter(s => s.length > 0 && !s.match(/^\s*--/));
 }
-
 
 async function applySchemaChanges() {
   const schemaPath = path.join(__dirname, 'schema.sql');
@@ -130,9 +119,7 @@ async function applySchemaChanges() {
   const schemaHash = getSchemaHash(schemaContent);
   const currentVersion = await getCurrentSchemaVersion();
 
-
   const forceMigrate = process.env.FORCE_DB_MIGRATE === 'true';
-
 
   if (currentVersion === schemaHash && !forceMigrate) {
     logInfo('Схема БД актуальна, миграции schema.sql не требуются');
@@ -144,9 +131,7 @@ async function applySchemaChanges() {
     logInfo('Обнаружены изменения в схеме БД, применяю миграции');
   }
 
-
   const statements = parseSQLStatements(schemaContent);
-
 
   for (let i = 0; i < statements.length; i++) {
     const statement = statements[i];
@@ -160,11 +145,11 @@ async function applySchemaChanges() {
     } catch (error) {
 
       if (
-        error.code === '42P07' || // relation already exists
-        error.code === '42710' || // duplicate object
-        error.code === '42P16' || // invalid table definition
-        error.code === '42723' || // function already exists
-        error.code === '42P17' || // invalid column definition
+        error.code === '42P07' || 
+        error.code === '42710' || 
+        error.code === '42P16' || 
+        error.code === '42723' || 
+        error.code === '42P17' || 
         error.message.includes('already exists') ||
         error.message.includes('duplicate') ||
         error.message.includes('уже существует')
@@ -178,14 +163,12 @@ async function applySchemaChanges() {
     }
   }
 
-
   await applyAdditionalMigrations();
 
     await saveMigrationVersion(schemaHash, `Схема обновлена: ${new Date().toISOString()}`);
     logInfo('Миграции схемы применены успешно');
   }
 }
-
 
 async function applyAdditionalMigrations() {
 
@@ -229,16 +212,13 @@ async function applyAdditionalMigrations() {
     logWarn('Предупреждение при проверке constraint для роли', { error: error.message });
   }
 
-
   await ensureColumnsExist();
   
 
   await ensureNewFieldsExist();
 
-
   await ensureIndexesExist();
 }
-
 
 async function ensureColumnsExist() {
   const requiredColumns = {
@@ -281,7 +261,6 @@ async function ensureColumnsExist() {
   }
 }
 
-
 async function ensureNewFieldsExist() {
   try {
 
@@ -313,7 +292,6 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле notification_sent в таблицу cases');
     }
 
-
     const solutionsGithubExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -327,7 +305,6 @@ async function ensureNewFieldsExist() {
       await pool.query('ALTER TABLE solutions ADD COLUMN github_url TEXT');
       logInfo('Добавлено поле github_url в таблицу solutions');
     }
-
 
     const solutionsPresentationExists = await pool.query(`
       SELECT EXISTS (
@@ -394,7 +371,7 @@ async function ensureNewFieldsExist() {
       }
     }
 
-    // Проверка существования таблицы broadcast_settings
+    
     const broadcastSettingsExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -424,7 +401,7 @@ async function ensureNewFieldsExist() {
       logInfo('Создана таблица broadcast_settings');
     }
 
-    // Проверка полей bio и skills в таблице users
+    
     const usersBioExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -453,7 +430,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле skills в таблицу users');
     }
 
-    // email для VK ID и др.
+    
     const usersEmailExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -467,7 +444,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле email в таблицу users');
     }
 
-    // vk_id для входа через VK ID
+    
     const usersVkIdExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -498,7 +475,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле vk_id в таблицу users');
     }
 
-    // user_code — 6-значный буквенно-цифровой код пользователя
+    
     const usersUserCodeExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -531,7 +508,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле user_code в users');
     }
 
-    // participant_category — студент / школьник для разделения команд
+    
     const usersParticipantCategoryExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -567,7 +544,7 @@ async function ensureNewFieldsExist() {
       ) WHERE t.participant_category IS NULL
     `);
 
-    // participant_category в cases — школьники / студенты
+    
     const casesParticipantCategoryExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -581,7 +558,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле participant_category в cases');
     }
 
-    // last_activity_at — время последней активности на сайте (для статуса онлайн)
+    
     const usersLastActivityAtExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -595,7 +572,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле last_activity_at в users');
     }
 
-    // Обязательные данные анкеты участника
+    
     const usersMiddleNameExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns
@@ -661,7 +638,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле school_class в users');
     }
 
-    // specialty в team_members (fullstack, frontend, backend, design, mobile, devops)
+    
     const teamMembersSpecialtyExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -675,7 +652,7 @@ async function ensureNewFieldsExist() {
       logInfo('Добавлено поле specialty в team_members');
     }
 
-    // Индекс для vk_id
+    
     const idxVkIdExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM pg_indexes 
@@ -692,7 +669,7 @@ async function ensureNewFieldsExist() {
       }
     }
 
-    // Проверка существования таблицы hackathon_timeline
+    
     const timelineExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -719,7 +696,7 @@ async function ensureNewFieldsExist() {
       logInfo('Создана таблица hackathon_timeline');
     }
 
-    // date_to и show_countdown для таймлайна (от/до, таймер на главной)
+    
     const timelineDateToExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.columns 
@@ -780,7 +757,7 @@ async function ensureNewFieldsExist() {
       WHERE h.id = ordered.id
     `);
 
-    // Проверка существования таблицы hackathon_prizes
+    
     const prizesExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -805,7 +782,7 @@ async function ensureNewFieldsExist() {
       logInfo('Создана таблица hackathon_prizes');
     }
 
-    // Проверка существования таблицы hackathon_tracks
+    
     const tracksExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -828,7 +805,7 @@ async function ensureNewFieldsExist() {
       logInfo('Создана таблица hackathon_tracks');
     }
 
-    // Создание индексов для broadcast_settings
+    
     const indexes = [
       { name: 'idx_broadcast_settings_type', table: 'broadcast_settings', column: 'type' },
       { name: 'idx_broadcast_settings_enabled', table: 'broadcast_settings', column: 'enabled' },
@@ -864,7 +841,6 @@ async function ensureNewFieldsExist() {
   }
 }
 
-
 async function ensureIndexesExist() {
   const requiredIndexes = [
     { name: 'idx_users_telegram_id', table: 'users', column: 'telegram_id', unique: false },
@@ -896,7 +872,6 @@ async function ensureIndexesExist() {
         continue;
       }
 
-
       const columnExists = await pool.query(`
         SELECT EXISTS (
           SELECT FROM information_schema.columns 
@@ -909,7 +884,6 @@ async function ensureIndexesExist() {
       if (!columnExists.rows[0].exists) {
         continue;
       }
-
 
       const uniqueClause = index.unique ? 'UNIQUE' : '';
       const partialClause = index.partial ? `WHERE ${index.column} IS NOT NULL` : '';
@@ -926,12 +900,11 @@ async function ensureIndexesExist() {
   }
 }
 
-
 export async function runMigrations() {
   try {
     await ensureMigrationsTable();
     await applySchemaChanges();
-    // Всегда применяем дополнительные миграции (vk_id и др.) — они добавляют отсутствующие столбцы
+    
     await applyAdditionalMigrations();
     await applySupportMigration();
     await applyContactsMigration();

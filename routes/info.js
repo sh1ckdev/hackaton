@@ -5,7 +5,6 @@ import { logError } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Создаём таблицу при первом запросе (если ещё нет)
 const ensureTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS info_content (
@@ -15,7 +14,7 @@ const ensureTable = async () => {
       updated_by INTEGER REFERENCES users(id)
     )
   `);
-  // Если строки нет — вставляем пустую
+  
   const { rows } = await pool.query('SELECT id FROM info_content LIMIT 1');
   if (rows.length === 0) {
     await pool.query(`INSERT INTO info_content (content) VALUES ('')`);
@@ -24,7 +23,6 @@ const ensureTable = async () => {
 
 ensureTable().catch(() => {});
 
-// GET /api/info — публичный, отдаёт контент
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT content, updated_at FROM info_content ORDER BY id LIMIT 1');
@@ -35,7 +33,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/info — только админ
 router.put('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { content } = req.body;

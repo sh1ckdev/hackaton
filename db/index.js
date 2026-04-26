@@ -12,10 +12,6 @@ dotenv.config();
 
 const { Pool, types } = pg;
 
-// node-postgres по умолчанию парсит TIMESTAMP without timezone через локальный timezone процесса.
-// Явно указываем: трактовать TIMESTAMP без TZ как UTC → возвращать строку с суффиксом 'Z'.
-// OID 1114 = TIMESTAMP without timezone
-// OID 1184 = TIMESTAMPTZ (node-postgres уже парсит корректно, но унифицируем формат)
 types.setTypeParser(1114, (val) => val ? val.replace(' ', 'T') + 'Z' : null);
 types.setTypeParser(1184, (val) => val ? new Date(val).toISOString() : null);
 
@@ -34,11 +30,9 @@ function parseConnectionConfig() {
 
 const pool = new Pool(parseConnectionConfig());
 
-// Гарантируем UTC на уровне сессии — все CURRENT_TIMESTAMP/NOW() вернут UTC
 pool.on('connect', (client) => {
   client.query("SET timezone = 'UTC'");
 });
-
 
 export async function initDB() {
   let dbName, dbUser, dbPassword, dbHost, dbPort;
@@ -73,7 +67,6 @@ export async function initDB() {
       [dbName]
     );
 
-
     if (dbCheck.rows.length === 0) {
       logInfo(`Создание базы данных ${dbName}`);
       await adminPool.query(`CREATE DATABASE ${dbName}`);
@@ -86,12 +79,11 @@ export async function initDB() {
   } catch (error) {
     await adminPool.end();
 
-    if (error.code !== '42P04') { // 42P04 = database already exists
+    if (error.code !== '42P04') { 
       logError('Ошибка при создании БД', error, { dbName });
       throw error;
     }
   }
-
 
   try {
 

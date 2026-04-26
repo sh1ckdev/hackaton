@@ -41,17 +41,15 @@ app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY)
 app.disable('x-powered-by');
 const PORT = process.env.PORT || 3001;
 
-
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(
   compression({
-    threshold: 1024, // не трогаем совсем маленькие ответы
+    threshold: 1024, 
   })
 );
 app.use(helmet({
@@ -95,12 +93,9 @@ app.use(verifyCsrfToken);
 app.use(ipBlocklistMiddleware);
 app.use(requestAuditMiddleware);
 
-
 app.use(sanitizeInput);
 
-
 app.use('/uploads', express.static(uploadsDir));
-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', casesRoutes);
@@ -114,7 +109,6 @@ app.use('/api/info', infoRoutes);
 app.use('/api/contacts', contactsRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
-
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -123,8 +117,6 @@ app.get('/api/healthcheck', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-
-
 const clientDistPath = process.env.CLIENT_DIST_PATH
   ? path.resolve(process.env.CLIENT_DIST_PATH)
   : path.join(__dirname, 'public');
@@ -132,7 +124,6 @@ const clientIndexHtml = path.join(clientDistPath, 'index.html');
 
 if (fs.existsSync(clientIndexHtml)) {
   app.use(express.static(clientDistPath));
-
 
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
@@ -146,7 +137,6 @@ if (fs.existsSync(clientIndexHtml)) {
     message: 'Если нужен фронт на этом же домене — соберите client и положите dist в server/public или установите CLIENT_DIST_PATH'
   });
 }
-
 
 async function ensureMainAdmin() {
   const mainAdminTelegramId = process.env.MAIN_ADMIN_TELEGRAM_ID;
@@ -187,7 +177,6 @@ async function ensureMainAdmin() {
     logError('Ошибка при создании главного админа', error, { telegramId: mainAdminTelegramId });
   }
 }
-
 
 async function startServer() {
   try {

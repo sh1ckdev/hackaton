@@ -21,7 +21,7 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB для презентаций
+  limits: { fileSize: 100 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
 
     const allowedTypes = /pdf|ppt|pptx|odp/;
@@ -58,7 +58,6 @@ router.get('/my', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -99,7 +98,6 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-
 router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,7 +134,6 @@ router.get('/:id', authenticateToken, validateIdParam, async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.post('/', 
   authenticateToken, 
@@ -178,7 +175,6 @@ router.post('/',
       });
       return res.status(429).json({ error: 'Слишком много решений за короткое время. Попробуйте позже.' });
     }
-
 
     const caseResult = await pool.query('SELECT * FROM cases WHERE id = $1', [case_id]);
     if (caseResult.rows.length === 0) {
@@ -254,7 +250,6 @@ router.post('/',
       );
       solution = result.rows[0];
 
-
       await pool.query(
         'UPDATE cases SET current_participants = current_participants + 1 WHERE id = $1',
         [case_id]
@@ -267,7 +262,6 @@ router.post('/',
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
 
 router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam, async (req, res) => {
   try {
@@ -297,7 +291,6 @@ router.put('/:id/moderate', authenticateToken, requireModerator, validateIdParam
   }
 });
 
-
 router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
   try {
     const { id } = req.params;
@@ -320,9 +313,7 @@ router.delete('/:id', authenticateToken, validateIdParam, async (req, res) => {
 
     const caseId = solutionResult.rows[0].case_id;
 
-
     await pool.query('DELETE FROM solutions WHERE id = $1', [id]);
-
 
     await pool.query(
       'UPDATE cases SET current_participants = GREATEST(0, current_participants - 1) WHERE id = $1',

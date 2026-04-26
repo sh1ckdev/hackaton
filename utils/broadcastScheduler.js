@@ -4,11 +4,6 @@ import { getBotInstance } from '../bot.js';
 import TelegramBot from 'node-telegram-bot-api';
 import { logInfo, logError } from './logger.js';
 
-/**
- * Возвращает telegram_id пользователей с учётом target_audience.
- * target_audience: { all: true } — все
- *                  { all: false, roles: ['moderator'] } — только по ролям
- */
 async function getTargetTelegramIds(targetAudience) {
   let query;
   let params = [];
@@ -21,7 +16,7 @@ async function getTargetTelegramIds(targetAudience) {
     query = `SELECT DISTINCT telegram_id FROM users WHERE telegram_id IS NOT NULL AND role = ANY($1)`;
     params = [audience.roles];
   } else {
-    // Аудитория задана, но пустая — никому не отправляем
+    
     return [];
   }
 
@@ -54,10 +49,6 @@ async function sendToIds(telegramIds, message) {
   return { success: successCount, failed: failCount, total: telegramIds.length };
 }
 
-/**
- * Проверяет и выполняет запланированные рассылки (тип 'scheduled').
- * Учитывает target_audience (all / roles).
- */
 async function checkAndSendScheduled() {
   try {
     const result = await pool.query(`
@@ -90,7 +81,7 @@ async function checkAndSendScheduled() {
           logInfo('Запланированная рассылка выполнена', { id: setting.id, name: setting.name, sent: success, failed, total });
         }
 
-        // Помечаем как отправленную независимо от числа получателей
+        
         await pool.query(
           `UPDATE broadcast_settings SET last_sent_at = NOW(), updated_at = NOW() WHERE id = $1`,
           [setting.id]

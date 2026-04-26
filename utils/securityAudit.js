@@ -21,31 +21,31 @@ export const normalizeIp = (ip) => {
   let v = ip.trim();
   if (!v) return null;
 
-  // Remove optional CIDR suffix (e.g. 1.2.3.4/32, 2001:db8::1/128)
+  
   const cidrMatch = v.match(/^(.+)\/\d{1,3}$/);
   if (cidrMatch) {
     v = cidrMatch[1].trim();
   }
 
-  // [IPv6]:port
+  
   const bracketMatch = v.match(/^\[([^\]]+)\](?::\d+)?$/);
   if (bracketMatch) {
     v = bracketMatch[1];
   } else {
-    // IPv4:port
+    
     const ipv4PortMatch = v.match(/^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/);
     if (ipv4PortMatch) {
       v = ipv4PortMatch[1];
     }
   }
 
-  // Убираем zone id у IPv6 (например, fe80::1%eth0)
+  
   const zoneIndex = v.indexOf('%');
   if (zoneIndex > -1) {
     v = v.slice(0, zoneIndex);
   }
 
-  // Unmap IPv4 from IPv6-mapped form
+  
   if (v.startsWith('::ffff:')) {
     const mapped = v.slice(7);
     if (net.isIP(mapped) === 4) return mapped;

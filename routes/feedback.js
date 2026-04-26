@@ -7,7 +7,6 @@ const router = express.Router();
 
 const CATEGORIES = ['competitions', 'site', 'general'];
 
-// Отправить отзыв (только авторизованные)
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { category, rating, text } = req.body;

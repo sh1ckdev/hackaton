@@ -4,7 +4,6 @@ import { logError } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Получить дату дедлайна для таймера (синхронна с таймером на главной)
 router.get('/deadline', async (req, res) => {
   try {
     const phasesResult = await pool.query(`
@@ -71,7 +70,6 @@ router.get('/deadline', async (req, res) => {
   }
 });
 
-// Получить таймлайн для лендинга (публичный доступ)
 router.get('/timeline', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -85,7 +83,6 @@ router.get('/timeline', async (req, res) => {
   }
 });
 
-// Получить призы для лендинга (публичный доступ)
 router.get('/prizes', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -99,7 +96,6 @@ router.get('/prizes', async (req, res) => {
   }
 });
 
-// Получить треки для лендинга (публичный доступ)
 router.get('/tracks', async (req, res) => {
   try {
     const result = await pool.query(`

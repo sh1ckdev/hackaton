@@ -5,7 +5,6 @@ import { getBotInstance } from '../bot.js';
 import { logInfo, logError, logWarn } from './logger.js';
 import cron from 'node-cron';
 
-
 export async function checkAndOpenCases() {
   try {
 
@@ -28,14 +27,13 @@ export async function checkAndOpenCases() {
 
     let notifiedCount = 0;
 
-
     for (const caseItem of casesToOpen) {
       try {
 
         const notified = await notifyUsersAboutCase(caseItem);
         notifiedCount += notified;
         
-        // Помечаем, что уведомление отправлено
+        
         await pool.query(
           'UPDATE cases SET notification_sent = TRUE WHERE id = $1',
           [caseItem.id]
@@ -53,7 +51,6 @@ export async function checkAndOpenCases() {
     throw error;
   }
 }
-
 
 async function notifyUsersAboutCase(caseItem) {
   const bot = getBotInstance();
@@ -78,7 +75,6 @@ async function notifyUsersAboutCase(caseItem) {
                    `📋 <b>${caseItem.title}</b>\n\n` +
                    `Кейс теперь доступен для решения. Переходите на сайт, чтобы принять участие!`;
 
-
     for (const telegramId of telegramIds) {
       try {
         await bot.sendMessage(telegramId, message, { parse_mode: 'HTML' });
@@ -100,16 +96,14 @@ async function notifyUsersAboutCase(caseItem) {
   }
 }
 
-
 export function startCaseOpenerScheduler() {
 
   checkAndOpenCases().catch(err => {
       logError('Ошибка при первоначальной проверке кейсов', err);
   });
 
-
-  // Используем node-cron для более надежного планирования
-  // Проверяем каждую минуту
+  
+  
   cron.schedule('* * * * *', () => {
     checkAndOpenCases().catch(err => {
       logError('Ошибка при периодической проверке кейсов', err);

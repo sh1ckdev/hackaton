@@ -2,10 +2,7 @@
 
 import { Filter } from 'bad-words';
 
-
 const englishFilter = new Filter();
-
-
 
 const russianProfanityWords = [
 
@@ -88,14 +85,13 @@ const russianProfanityWords = [
   'vyrodok', 'vyrodki',
   
 
-  'puta', 'putas', 'puto', 'putos', // испанский
-  'merde', 'merdes', // французский
-  'scheisse', 'scheiße', 'arsch', 'arschloch', // немецкий
-  'cazzo', 'cazzi', 'merda', // итальянский
-  'kurwa', 'chuj', // польский
-  'caralho', 'foda', 'merda', // португальский
+  'puta', 'putas', 'puto', 'putos', 
+  'merde', 'merdes', 
+  'scheisse', 'scheiße', 'arsch', 'arschloch', 
+  'cazzo', 'cazzi', 'merda', 
+  'kurwa', 'chuj', 
+  'caralho', 'foda', 'merda', 
 ];
-
 
 const charReplacements = {
 
@@ -170,7 +166,6 @@ const charReplacements = {
   '@': ['а', 'a'],
 };
 
-
 function normalizeText(text) {
   if (!text || typeof text !== 'string') {
     return '';
@@ -194,7 +189,6 @@ function normalizeText(text) {
   return normalized;
 }
 
-
 export function containsProfanity(text) {
   if (!text || typeof text !== 'string') {
     return false;
@@ -206,7 +200,6 @@ export function containsProfanity(text) {
   if (englishFilter.isProfane(text)) {
     return true;
   }
-
 
   for (const word of russianProfanityWords) {
     const lowerWord = word.toLowerCase();
@@ -241,7 +234,6 @@ export function containsProfanity(text) {
 
   return false;
 }
-
 
 export function getProfanityErrorMessage() {
   return 'Название команды содержит недопустимые слова. Пожалуйста, выберите другое название.';

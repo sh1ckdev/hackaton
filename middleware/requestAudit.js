@@ -7,8 +7,8 @@ const REQUEST_WINDOW_MS = Math.max(10, Number(process.env.SECURITY_DDOS_WINDOW_S
 const REQUEST_THRESHOLD = Math.max(20, Number(process.env.SECURITY_DDOS_REQ_THRESHOLD || 180));
 const ALERT_COOLDOWN_MS = Math.max(30, Number(process.env.SECURITY_DDOS_ALERT_COOLDOWN_SEC || 300)) * 1000;
 
-const perIpEvents = new Map(); // ip -> timestamps[]
-const perIpCooldown = new Map(); // ip -> lastAlertTs
+const perIpEvents = new Map(); 
+const perIpCooldown = new Map(); 
 
 const addIpTick = (ip, ts) => {
   const prev = perIpEvents.get(ip) || [];
