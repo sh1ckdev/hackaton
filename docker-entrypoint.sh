@@ -6,9 +6,12 @@ DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-hackathon_db}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-postgres}"
+PG_SOCKET_DIR="${PG_SOCKET_DIR:-/run/postgresql}"
 
 mkdir -p "$PGDATA"
+mkdir -p "$PG_SOCKET_DIR"
 chown -R postgres:postgres "$(dirname "$PGDATA")"
+chown -R postgres:postgres "$PG_SOCKET_DIR"
 
 if [ ! -s "$PGDATA/PG_VERSION" ]; then
   su postgres -c "initdb -D '$PGDATA'"
@@ -17,6 +20,7 @@ fi
 cat > "$PGDATA/postgresql.auto.conf" <<EOF
 listen_addresses = '127.0.0.1'
 port = $DB_PORT
+unix_socket_directories = '$PG_SOCKET_DIR'
 EOF
 
 if ! grep -Eq "^host[[:space:]]+all[[:space:]]+all[[:space:]]+127\\.0\\.0\\.1/32[[:space:]]+md5" "$PGDATA/pg_hba.conf"; then
