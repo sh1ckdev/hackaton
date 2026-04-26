@@ -29,20 +29,17 @@ fi
 
 su postgres -c "pg_ctl -D '$PGDATA' -w start"
 
-su postgres -c "psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres <<SQL
-DO \$\$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$DB_USER') THEN
-    CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD';
-  ELSE
-    ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD';
-  END IF;
-END
-\$\$;
+ROLE_EXISTS="$(su postgres -c "psql -tA --username postgres --dbname postgres -c \"SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '$DB_USER'\"")"
+if [ "$ROLE_EXISTS" = "1" ]; then
+  su postgres -c "psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres -c \"ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD'\""
+else
+  su postgres -c "psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres -c \"CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD'\""
+fi
 
-SELECT 'CREATE DATABASE $DB_NAME OWNER $DB_USER'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME')\\gexec
-SQL"
+DB_EXISTS="$(su postgres -c "psql -tA --username postgres --dbname postgres -c \"SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'\"")"
+if [ "$DB_EXISTS" != "1" ]; then
+  su postgres -c "psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres -c \"CREATE DATABASE $DB_NAME OWNER $DB_USER\""
+fi
 
 export DATABASE_URL="${DATABASE_URL:-postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:$DB_PORT/$DB_NAME}"
 
