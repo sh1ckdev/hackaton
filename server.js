@@ -29,6 +29,8 @@ import { startBroadcastScheduler } from './utils/broadcastScheduler.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +46,18 @@ const PORT = process.env.PORT || 3001;
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const openApiSpecPath = path.join(__dirname, 'docs', 'openapi.yaml');
+let openApiSpec = null;
+if (fs.existsSync(openApiSpecPath)) {
+  try {
+    openApiSpec = YAML.parse(fs.readFileSync(openApiSpecPath, 'utf8'));
+  } catch (error) {
+    logError('Не удалось загрузить OpenAPI спецификацию', error, { path: openApiSpecPath });
+  }
+} else {
+  logWarn('OpenAPI спецификация не найдена', { path: openApiSpecPath });
 }
 
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -96,6 +110,13 @@ app.use(requestAuditMiddleware);
 app.use(sanitizeInput);
 
 app.use('/uploads', express.static(uploadsDir));
+
+if (openApiSpec) {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+  app.get('/api/docs/openapi.json', (req, res) => {
+    res.json(openApiSpec);
+  });
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cases', casesRoutes);

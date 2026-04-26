@@ -1,0 +1,1464 @@
+openapi: 3.0.3
+info:
+  title: Hackathon Backend API
+  version: 1.0.0
+  description: |
+    Полная спецификация API бэкенда.
+    Аутентификация через JWT (Bearer) и/или cookie `access_token`.
+servers:
+  - url: http://localhost:3001
+    description: Local
+tags:
+  - name: Health
+  - name: Auth
+  - name: Cases
+  - name: Solutions
+  - name: Teams
+  - name: Profile
+  - name: Landing
+  - name: Support
+  - name: Info
+  - name: Contacts
+  - name: Feedback
+  - name: Admin
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusOk'
+  /api/healthcheck:
+    get:
+      tags: [Health]
+      summary: Health check (alias)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusOk'
+
+  /api/auth/telegram:
+    post:
+      tags: [Auth]
+      summary: Вход/регистрация через Telegram Widget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                telegramData: { type: object }
+                captcha_token: { type: string }
+                participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+  /api/auth/bot:
+    post:
+      tags: [Auth]
+      summary: Вход по одноразовому токену Telegram-бота
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: { type: string }
+                captcha_token: { type: string }
+                participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+  /api/auth/vk:
+    get:
+      tags: [Auth]
+      summary: Редирект на VK ID
+      responses:
+        '302':
+          description: Redirect to VK
+    post:
+      tags: [Auth]
+      summary: Вход/регистрация через VK ID callback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                state: { type: string }
+                device_id: { type: string }
+                participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+  /api/auth/link-vk:
+    post:
+      tags: [Auth]
+      summary: Привязать VK к текущему аккаунту
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                state: { type: string }
+                device_id: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+  /api/auth/link-telegram:
+    post:
+      tags: [Auth]
+      summary: Привязать Telegram к текущему аккаунту
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                telegramData: { type: object }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Обновить access/refresh токены
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: New tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  refresh_token: { type: string }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Выход из аккаунта
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /api/auth/heartbeat:
+    post:
+      tags: [Auth]
+      summary: Обновить активность пользователя
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Текущий пользователь
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+  /api/auth/dev-login:
+    post:
+      tags: [Auth]
+      summary: Dev-only вход (localhost, development)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [admin, moderator, user]
+      responses:
+        '200': { $ref: '#/components/responses/AuthSuccess' }
+        '404':
+          description: Disabled in current env
+  /api/auth/csrf:
+    get:
+      tags: [Auth]
+      summary: Получить CSRF токен
+      responses:
+        '200':
+          description: CSRF token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrf_token: { type: string, nullable: true }
+
+  /api/cases:
+    get:
+      tags: [Cases]
+      summary: Список кейсов
+      parameters:
+        - in: query
+          name: participant_category
+          schema: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses:
+        '200':
+          description: Cases list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cases:
+                    type: array
+                    items: { $ref: '#/components/schemas/Case' }
+    post:
+      tags: [Cases]
+      summary: Создать кейс (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                requirements: { type: string }
+                participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+                links:
+                  type: string
+                  description: JSON array as string
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Created case
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  case: { $ref: '#/components/schemas/Case' }
+  /api/cases/opening-time:
+    get:
+      tags: [Cases]
+      summary: Время открытия кейсов
+      responses:
+        '200':
+          description: Opening time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  open_time:
+                    type: string
+                    format: date-time
+                    nullable: true
+  /api/cases/{id}:
+    get:
+      tags: [Cases]
+      summary: Кейс по ID
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Case
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  case: { $ref: '#/components/schemas/Case' }
+    put:
+      tags: [Cases]
+      summary: Обновить кейс (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated case
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  case: { $ref: '#/components/schemas/Case' }
+    delete:
+      tags: [Cases]
+      summary: Удалить кейс (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  /api/solutions/my:
+    get:
+      tags: [Solutions]
+      summary: Мои решения
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Solutions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  solutions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Solution' }
+  /api/solutions/all:
+    get:
+      tags: [Solutions]
+      summary: Все решения (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: case_id
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Solutions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  solutions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Solution' }
+  /api/solutions:
+    post:
+      tags: [Solutions]
+      summary: Создать/обновить решение команды
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                case_id: { type: integer }
+                title: { type: string }
+                description: { type: string }
+                github_url: { type: string }
+                demo_url: { type: string }
+                presentation:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Solution created/updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  solution: { $ref: '#/components/schemas/Solution' }
+  /api/solutions/{id}:
+    get:
+      tags: [Solutions]
+      summary: Решение по ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Solution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  solution: { $ref: '#/components/schemas/Solution' }
+    delete:
+      tags: [Solutions]
+      summary: Удалить решение
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+  /api/solutions/{id}/moderate:
+    put:
+      tags: [Solutions]
+      summary: Модерация решения (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected, reviewing]
+                admin_comment: { type: string }
+                score: { type: number, nullable: true }
+      responses:
+        '200':
+          description: Moderated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  solution: { $ref: '#/components/schemas/Solution' }
+
+  /api/teams/me:
+    get:
+      tags: [Teams]
+      summary: Моя команда
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Team data or null
+  /api/teams/create:
+    post:
+      tags: [Teams]
+      summary: Создать команду
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '201':
+          description: Team created
+  /api/teams/join:
+    post:
+      tags: [Teams]
+      summary: Вступить в команду по коду
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                team_code: { type: string }
+      responses:
+        '200': { description: Joined }
+  /api/teams/preview-invite/{userCode}:
+    get:
+      tags: [Teams]
+      summary: Проверить пользователя перед инвайтом
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userCode
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: User preview }
+  /api/teams/invite:
+    post:
+      tags: [Teams]
+      summary: Добавить участника по user_code (капитан)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_code: { type: string }
+      responses:
+        '200': { description: Invited }
+  /api/teams/leave:
+    post:
+      tags: [Teams]
+      summary: Выйти из команды
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Left team }
+  /api/teams/me/specialty:
+    put:
+      tags: [Teams]
+      summary: Обновить специализацию в команде
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                specialty:
+                  type: string
+                  enum: [fullstack, frontend, backend, design, mobile, devops]
+      responses:
+        '200': { description: Updated }
+  /api/teams/kick:
+    post:
+      tags: [Teams]
+      summary: Исключить участника (капитан)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_code: { type: string }
+      responses:
+        '200': { description: Kicked }
+  /api/teams/all:
+    get:
+      tags: [Teams]
+      summary: Все команды (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: participant_category
+          schema: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses:
+        '200': { description: Teams list }
+
+  /api/profile/stats:
+    get:
+      tags: [Profile]
+      summary: Профильная статистика
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Stats }
+  /api/profile/metrics:
+    get:
+      tags: [Profile]
+      summary: Профильные метрики
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Metrics }
+  /api/profile/bio:
+    put:
+      tags: [Profile]
+      summary: Обновить bio
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio: { type: string, nullable: true }
+      responses:
+        '200': { description: Updated profile }
+  /api/profile/skills:
+    put:
+      tags: [Profile]
+      summary: Обновить навыки
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skills:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      type: { type: string, enum: [language, framework] }
+                      extension: { type: string, nullable: true }
+      responses:
+        '200': { description: Updated profile }
+  /api/profile/required-fields:
+    put:
+      tags: [Profile]
+      summary: Заполнить обязательные поля профиля
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200': { description: Updated profile }
+  /api/profile/resync:
+    post:
+      tags: [Profile]
+      summary: Ресинхронизация профиля
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Done }
+
+  /api/landing/deadline:
+    get:
+      tags: [Landing]
+      summary: Дата дедлайна для таймера
+      responses:
+        '200': { description: Deadline }
+  /api/landing/timeline:
+    get:
+      tags: [Landing]
+      summary: Публичный таймлайн
+      responses:
+        '200': { description: Timeline }
+  /api/landing/prizes:
+    get:
+      tags: [Landing]
+      summary: Публичные призы
+      responses:
+        '200': { description: Prizes }
+  /api/landing/tracks:
+    get:
+      tags: [Landing]
+      summary: Публичные треки
+      responses:
+        '200': { description: Tracks }
+
+  /api/support/ticket:
+    get:
+      tags: [Support]
+      summary: Получить/создать открытый тикет пользователя
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Ticket and messages }
+  /api/support/message:
+    post:
+      tags: [Support]
+      summary: Отправить сообщение в поддержку
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string, maxLength: 2000 }
+      responses:
+        '200': { description: Message created }
+
+  /api/info:
+    get:
+      tags: [Info]
+      summary: Получить контент инфо-страницы
+      responses:
+        '200': { description: Info content }
+    put:
+      tags: [Info]
+      summary: Обновить контент инфо-страницы (admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content: { type: string }
+      responses:
+        '200': { description: Updated }
+
+  /api/contacts:
+    get:
+      tags: [Contacts]
+      summary: Список контактов
+      responses:
+        '200': { description: Contacts list }
+    post:
+      tags: [Contacts]
+      summary: Создать контакт (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string }
+                label: { type: string }
+                url: { type: string }
+                sort_order: { type: integer }
+      responses:
+        '200': { description: Created }
+  /api/contacts/{id}:
+    put:
+      tags: [Contacts]
+      summary: Обновить контакт
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string }
+                label: { type: string }
+                url: { type: string }
+                sort_order: { type: integer }
+      responses:
+        '200': { description: Updated }
+    delete:
+      tags: [Contacts]
+      summary: Удалить контакт
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: Deleted }
+
+  /api/feedback:
+    post:
+      tags: [Feedback]
+      summary: Отправить отзыв
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category:
+                  type: string
+                  enum: [competitions, site, general]
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                text: { type: string, maxLength: 5000 }
+      responses:
+        '201': { description: Created }
+
+  /api/admin/stats:
+    get: { tags: [Admin], summary: Общая статистика, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+  /api/admin/analytics:
+    get: { tags: [Admin], summary: Аналитика, security: [{ bearerAuth: [] }], responses: { '200': { description: OK } } }
+  /api/admin/feedback:
+    get:
+      tags: [Admin]
+      summary: Список отзывов (moderator/admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string, enum: [competitions, site, general] }
+      responses:
+        '200': { description: OK }
+  /api/admin/feedback/{id}:
+    delete:
+      tags: [Admin]
+      summary: Удалить отзыв
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: Список пользователей
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: participant_category
+          schema: { $ref: '#/components/schemas/ParticipantCategory' }
+        - in: query
+          name: include_staff
+          schema: { type: boolean }
+      responses: { '200': { description: OK } }
+  /api/admin/users/{telegramId}/role:
+    put:
+      tags: [Admin]
+      summary: Изменить роль по telegramId
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: telegramId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [user, moderator, admin] }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Admin]
+      summary: Удалить пользователя по telegramId
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: telegramId
+          required: true
+          schema: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/users/by-id/{userId}/role:
+    put:
+      tags: [Admin]
+      summary: Изменить роль по userId
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [user, moderator, admin] }
+      responses: { '200': { description: OK } }
+  /api/admin/users/by-id/{userId}/participant-category:
+    put:
+      tags: [Admin]
+      summary: Изменить категорию пользователя
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+      responses: { '200': { description: OK } }
+  /api/admin/users/by-id/{userId}/message:
+    post:
+      tags: [Admin]
+      summary: Отправить личное сообщение пользователю через Telegram
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/users/by-id/{userId}:
+    delete:
+      tags: [Admin]
+      summary: Удалить пользователя по userId
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/teams/{id}:
+    delete:
+      tags: [Admin]
+      summary: Удалить команду
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/teams/{id}/case:
+    put:
+      tags: [Admin]
+      summary: Назначить/снять кейс у команды
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                case_id: { type: integer, nullable: true }
+      responses: { '200': { description: OK } }
+  /api/admin/teams/{id}/solution:
+    get:
+      tags: [Admin]
+      summary: Последнее решение команды
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/broadcast:
+    post:
+      tags: [Admin]
+      summary: Массовая рассылка
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/broadcast-settings:
+    get:
+      tags: [Admin]
+      summary: Список настроек рассылок
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Admin]
+      summary: Создать настройку рассылки
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+  /api/admin/broadcast-settings/{id}:
+    get:
+      tags: [Admin]
+      summary: Настройка рассылки по ID
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+    put:
+      tags: [Admin]
+      summary: Обновить настройку рассылки
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Admin]
+      summary: Удалить настройку рассылки
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/cases/list:
+    get:
+      tags: [Admin]
+      summary: Короткий список кейсов
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+  /api/admin/cases/assign-random:
+    post:
+      tags: [Admin]
+      summary: Рандомно распределить кейсы по командам
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+  /api/admin/settings/registration-closed:
+    get:
+      tags: [Admin]
+      summary: Прочитать флаг закрытия регистрации
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    put:
+      tags: [Admin]
+      summary: Обновить флаг закрытия регистрации
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registration_closed: { type: boolean }
+      responses: { '200': { description: OK } }
+  /api/admin/settings/timeline:
+    get:
+      tags: [Admin]
+      summary: Получить таймлайн
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Admin]
+      summary: Создать пункт таймлайна
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+  /api/admin/settings/timeline/reorder:
+    put:
+      tags: [Admin]
+      summary: Переупорядочить таймлайн
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ordered_ids:
+                  type: array
+                  items: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/settings/timeline/{id}:
+    put:
+      tags: [Admin]
+      summary: Обновить пункт таймлайна
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Admin]
+      summary: Удалить пункт таймлайна
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/settings/prizes:
+    get:
+      tags: [Admin]
+      summary: Список призов
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Admin]
+      summary: Создать приз
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+  /api/admin/settings/prizes/{id}:
+    put:
+      tags: [Admin]
+      summary: Обновить приз
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Admin]
+      summary: Удалить приз
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/settings/tracks:
+    get:
+      tags: [Admin]
+      summary: Список треков
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Admin]
+      summary: Создать трек
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+  /api/admin/settings/tracks/{id}:
+    put:
+      tags: [Admin]
+      summary: Обновить трек
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Admin]
+      summary: Удалить трек
+      security: [{ bearerAuth: [] }]
+      parameters: [ { $ref: '#/components/parameters/IdPath' } ]
+      responses: { '200': { description: OK } }
+  /api/admin/support/chats:
+    get:
+      tags: [Admin]
+      summary: Список чатов поддержки
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, closed, all] }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/support/chats/{ticketId}/messages:
+    get:
+      tags: [Admin]
+      summary: Сообщения тикета поддержки
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/support/chats/{ticketId}/reply:
+    post:
+      tags: [Admin]
+      summary: Ответить в тикет
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/support/chats/{ticketId}/status:
+    put:
+      tags: [Admin]
+      summary: Сменить статус тикета
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [open, closed] }
+      responses: { '200': { description: OK } }
+  /api/admin/support/chats/{ticketId}:
+    delete:
+      tags: [Admin]
+      summary: Удалить закрытый тикет
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: ticketId
+          required: true
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/security/top-ips:
+    get:
+      tags: [Admin]
+      summary: Топ IP по активности
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: minutes
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: integer }
+        - in: query
+          name: only_errors
+          schema: { type: boolean }
+      responses: { '200': { description: OK } }
+  /api/admin/security/ip-profile:
+    get:
+      tags: [Admin]
+      summary: Профиль конкретного IP
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: ip
+          required: true
+          schema: { type: string }
+        - in: query
+          name: hours
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/security/user-profile/{userId}:
+    get:
+      tags: [Admin]
+      summary: Security-профиль пользователя
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: hours
+          schema: { type: integer }
+      responses: { '200': { description: OK } }
+  /api/admin/security/events:
+    get:
+      tags: [Admin]
+      summary: Лента security событий
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: hours
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: event_type
+          schema: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/security/bans:
+    get:
+      tags: [Admin]
+      summary: Активные баны IP
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+  /api/admin/security/ban-ip:
+    post:
+      tags: [Admin]
+      summary: Забанить IP вручную
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ip: { type: string }
+                minutes: { type: integer }
+                reason: { type: string }
+      responses: { '200': { description: OK } }
+  /api/admin/security/unban-ip:
+    post:
+      tags: [Admin]
+      summary: Разбанить IP вручную
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ip: { type: string }
+      responses: { '200': { description: OK } }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+  responses:
+    AuthSuccess:
+      description: Успешная авторизация
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              token: { type: string }
+              refresh_token: { type: string }
+              user: { $ref: '#/components/schemas/User' }
+  schemas:
+    StatusOk:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+    ParticipantCategory:
+      type: string
+      enum: [student, school]
+      nullable: true
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        telegram_id: { type: string, nullable: true }
+        vk_id: { type: string, nullable: true }
+        username: { type: string, nullable: true }
+        first_name: { type: string, nullable: true }
+        last_name: { type: string, nullable: true }
+        photo_url: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        role: { type: string, enum: [user, moderator, admin] }
+        participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+        bio: { type: string, nullable: true }
+        skills:
+          type: array
+          items: { type: object }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Case:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        requirements: { type: string, nullable: true }
+        participant_category: { $ref: '#/components/schemas/ParticipantCategory' }
+        links:
+          type: array
+          items: { type: object }
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              url: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Solution:
+      type: object
+      properties:
+        id: { type: integer }
+        team_id: { type: integer }
+        user_id: { type: integer }
+        case_id: { type: integer }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        github_url: { type: string, nullable: true }
+        demo_url: { type: string, nullable: true }
+        presentation_file_path: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [pending, reviewing, approved, rejected]
+        admin_comment: { type: string, nullable: true }
+        score: { type: number, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
