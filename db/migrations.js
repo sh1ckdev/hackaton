@@ -261,6 +261,55 @@ async function ensureColumnsExist() {
   }
 }
 
+async function ensureUsersVkAuthConstraints() {
+  const usersVkIdExists = await pool.query(`
+    SELECT EXISTS (
+      SELECT FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'vk_id'
+    )
+  `);
+  if (!usersVkIdExists.rows[0].exists) return;
+
+  const telegramIdCol = await pool.query(`
+    SELECT is_nullable
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'users'
+      AND column_name = 'telegram_id'
+  `);
+  if (telegramIdCol.rows[0]?.is_nullable === 'NO') {
+    try {
+      await pool.query('ALTER TABLE users ALTER COLUMN telegram_id DROP NOT NULL');
+      logInfo('telegram_id: снят NOT NULL (вход через VK без Telegram)');
+    } catch (e) {
+      logWarn('telegram_id DROP NOT NULL', { error: e.message });
+    }
+  }
+
+  const hasAuthConstraint = await pool.query(`
+    SELECT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conrelid = 'users'::regclass
+        AND conname = 'users_has_auth'
+    )
+  `);
+  if (!hasAuthConstraint.rows[0].exists) {
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD CONSTRAINT users_has_auth
+        CHECK (telegram_id IS NOT NULL OR vk_id IS NOT NULL)
+      `);
+      logInfo('Добавлен constraint users_has_auth');
+    } catch (e) {
+      if (!e.message.includes('already exists')) {
+        logWarn('users_has_auth constraint', { error: e.message });
+      }
+    }
+  }
+}
+
 async function ensureNewFieldsExist() {
   try {
 
@@ -456,24 +505,10 @@ async function ensureNewFieldsExist() {
 
     if (!usersVkIdExists.rows[0].exists) {
       await pool.query('ALTER TABLE users ADD COLUMN vk_id BIGINT UNIQUE');
-      try {
-        await pool.query('ALTER TABLE users ALTER COLUMN telegram_id DROP NOT NULL');
-      } catch (e) {
-        if (!e.message.includes('does not exist') && !e.message.includes('is not nullable')) {
-          logWarn('telegram_id DROP NOT NULL', { error: e.message });
-        }
-      }
-      try {
-        await pool.query('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_has_auth');
-        await pool.query(`
-          ALTER TABLE users ADD CONSTRAINT users_has_auth
-          CHECK (telegram_id IS NOT NULL OR vk_id IS NOT NULL)
-        `);
-      } catch (e) {
-        if (!e.message.includes('already exists')) logWarn('users_has_auth constraint', { error: e.message });
-      }
       logInfo('Добавлено поле vk_id в таблицу users');
     }
+
+    await ensureUsersVkAuthConstraints();
 
     
     const usersUserCodeExists = await pool.query(`

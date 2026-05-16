@@ -27,6 +27,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS institution VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS school_name VARCHAR(255);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS school_class VARCHAR(50);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS vk_id BIGINT UNIQUE;
+ALTER TABLE users ALTER COLUMN telegram_id DROP NOT NULL;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_has_auth;
+ALTER TABLE users ADD CONSTRAINT users_has_auth
+  CHECK (telegram_id IS NOT NULL OR vk_id IS NOT NULL);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS user_code VARCHAR(6) UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS participant_category VARCHAR(20) CHECK (participant_category IN ('student', 'school') OR participant_category IS NULL);
 
